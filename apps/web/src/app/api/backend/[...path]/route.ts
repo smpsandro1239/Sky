@@ -95,7 +95,7 @@ async function proxyRequest(
 ).test(resource);
 
   const allowed =
-    (method === "GET" && (isProfile || isCollection || isFlightCollection || isAccommodationCollection)) ||
+    (method === "GET" && (isProfile || isCollection || isTripItem || isFlightCollection || isAccommodationCollection)) ||
     (method === "POST" && (isCollection || isFlightCollection || isAccommodationCollection)) ||
     ((method === "PATCH" || method === "DELETE") && (isTripItem || isFlightItem || isAccommodationItem));
 
