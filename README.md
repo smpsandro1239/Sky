@@ -8,17 +8,17 @@ A visão de longo prazo é uma plataforma integral de viagens, incluindo descobe
 
 ## Estado do projeto
 
-**Fases 1 e 2 concluídas. Fase 3 em implementação.** A fundação inicial já inclui configuração Docker Compose, serviços PostgreSQL e Redis, uma API FastAPI com endpoint de saúde e testes, e uma interface Next.js inicial. A execução local e a integração contínua ainda precisam de ser validadas.
+**Fases 1 e 2 concluídas. Fase 3 em implementação.** A fundação inicial inclui Docker Compose, PostgreSQL, Redis, API FastAPI, autenticação por token e uma interface Next.js inicial. A API já inclui endpoints de gestão de viagens associados ao utilizador autenticado. A execução local e a integração contínua ainda precisam de ser validadas.
 
 | Área | Estado |
 |---|---|
 | Fase 1 — visão e âmbito do produto | Concluída |
 | Fase 2 — arquitetura, documentação e SKY Design System | Concluída |
 | Docker Compose, PostgreSQL e Redis | Implementação inicial publicada |
-| API FastAPI e endpoint de saúde | Testes de registo, login, JWT e validação de perfil adicionados; execução CI por confirmar |
+| API FastAPI, autenticação e gestão de viagens | Endpoints de registo, login, perfil e CRUD de viagens; testes adicionados; execução CI por confirmar |
 | Frontend Next.js | Estrutura e landing page iniciais publicadas |
 | CI GitHub Actions | Configuração inicial publicada |
-| Pesquisa real de voos e alojamentos | Por implementar |
+| Modelos de viagem, voos e alojamentos | Modelos iniciais publicados; CRUD de viagens implementado; associação/gestão de voos e alojamentos por implementar |
 | Integrações externas | Por selecionar |
 | Reservas e pagamentos | Fase futura |
 
@@ -97,7 +97,7 @@ Requisitos: Docker Desktop com Docker Compose e Git.
 
 Parar os serviços: `docker compose down`. Para remover também os dados locais da base de dados: `docker compose down -v` (ação destrutiva).
 
-> Nota: os campos da página inicial ainda são demonstrativos e estão desativados. Não existe ainda pesquisa real, ligação a fornecedores, autenticação ou fluxo de reserva.
+ > Nota: os campos da página inicial ainda são demonstrativos e estão desativados. A API disponibiliza autenticação e gestão básica de viagens; ainda não existe pesquisa real, ligação a fornecedores ou fluxo de reserva.
 
 ## Documentação
 
@@ -123,7 +123,7 @@ Parar os serviços: `docker compose down`. Para remover também os dados locais 
 
 - [x] **Fase 1 — descoberta e definição do produto.**
 - [x] **Fase 2 — arquitetura e documentação.**
-- [ ] **Fase 3 — fundações do projeto:** estrutura inicial, Docker, API, frontend e CI; falta validação local e estabilização.
+- [ ] **Fase 3 — fundações do projeto:** estrutura inicial, Docker, API, autenticação e CRUD de viagens; falta validação local, CI e estabilização.
 - [ ] **Fase 4 — pesquisa e fornecedores:** APIs e adaptadores para voos e alojamentos.
 - [ ] **Fase 5 — inteligência:** Recommendation Engine e Price Intelligence.
 - [ ] **Fase 6 — experiência de utilização:** interface web e planeador inicial.
