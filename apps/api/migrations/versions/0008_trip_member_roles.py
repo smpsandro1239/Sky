@@ -23,8 +23,16 @@ def upgrade() -> None:
         "trip_invitations",
         sa.Column("role", sa.String(length=20), server_default="viewer", nullable=False),
     )
+    with op.batch_alter_table("trip_participants") as batch_op:
+        batch_op.create_check_constraint("ck_trip_participant_role", "role IN ('editor', 'viewer')")
+    with op.batch_alter_table("trip_invitations") as batch_op:
+        batch_op.create_check_constraint("ck_trip_invitation_role", "role IN ('editor', 'viewer')")
 
 
 def downgrade() -> None:
-    op.drop_column("trip_invitations", "role")
-    op.drop_column("trip_participants", "role")
+    with op.batch_alter_table("trip_invitations") as batch_op:
+        batch_op.drop_constraint("ck_trip_invitation_role", type_="check")
+        batch_op.drop_column("role")
+    with op.batch_alter_table("trip_participants") as batch_op:
+        batch_op.drop_constraint("ck_trip_participant_role", type_="check")
+        batch_op.drop_column("role")
