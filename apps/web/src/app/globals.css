@@ -149,3 +149,17 @@ footer { border-top: 1px solid #1c3043; padding: 25px 28px; text-align: center; 
   .trip-card-actions { align-items: flex-start; flex-direction: column; }
   .trip-action-buttons { width: 100%; }
 }
+
+
+/* Trip budget summary */
+.budget-summary { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, .9fr); gap: 24px; align-items: center; margin: 34px 0 48px; padding: 24px; border: 1px solid var(--line); border-radius: 16px; background: rgba(16,30,48,.72); }
+.budget-summary h2 { margin: 8px 0; font-size: 25px; }
+.budget-description { max-width: 520px; margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
+.budget-total-list { display: grid; gap: 10px; }
+.budget-total { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; background: rgba(7,17,31,.5); }
+.budget-total span { color: var(--muted); font-size: 12px; }
+.budget-total strong { color: var(--accent); font-size: 18px; white-space: nowrap; }
+@media (max-width: 700px) {
+  .budget-summary { grid-template-columns: 1fr; padding: 20px; }
+  .budget-total { align-items: flex-start; flex-direction: column; }
+}
