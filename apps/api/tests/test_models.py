@@ -27,7 +27,9 @@ def test_trip_relationships_are_defined() -> None:
     assert "trip_id" in Base.metadata.tables["trip_participants"].c
     assert Base.metadata.tables["trip_participants"].c.trip_id.foreign_keys
     assert Base.metadata.tables["trip_participants"].c.user_id.foreign_keys
-    assert "uq_trip_invitations_token_hash" in {\n        constraint.name for constraint in Base.metadata.tables["trip_invitations"].constraints\n    }
+    assert "uq_trip_invitations_token_hash" in {
+        constraint.name for constraint in Base.metadata.tables["trip_invitations"].constraints
+    }
     shares = Base.metadata.tables["expense_shares"]
     assert shares.c.expense_id.foreign_keys
     assert shares.c.participant_id.foreign_keys
