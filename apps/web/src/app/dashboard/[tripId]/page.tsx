@@ -116,6 +116,18 @@ export default function TripDetailPage() {
     currencyA.localeCompare(currencyB),
   );
 
+  const expenseBreakdown = expenses.reduce<Record<string, Record<string, number>>>(
+    (totals, expense) => {
+      const amount = Number(expense.amount);
+      if (!Number.isFinite(amount)) return totals;
+      totals[expense.currency] ??= {};
+      totals[expense.currency][expense.category] =
+        (totals[expense.currency][expense.category] ?? 0) + Math.round(amount * 100);
+      return totals;
+    },
+    {},
+  );
+
   useEffect(() => {
     let cancelled = false;
 
@@ -468,6 +480,40 @@ export default function TripDetailPage() {
                 ) : (
                   <p className="notice">Ainda não existem preços registados.</p>
                 )}
+              </section>
+            )}
+
+            {expenses.length > 0 && (
+              <section className="expense-breakdown" aria-labelledby="expense-breakdown-title">
+                <div>
+                  <p className="eyebrow">ANÁLISE DE DESPESAS</p>
+                  <h2 id="expense-breakdown-title">Onde estás a gastar</h2>
+                  <p className="budget-description">Distribuição das despesas manuais por categoria. Cada moeda é analisada separadamente.</p>
+                </div>
+                <div className="expense-breakdown-groups">
+                  {Object.entries(expenseBreakdown).sort(([a], [b]) => a.localeCompare(b)).map(([currency, categories]) => {
+                    const total = Object.values(categories).reduce((sum, amount) => sum + amount, 0);
+                    return (
+                      <div className="expense-breakdown-group" key={currency}>
+                        <div className="expense-breakdown-heading">
+                          <strong>{currency}</strong>
+                          <span>{(total / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}</span>
+                        </div>
+                        {Object.entries(categories).sort(([, a], [, b]) => b - a).map(([category, amount]) => (
+                          <div className="expense-category-row" key={category}>
+                            <div className="expense-category-label">
+                              <span>{expenseCategoryLabels[category] ?? category}</span>
+                              <strong>{(amount / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}</strong>
+                            </div>
+                            <div className="expense-category-track" aria-label={`${Math.round((amount / total) * 100)}% do total em ${currency}`}>
+                              <span style={{ width: `${Math.max(0, Math.min(100, (amount / total) * 100))}%` }} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
               </section>
             )}
 
