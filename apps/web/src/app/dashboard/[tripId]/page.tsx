@@ -35,7 +35,7 @@ type Accommodation = {
   price_currency: string;
 };
 type Expense = { id: string; category: string; description: string; expense_date: string; amount: string; currency: string; paid_by_participant_id: string | null; notes: string | null; };
-type TripBalances = { currencies: { currency: string; participants: { participant_id: string; name: string; paid: string; owed: string; net: string }[] }[] };
+type TripBalances = { currencies: { currency: string; participants: { participant_id: string; name: string; paid: string; owed: string; net: string }[]; suggested_transfers: { from_participant_id: string; from_name: string; to_participant_id: string; to_name: string; amount: string }[] }[] };
 type Participant = { id: string; trip_id: string; name: string; email: string | null; created_at: string };
 type ExpenseShare = { id: string; expense_id: string; participant_id: string; amount: string };
 type ExpenseForm = { category: string; description: string; expense_date: string; amount: string; currency: string; paid_by_participant_id: string; notes: string; };
@@ -242,6 +242,8 @@ export default function TripDetailPage() {
       setParticipants((current) => [...current, data].sort((a, b) => a.name.localeCompare(b.name, "pt-PT")));
       setParticipantName("");
       setParticipantEmail("");
+      const balanceResponse = await fetch(`/api/backend/trips/${tripId}/balances`, { cache: "no-store" });
+      if (balanceResponse.ok) setBalances(await balanceResponse.json());
     } catch {
       setError("Não foi possível contactar a API. Tenta novamente.");
     } finally {
@@ -260,6 +262,8 @@ export default function TripDetailPage() {
         return;
       }
       setParticipants((current) => current.filter((participant) => participant.id !== id));
+      const balanceResponse = await fetch(`/api/backend/trips/${tripId}/balances`, { cache: "no-store" });
+      if (balanceResponse.ok) setBalances(await balanceResponse.json());
     } catch {
       setError("Não foi possível contactar a API. Tenta novamente.");
     }
@@ -398,6 +402,8 @@ export default function TripDetailPage() {
         return;
       }
       setExpenses((current) => current.filter((item) => item.id !== id));
+      const balanceResponse = await fetch(`/api/backend/trips/${tripId}/balances`, { cache: "no-store" });
+      if (balanceResponse.ok) setBalances(await balanceResponse.json());
       if (editingExpenseId === id) {
         setEditingExpenseId(null);
         setExpenseForm(emptyExpense);
@@ -680,6 +686,16 @@ export default function TripDetailPage() {
                         </div>
                       ))}
                     </div>
+                    {group.suggested_transfers.length > 0 && (
+                      <div className="settlement-list">
+                        <h4>Transferências sugeridas</h4>
+                        {group.suggested_transfers.map((transfer, index) => (
+                          <p key={`${transfer.from_participant_id}-${transfer.to_participant_id}-${index}`}>
+                            <strong>{transfer.from_name}</strong> paga <strong>{transfer.amount} {group.currency}</strong> a <strong>{transfer.to_name}</strong>
+                          </p>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </section>
