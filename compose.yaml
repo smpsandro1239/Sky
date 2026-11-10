@@ -23,7 +23,10 @@ services:
   api:
     build: ./apps/api
     environment:
-      SKY_ENV: development
+      SKY_ENV: ${SKY_ENV:-development}
+      SKY_SECRET_KEY: ${SKY_SECRET_KEY:-dev-only-change-this-secret-key}
+      ACCESS_TOKEN_MINUTES: ${ACCESS_TOKEN_MINUTES:-20}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
       DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://sky:change-me-local-only@db:5432/sky}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
     ports: ["${API_PORT:-8000}:8000"]

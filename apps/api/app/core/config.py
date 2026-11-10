@@ -15,7 +15,7 @@ class Settings:
     frontend_url: str = os.getenv("FRONTEND_URL", "http://localhost:3000")
     cors_origins: list[str] = [
         origin.strip()
-        for origin in os.getenv("CORS_ORIGINS", frontend_url if False else "http://localhost:3000").split(",")
+        for origin in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
         if origin.strip()
     ]
     google_client_id: str | None = os.getenv("GOOGLE_CLIENT_ID")
