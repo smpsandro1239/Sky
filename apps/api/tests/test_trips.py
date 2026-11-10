@@ -155,3 +155,28 @@ def test_trip_endpoints_require_authentication(client: TestClient) -> None:
     assert client.post(
         "/api/v1/trips", json={"name": "Sem token", "destination": "Porto"}
     ).status_code == 401
+
+
+def test_trip_rejects_blank_required_fields_and_null_updates(client: TestClient) -> None:
+    token = register_and_login(client, "trip-validation@example.com")
+    headers = auth(token)
+
+    blank = client.post(
+        "/api/v1/trips",
+        headers=headers,
+        json={"name": "   ", "destination": "Lisboa"},
+    )
+    assert blank.status_code == 422
+
+    created = client.post(
+        "/api/v1/trips",
+        headers=headers,
+        json={"name": "Viagem", "destination": "Lisboa"},
+    )
+    assert created.status_code == 201
+    trip_id = created.json()["id"]
+
+    null_name = client.patch(
+        f"/api/v1/trips/{trip_id}", headers=headers, json={"name": None}
+    )
+    assert null_name.status_code == 422
