@@ -720,7 +720,7 @@ export default function TripDetailPage() {
             <div className="trip-list">
               {expenses.length === 0 ? <div className="empty-state"><p>Ainda não existem despesas registadas nesta viagem.</p></div> : expenses.map((item) => (
                 <article className="trip-card" key={item.id}>
-                  <div><h3>{item.description}</h3><p>{expenseCategoryLabels[item.category] ?? item.category} · {new Date(item.expense_date + "T12:00:00").toLocaleDateString("pt-PT")}</p>{item.notes && <p>{item.notes}</p>}</div>
+                  <div><h3>{item.description}</h3><p>{expenseCategoryLabels[item.category] ?? item.category} · {new Date(item.expense_date + "T12:00:00").toLocaleDateString("pt-PT")}</p>{item.paid_by_participant_id && <p>Pago por: {participants.find((participant) => participant.id === item.paid_by_participant_id)?.name ?? "Participante"}</p>}{item.notes && <p>{item.notes}</p>}</div>
                   <div className="trip-card-actions"><strong>{Number(item.amount).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {item.currency}</strong><div className="trip-action-buttons"><button className="edit-button" type="button" onClick={() => editExpense(item)}>Editar</button><button className="delete-button" type="button" onClick={() => void deleteExpense(item.id)}>Eliminar</button></div><button className="secondary-button" type="button" onClick={() => void openExpenseShares(item)}>{activeShareExpenseId === item.id ? "Fechar divisão" : "Dividir despesa"}</button></div>
                   {activeShareExpenseId === item.id && (
                     <form className="expense-share-editor" onSubmit={(event) => void saveExpenseShares(event, item.id)}>
