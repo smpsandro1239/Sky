@@ -25,3 +25,6 @@ class Expense(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     trip: Mapped["Trip"] = relationship(back_populates="expenses")
+    shares: Mapped[list["ExpenseShare"]] = relationship(
+        back_populates="expense", cascade="all, delete-orphan"
+    )
