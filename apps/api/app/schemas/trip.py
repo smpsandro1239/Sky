@@ -85,3 +85,4 @@ class TripResponse(BaseModel):
     budget_amount: Decimal | None
     budget_currency: str
     created_at: datetime
+    role: str = "owner"
