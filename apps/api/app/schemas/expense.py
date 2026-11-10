@@ -21,6 +21,7 @@ class ExpenseCreate(BaseModel):
     expense_date: date
     amount: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
     currency: str = Field(default="EUR", min_length=3, max_length=3)
+    paid_by_participant_id: UUID | None = None
     notes: str | None = Field(default=None, max_length=2000)
 
     @field_validator("category")
@@ -105,5 +106,6 @@ class ExpenseResponse(BaseModel):
     expense_date: date
     amount: Decimal
     currency: str
+    paid_by_participant_id: UUID | None
     notes: str | None
     created_at: datetime
