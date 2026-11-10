@@ -35,6 +35,7 @@ type Accommodation = {
   price_currency: string;
 };
 type Expense = { id: string; category: string; description: string; expense_date: string; amount: string; currency: string; notes: string | null; };
+type Participant = { id: string; trip_id: string; name: string; email: string | null; created_at: string };
 type ExpenseForm = { category: string; description: string; expense_date: string; amount: string; currency: string; notes: string; };
 type FlightForm = {
   provider: string;
@@ -82,6 +83,9 @@ export default function TripDetailPage() {
   const [flights, setFlights] = useState<Flight[]>([]);
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [participantName, setParticipantName] = useState("");
+  const [participantEmail, setParticipantEmail] = useState("");
   const [expenseForm, setExpenseForm] = useState<ExpenseForm>(emptyExpense);
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -133,29 +137,31 @@ export default function TripDetailPage() {
 
     async function loadTrip() {
       try {
-        const [tripResponse, flightResponse, accommodationResponse, expenseResponse] = await Promise.all([
+        const [tripResponse, flightResponse, accommodationResponse, expenseResponse, participantResponse] = await Promise.all([
           fetch(`/api/backend/trips/${tripId}`, { cache: "no-store" }),
           fetch(`/api/backend/trips/${tripId}/flights`, { cache: "no-store" }),
           fetch(`/api/backend/trips/${tripId}/accommodations`, { cache: "no-store" }),
           fetch(`/api/backend/trips/${tripId}/expenses`, { cache: "no-store" }),
+          fetch(`/api/backend/trips/${tripId}/participants`, { cache: "no-store" }),
         ]);
 
         if (cancelled) return;
 
-        if ([tripResponse, flightResponse, accommodationResponse, expenseResponse].some((response) => response.status === 401)) {
+        if ([tripResponse, flightResponse, accommodationResponse, expenseResponse, participantResponse].some((response) => response.status === 401)) {
           router.replace("/login");
           return;
         }
 
-        if (!tripResponse.ok || !flightResponse.ok || !accommodationResponse.ok || !expenseResponse.ok) {
+        if (!tripResponse.ok || !flightResponse.ok || !accommodationResponse.ok || !expenseResponse.ok || !participantResponse.ok) {
           throw new Error("Não foi possível carregar os dados desta viagem.");
         }
 
-        const [tripData, flightData, accommodationData, expenseData] = await Promise.all([
+        const [tripData, flightData, accommodationData, expenseData, participantData] = await Promise.all([
           tripResponse.json(),
           flightResponse.json(),
           accommodationResponse.json(),
           expenseResponse.json(),
+          participantResponse.json(),
         ]);
 
         if (cancelled) return;
@@ -165,6 +171,7 @@ export default function TripDetailPage() {
         setFlights(flightData);
         setAccommodations(accommodationData);
         setExpenses(expenseData);
+        setParticipants(participantData);
       } catch (cause) {
         if (!cancelled) {
           setError(cause instanceof Error ? cause.message : "Ocorreu um erro ao carregar a viagem.");
@@ -206,6 +213,47 @@ export default function TripDetailPage() {
       setError("Não foi possível contactar a API. Tenta novamente.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function addParticipant(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSaving(true);
+    setError("");
+    try {
+      const response = await fetch(`/api/backend/trips/${tripId}/participants`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: participantName.trim(), email: participantEmail.trim() || null }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setError(typeof data.detail === "string" ? data.detail : "Não foi possível adicionar o participante.");
+        return;
+      }
+      setParticipants((current) => [...current, data].sort((a, b) => a.name.localeCompare(b.name, "pt-PT")));
+      setParticipantName("");
+      setParticipantEmail("");
+    } catch {
+      setError("Não foi possível contactar a API. Tenta novamente.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function removeParticipant(id: string) {
+    if (!window.confirm("Queres mesmo remover este participante da viagem?")) return;
+    setError("");
+    try {
+      const response = await fetch(`/api/backend/trips/${tripId}/participants/${id}`, { method: "DELETE" });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        setError(typeof data.detail === "string" ? data.detail : "Não foi possível remover o participante.");
+        return;
+      }
+      setParticipants((current) => current.filter((participant) => participant.id !== id));
+    } catch {
+      setError("Não foi possível contactar a API. Tenta novamente.");
     }
   }
 
@@ -516,6 +564,27 @@ export default function TripDetailPage() {
                 </div>
               </section>
             )}
+
+            <section className="participants-panel" aria-labelledby="participants-title">
+              <div>
+                <p className="eyebrow">VIAGEM EM GRUPO</p>
+                <h2 id="participants-title">Participantes</h2>
+                <p className="budget-description">Adiciona as pessoas que fazem parte desta viagem. Esta lista será utilizada na próxima etapa para dividir despesas.</p>
+              </div>
+              <form className="participant-form" onSubmit={addParticipant}>
+                <label>Nome<input required minLength={2} maxLength={120} value={participantName} onChange={(event) => setParticipantName(event.target.value)} placeholder="Nome do participante" /></label>
+                <label>Email (opcional)<input type="email" maxLength={320} value={participantEmail} onChange={(event) => setParticipantEmail(event.target.value)} placeholder="pessoa@exemplo.com" /></label>
+                <button className="primary-button" type="submit" disabled={saving}>{saving ? "A guardar..." : "Adicionar participante"}</button>
+              </form>
+              <div className="participant-list">
+                {participants.length === 0 ? <p className="notice">Ainda não foram adicionados participantes.</p> : participants.map((participant) => (
+                  <article className="participant-item" key={participant.id}>
+                    <div><strong>{participant.name}</strong>{participant.email && <span>{participant.email}</span>}</div>
+                    <button className="delete-button" type="button" onClick={() => void removeParticipant(participant.id)}>Remover</button>
+                  </article>
+                ))}
+              </div>
+            </section>
 
             <div className="section-heading"><div><p className="eyebrow">GESTÃO FINANCEIRA</p><h2>Despesas</h2></div></div>
             <form className="trip-create-form" onSubmit={saveExpense}>
