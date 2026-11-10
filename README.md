@@ -8,16 +8,17 @@ A visão de longo prazo é uma plataforma integral de viagens, incluindo descobe
 
 ## Estado do projeto
 
-**Estado atual: Fases 1 e 2 concluídas.** A visão do produto, o âmbito inicial, a arquitetura e a documentação técnica de base estão concluídos. A implementação da plataforma é a etapa seguinte. Os serviços Docker, APIs, integrações e interfaces só devem ser considerados disponíveis quando estiverem efetivamente implementados e testados.
+**Fases 1 e 2 concluídas. Fase 3 em implementação.** A fundação inicial já inclui configuração Docker Compose, serviços PostgreSQL e Redis, uma API FastAPI com endpoint de saúde e testes, e uma interface Next.js inicial. A execução local e a integração contínua ainda precisam de ser validadas.
 
 | Área | Estado |
 |---|---|
 | Fase 1 — visão e âmbito do produto | Concluída |
 | Fase 2 — arquitetura, documentação e SKY Design System | Concluída |
-| Arquitetura técnica | Documentada |
-| Documentação técnica inicial | Concluída |
-| Frontend e backend | Por implementar (fase seguinte) |
-| Base de dados e Docker | Por implementar (fase seguinte) |
+| Docker Compose, PostgreSQL e Redis | Implementação inicial publicada |
+| API FastAPI e endpoint de saúde | Implementação inicial publicada; testes por executar |
+| Frontend Next.js | Estrutura e landing page iniciais publicadas |
+| CI GitHub Actions | Configuração inicial publicada |
+| Pesquisa real de voos e alojamentos | Por implementar |
 | Integrações externas | Por selecionar |
 | Reservas e pagamentos | Fase futura |
 
@@ -40,68 +41,63 @@ A visão de longo prazo é uma plataforma integral de viagens, incluindo descobe
 
 A arquitetura deve acomodar a evolução para reservas e pagamentos desde o início, mas estes fluxos não fazem parte do MVP. O SKY não armazenará dados completos de cartões; os pagamentos serão delegados a prestadores especializados.
 
-## Arquitetura tecnológica proposta
+## Arquitetura tecnológica
 
 | Camada | Tecnologia |
 |---|---|
 | Web | Next.js, React, TypeScript |
-| UI e estilos | Tailwind CSS, shadcn/ui |
+| UI e estilos | Tailwind CSS, shadcn/ui (integração planeada) |
 | API | Python, FastAPI, Pydantic |
-| Persistência | PostgreSQL, SQLAlchemy |
-| Cache | Redis |
-| Mapas | MapLibre GL |
-| Gráficos | Recharts |
-| Ícones e tipografia | Lucide, Inter |
-| Animações | Motion |
+| Persistência | PostgreSQL (infraestrutura inicial; modelo por implementar) |
+| Cache | Redis (infraestrutura inicial) |
 | Ambiente | Docker, Docker Compose |
-| Testes | Pytest, HTTPX, Vitest, Playwright |
+| Testes | Pytest, HTTPX; testes frontend e E2E em fases posteriores |
 | CI/CD | GitHub Actions |
 
-As versões serão fixadas num momento próprio, depois de verificar compatibilidade e versões estáveis. A arquitetura inicial será um **monólito modular**, evitando microserviços prematuros.
+A arquitetura inicial será um **monólito modular**, evitando microserviços prematuros. As versões e dependências serão consolidadas através dos ficheiros de configuração e validadas na primeira execução local e CI.
 
-## Estrutura prevista do monorepo
+## Estrutura do monorepo
 
 ```text
 sky/
 ├── apps/
-│   ├── web/
-│   └── api/
-├── packages/
-│   ├── design-tokens/
-│   ├── ui/
-│   └── shared-types/
-├── infrastructure/
-│   ├── docker/
-│   ├── nginx/
-│   └── monitoring/
-├── docs/
-│   ├── architecture/
-│   ├── api/
-│   ├── database/
-│   ├── decisions/
-│   ├── design/
-│   └── security/
-├── scripts/
-├── .github/workflows/
-├── docker-compose.yml
+│   ├── web/                 # Next.js
+│   └── api/                 # FastAPI
+├── packages/                # bibliotecas partilhadas (fases seguintes)
+├── infrastructure/          # infraestrutura adicional (fases seguintes)
+├── docs/                    # documentação técnica
+├── .github/workflows/       # CI
+├── compose.yaml
 ├── .env.example
 └── README.md
 ```
 
-## Design System
+## Executar localmente
 
-Direção: **Premium Travel Tech** — tecnologia moderna, interface elegante, minimalista, acessível e mobile-first.
+Requisitos: Docker Desktop com Docker Compose e Git.
 
-| Token | Cor | Aplicação |
-|---|---|---|
-| Midnight Navy | `#101D35` | Identidade e superfícies escuras |
-| Sky Blue | `#2563EB` | Ações principais |
-| Electric Sky | `#38BDF8` | Destaques e estados ativos |
-| Cloud White | `#F5F7FB` | Fundos claros |
-| Success Green | `#10B981` | Estados positivos |
-| Amber | `#F59E0B` | Avisos |
+1. Clonar o repositório e entrar na pasta:
+   ```powershell
+   git clone https://github.com/smpsandro1239/Sky.git
+   cd Sky
+   ```
+2. Criar o ficheiro de ambiente:
+   ```powershell
+   Copy-Item .env.example .env
+   ```
+3. Construir e iniciar os serviços:
+   ```powershell
+   docker compose up --build -d
+   ```
+4. Consultar os serviços:
+   - Web: http://localhost:3000
+   - API: http://localhost:8000
+   - Documentação API: http://localhost:8000/docs
+   - Health check: http://localhost:8000/api/v1/health
 
-Consultar [SKY Design System](docs/design/SKY_DESIGN_SYSTEM.md).
+Parar os serviços: `docker compose down`. Para remover também os dados locais da base de dados: `docker compose down -v` (ação destrutiva).
+
+> Nota: os campos da página inicial ainda são demonstrativos e estão desativados. Não existe ainda pesquisa real, ligação a fornecedores, autenticação ou fluxo de reserva.
 
 ## Documentação
 
@@ -112,6 +108,7 @@ Consultar [SKY Design System](docs/design/SKY_DESIGN_SYSTEM.md).
 - [Contrato e convenções da API](docs/api/API.md)
 - [Segurança](docs/security/SECURITY.md)
 - [Decisões técnicas](docs/decisions/)
+- [SKY Design System](docs/design/SKY_DESIGN_SYSTEM.md)
 
 ## Princípios do projeto
 
@@ -124,15 +121,11 @@ Consultar [SKY Design System](docs/design/SKY_DESIGN_SYSTEM.md).
 
 ## Roadmap técnico
 
-- [x] **Fase 1 — descoberta e definição do produto:** visão, objetivos, âmbito e funcionalidades prioritárias.
-- [x] **Fase 2 — arquitetura e documentação:** arquitetura, contratos e convenções, segurança, modelo de dados, decisões técnicas e SKY Design System.
-- [ ] **Fase 3 — fundações do projeto:** monorepo, Docker Compose, configuração local e estrutura inicial de frontend e backend.
+- [x] **Fase 1 — descoberta e definição do produto.**
+- [x] **Fase 2 — arquitetura e documentação.**
+- [ ] **Fase 3 — fundações do projeto:** estrutura inicial, Docker, API, frontend e CI; falta validação local e estabilização.
 - [ ] **Fase 4 — pesquisa e fornecedores:** APIs e adaptadores para voos e alojamentos.
 - [ ] **Fase 5 — inteligência:** Recommendation Engine e Price Intelligence.
 - [ ] **Fase 6 — experiência de utilização:** interface web e planeador inicial.
 - [ ] **Fase 7 — qualidade e operação:** testes, CI/CD, observabilidade e preparação para produção.
 - [ ] **Fase futura — transações:** reservas e pagamentos.
-
-## Estado de execução
-
-As Fases 1 e 2 estão concluídas. O repositório está preparado para iniciar a Fase 3: criação da estrutura executável do monorepo e do ambiente Docker. Até essa implementação estar concluída e validada, não devem ser considerados disponíveis comandos de arranque, serviços de aplicação ou integrações.
