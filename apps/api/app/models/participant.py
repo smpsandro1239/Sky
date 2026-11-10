@@ -16,6 +16,7 @@ class TripParticipant(Base):
     trip_id: Mapped[UUID] = mapped_column(
         PG_UUID(as_uuid=True), ForeignKey("trips.id", ondelete="CASCADE"), index=True, nullable=False
     )
+    role: Mapped[str] = mapped_column(String(20), nullable=False, default="viewer", server_default="viewer")
     user_id: Mapped[UUID | None] = mapped_column(
         PG_UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )
