@@ -17,13 +17,13 @@ A visão de longo prazo é uma plataforma integral de viagens. O princípio cent
 | Docker Compose, PostgreSQL e Redis | Base publicada; validação local ainda necessária |
 | API FastAPI e autenticação | Registo, login, perfil e JWT implementados |
 | Gestão de viagens | CRUD implementado e testado na API |
-| Voos e alojamentos | CRUD completo associado a viagens; testes API aprovados na CI |\n| Orçamento por viagem | Limite configurável, moeda, custos de voos/alojamentos e saldo calculado |\n| Despesas por viagem | Registo, edição, eliminação, categorias e integração dos valores no resumo financeiro; CI pendente |
+| Voos e alojamentos | CRUD completo associado a viagens; testes API aprovados na CI |\n| Orçamento por viagem | Limite configurável, moeda, custos de voos/alojamentos e saldo calculado |\n| Despesas por viagem | Registo, edição, eliminação, categorias e integração dos valores no resumo financeiro; testes API e migrações aprovados |
 | Participantes por viagem | Gestão de nomes e emails opcionais, com isolamento por proprietário e remoção; divisão de despesas é a próxima etapa |
 | Frontend — landing page | Publicada |
 | Frontend — registo e login | Implementados com sessão em cookie HttpOnly |
 | Frontend — dashboard | Perfil, listagem, criação, edição e eliminação de viagens integrados com a API |
 | Frontend — planeador de viagem | Página de detalhe com CRUD de voos, alojamentos e despesas via BFF; orçamento e saldo por moeda |
-| CI GitHub Actions | Pipeline configurado para testes API, ESLint e TypeScript; execução das últimas alterações ainda não confirmada |
+| CI GitHub Actions | Pipeline configurado para testes API, ESLint e TypeScript; validação da última versão em curso |
 | Pesquisa externa, recomendações e favoritos | Por implementar |
 | Reservas e pagamentos | Fase futura |
 
