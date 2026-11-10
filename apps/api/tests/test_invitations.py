@@ -1,5 +1,6 @@
 import pytest
-from datetime import datetime, timedelta, timezone\nfrom uuid import UUID
+from datetime import datetime, timedelta, timezone
+from uuid import UUID
 
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, select
