@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
-from app.api.routes.trips import get_user_trip
+from app.api.routes.trips import get_accessible_trip, get_user_trip, require_trip_editor
 from app.models.expense import Expense
 from app.models.expense_share import ExpenseShare
 from app.models.participant import TripParticipant
@@ -36,7 +36,7 @@ def list_participants(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> list[TripParticipant]:
-    trip = get_user_trip(db, trip_id, user.id)
+    trip = get_accessible_trip(db, trip_id, user.id)
     statement = select(TripParticipant).where(
         TripParticipant.trip_id == trip.id
     ).order_by(TripParticipant.created_at, TripParticipant.name)
