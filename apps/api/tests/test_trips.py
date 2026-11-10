@@ -180,3 +180,64 @@ def test_trip_rejects_blank_required_fields_and_null_updates(client: TestClient)
         f"/api/v1/trips/{trip_id}", headers=headers, json={"name": None}
     )
     assert null_name.status_code == 422
+
+
+def test_trip_budget_can_be_created_updated_and_cleared(client: TestClient) -> None:
+    token = register_and_login(client, "budget@example.com")
+    headers = auth(token)
+    created = client.post(
+        "/api/v1/trips",
+        headers=headers,
+        json={
+            "name": "Orçamento",
+            "destination": "Paris",
+            "budget_amount": "1250.50",
+            "budget_currency": "eur",
+        },
+    )
+    assert created.status_code == 201
+    trip = created.json()
+    assert trip["budget_amount"] == "1250.50"
+    assert trip["budget_currency"] == "EUR"
+
+    trip_id = trip["id"]
+    updated = client.patch(
+        f"/api/v1/trips/{trip_id}",
+        headers=headers,
+        json={"budget_amount": "1500.00", "budget_currency": "GBP"},
+    )
+    assert updated.status_code == 200
+    assert updated.json()["budget_amount"] == "1500.00"
+    assert updated.json()["budget_currency"] == "GBP"
+
+    cleared = client.patch(
+        f"/api/v1/trips/{trip_id}",
+        headers=headers,
+        json={"budget_amount": None},
+    )
+    assert cleared.status_code == 200
+    assert cleared.json()["budget_amount"] is None
+
+
+def test_trip_budget_rejects_negative_amount_and_invalid_currency(client: TestClient) -> None:
+    token = register_and_login(client, "invalid-budget@example.com")
+    headers = auth(token)
+
+    negative = client.post(
+        "/api/v1/trips",
+        headers=headers,
+        json={"name": "Orçamento", "destination": "Roma", "budget_amount": "-1"},
+    )
+    assert negative.status_code == 422
+
+    invalid_currency = client.post(
+        "/api/v1/trips",
+        headers=headers,
+        json={
+            "name": "Orçamento",
+            "destination": "Roma",
+            "budget_amount": "100",
+            "budget_currency": "EURO",
+        },
+    )
+    assert invalid_currency.status_code == 422
