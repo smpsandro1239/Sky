@@ -1,20 +1,69 @@
-# API SKY — Convenções e Contrato Inicial
+# API SKY — Contrato inicial
 
 ## Estado
 
-Este documento define convenções e endpoints planeados. A API ainda não está implementada; os exemplos não devem ser interpretados como endpoints operacionais.
+A API FastAPI está implementada parcialmente. Os endpoints de saúde, autenticação e gestão básica de viagens estão publicados. Pesquisa de voos/alojamentos, favoritos, recomendações e alertas continuam por implementar.
 
 ## Base path
 
 `/api/v1`
 
-Formato principal: JSON. A documentação OpenAPI será gerada pela aplicação FastAPI.
+Formato: JSON. A aplicação disponibiliza documentação OpenAPI em `/docs` e ReDoc em `/redoc`.
 
-## Recursos planeados
+## Endpoints implementados
+
+| Método | Caminho | Autenticação | Objetivo |
+|---|---|---|---|
+| GET | `/health` | Não | Verificação de saúde |
+| POST | `/auth/register` | Não | Criar conta |
+| POST | `/auth/login` | Não | Obter token de acesso |
+| GET | `/auth/me` | Bearer | Consultar perfil autenticado |
+| GET | `/trips` | Bearer | Listar as viagens do utilizador |
+| POST | `/trips` | Bearer | Criar viagem |
+| GET | `/trips/{trip_id}` | Bearer | Consultar uma viagem própria |
+| PATCH | `/trips/{trip_id}` | Bearer | Atualizar uma viagem própria |
+| DELETE | `/trips/{trip_id}` | Bearer | Eliminar uma viagem própria |
+
+### Autenticação
+
+O login devolve um access token JWT. Nos endpoints privados, enviar:
+
+```http
+Authorization: Bearer <access_token>
+```
+
+A API valida o token e confirma que a conta existe e está ativa. Os endpoints de viagens aplicam sempre o filtro pelo identificador do utilizador autenticado. Uma viagem pertencente a outra conta é apresentada como não encontrada (404).
+
+### Criar uma viagem
+
+Exemplo de pedido:
+
+```json
+{
+  "name": "Férias de verão",
+  "destination": "Madeira",
+  "start_date": "2027-08-01",
+  "end_date": "2027-08-10",
+  "notes": "Viagem em família"
+}
+```
+
+`name` e `destination` são obrigatórios. As datas e as notas são opcionais. Quando ambas as datas são fornecidas, a data final não pode ser anterior à data inicial.
+
+### Códigos HTTP usados
+
+- `201`: recurso criado.
+- `200`: pedido concluído.
+- `204`: recurso eliminado.
+- `401`: autenticação em falta ou inválida.
+- `404`: viagem inexistente ou não pertencente ao utilizador.
+- `422`: payload inválido.
+- `409`: conflito no registo de conta.
+
+## Endpoints planeados
 
 | Método | Caminho | Objetivo |
 |---|---|---|
-| GET | `/health` | Verificação de saúde |
 | POST | `/search/flights` | Pesquisar voos |
 | POST | `/search/hotels` | Pesquisar alojamento |
 | GET | `/offers/{offer_id}` | Consultar oferta normalizada |
@@ -22,15 +71,13 @@ Formato principal: JSON. A documentação OpenAPI será gerada pela aplicação 
 | GET | `/favorites` | Listar favoritos |
 | POST | `/favorites` | Guardar favorito |
 | DELETE | `/favorites/{favorite_id}` | Remover favorito |
-| GET | `/trips` | Listar viagens |
-| POST | `/trips` | Criar viagem |
 | POST | `/price-alerts` | Criar alerta de preço |
 
-Os caminhos poderão evoluir durante o desenho dos contratos e não estão publicados como serviço.
+Estes endpoints planeados não devem ser interpretados como funcionalidades operacionais.
 
-## Pesquisa
+## Pesquisa — requisitos de validação
 
-Os pedidos de pesquisa deverão validar:
+Os futuros pedidos de pesquisa deverão validar:
 - Origem/destino ou localização.
 - Datas e flexibilidade.
 - Número e composição dos viajantes.
@@ -39,34 +86,6 @@ Os pedidos de pesquisa deverão validar:
 - Limites de paginação.
 
 Não aceitar valores arbitrários sem validação nem confiar em preços calculados pelo cliente.
-
-## Formato de resposta conceptual
-
-```json
-{
-  "data": [],
-  "meta": {
-    "request_id": "uuid",
-    "generated_at": "2026-01-01T12:00:00Z"
-  }
-}
-```
-
-## Erros
-
-Formato conceptual:
-
-```json
-{
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "Os critérios de pesquisa são inválidos.",
-    "request_id": "uuid"
-  }
-}
-```
-
-Não devolver stack traces, segredos ou detalhes internos ao cliente.
 
 ## Segurança e operação
 
