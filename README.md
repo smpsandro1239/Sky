@@ -20,7 +20,7 @@ A visão de longo prazo é uma plataforma integral de viagens. O princípio cent
 | Voos e alojamentos | CRUD completo associado a viagens; testes API aprovados na CI |
 | Frontend — landing page | Publicada |
 | Frontend — registo e login | Implementados com sessão em cookie HttpOnly |
-| Frontend — dashboard | Perfil e listagem de viagens integrados com a API |
+| Frontend — dashboard | Perfil, listagem, criação e eliminação de viagens integrados com a API |
 | CI GitHub Actions | Execuções recentes aprovadas na base API; validação das últimas alterações frontend em curso |
 | Pesquisa externa, recomendações e favoritos | Por implementar |
 | Reservas e pagamentos | Fase futura |
@@ -131,7 +131,7 @@ Parar: `docker compose down`. Para remover também os dados da base de dados: `d
 
 - [x] **Fase 1 — descoberta e definição do produto.**
 - [x] **Fase 2 — arquitetura e documentação.**
-- [ ] **Fase 3 — fundações:** Docker, API, autenticação, CRUD de viagens, voos e alojamentos; frontend com registo, login e dashboard inicial. Falta validação funcional Docker/E2E.
+- [ ] **Fase 3 — fundações:** Docker, API, autenticação, CRUD de viagens, voos e alojamentos; frontend com registo, login, dashboard e criação/eliminação de viagens. Falta validação funcional Docker/E2E.
 - [ ] **Fase 4 — gestão frontend:** criar, editar e eliminar viagens, voos e alojamentos a partir da interface.
 - [ ] **Fase 5 — pesquisa e fornecedores:** APIs oficiais e adaptadores para voos e alojamentos.
 - [ ] **Fase 6 — inteligência:** Recommendation Engine e Price Intelligence.
