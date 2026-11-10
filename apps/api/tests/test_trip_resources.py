@@ -142,3 +142,122 @@ def test_trip_resources_reject_invalid_data_and_other_users(client: TestClient) 
     assert client.get(
         f"/api/v1/trips/{trip_id}/accommodations", headers=headers(other_token)
     ).status_code == 404
+
+
+def test_user_can_update_and_delete_flight(client: TestClient) -> None:
+    token, trip_id = create_trip(client, "flight-update@example.com")
+    created = client.post(
+        f"/api/v1/trips/{trip_id}/flights",
+        headers=headers(token),
+        json={
+            "origin": "OPO",
+            "destination": "LIS",
+            "departure_at": "2027-08-01T08:00:00Z",
+            "price_amount": "50.00",
+        },
+    )
+    assert created.status_code == 201
+    flight_id = created.json()["id"]
+
+    updated = client.patch(
+        f"/api/v1/trips/{trip_id}/flights/{flight_id}",
+        headers=headers(token),
+        json={"price_amount": "75.50", "destination": "FNC"},
+    )
+    assert updated.status_code == 200
+    assert updated.json()["destination"] == "FNC"
+    assert updated.json()["price_amount"] == "75.50"
+
+    invalid = client.patch(
+        f"/api/v1/trips/{trip_id}/flights/{flight_id}",
+        headers=headers(token),
+        json={"destination": "OPO"},
+    )
+    assert invalid.status_code == 422
+
+    deleted = client.delete(
+        f"/api/v1/trips/{trip_id}/flights/{flight_id}", headers=headers(token)
+    )
+    assert deleted.status_code == 204
+    assert client.get(
+        f"/api/v1/trips/{trip_id}/flights", headers=headers(token)
+    ).json() == []
+
+
+def test_user_can_update_and_delete_accommodation(client: TestClient) -> None:
+    token, trip_id = create_trip(client, "accommodation-update@example.com")
+    created = client.post(
+        f"/api/v1/trips/{trip_id}/accommodations",
+        headers=headers(token),
+        json={
+            "name": "Hotel Central",
+            "location": "Lisboa",
+            "check_in": "2027-08-01",
+            "check_out": "2027-08-05",
+            "price_amount": "400.00",
+        },
+    )
+    assert created.status_code == 201
+    accommodation_id = created.json()["id"]
+
+    updated = client.patch(
+        f"/api/v1/trips/{trip_id}/accommodations/{accommodation_id}",
+        headers=headers(token),
+        json={"name": "Hotel Renovado", "check_out": "2027-08-06"},
+    )
+    assert updated.status_code == 200
+    assert updated.json()["name"] == "Hotel Renovado"
+    assert updated.json()["check_out"] == "2027-08-06"
+
+    invalid = client.patch(
+        f"/api/v1/trips/{trip_id}/accommodations/{accommodation_id}",
+        headers=headers(token),
+        json={"check_out": "2027-07-31"},
+    )
+    assert invalid.status_code == 422
+
+    deleted = client.delete(
+        f"/api/v1/trips/{trip_id}/accommodations/{accommodation_id}",
+        headers=headers(token),
+    )
+    assert deleted.status_code == 204
+    assert client.get(
+        f"/api/v1/trips/{trip_id}/accommodations", headers=headers(token)
+    ).json() == []
+
+
+def test_user_cannot_modify_another_users_flight_or_accommodation(
+    client: TestClient,
+) -> None:
+    owner_token, trip_id = create_trip(client, "resource-edit-owner@example.com")
+    other_token, _ = create_trip(client, "resource-edit-other@example.com")
+
+    flight = client.post(
+        f"/api/v1/trips/{trip_id}/flights",
+        headers=headers(owner_token),
+        json={
+            "origin": "OPO",
+            "destination": "LIS",
+            "departure_at": "2027-08-01T08:00:00Z",
+        },
+    ).json()
+    accommodation = client.post(
+        f"/api/v1/trips/{trip_id}/accommodations",
+        headers=headers(owner_token),
+        json={
+            "name": "Hotel Central",
+            "location": "Lisboa",
+            "check_in": "2027-08-01",
+            "check_out": "2027-08-05",
+        },
+    ).json()
+
+    assert client.patch(
+        f"/api/v1/trips/{trip_id}/flights/{flight['id']}",
+        headers=headers(other_token),
+        json={"destination": "FNC"},
+    ).status_code == 404
+    assert client.delete(
+        f"/api/v1/trips/{trip_id}/accommodations/{accommodation['id']}",
+        headers=headers(other_token),
+    ).status_code == 404
