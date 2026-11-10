@@ -182,3 +182,71 @@ def test_invitation_token_is_stored_as_hash_and_expiration_is_enforced(client: T
         json={"token": invitation["invitation_token"]},
     )
     assert response.status_code == 410
+
+
+def test_member_roles_control_trip_visibility_and_writes(client: TestClient) -> None:
+    owner = register_and_login(client, "owner-roles@example.com")
+    editor = register_and_login(client, "editor-roles@example.com")
+    viewer = register_and_login(client, "viewer-roles@example.com")
+    trip_id = create_trip(client, owner)
+
+    editor_invite = client.post(
+        f"/api/v1/trips/{trip_id}/invitations",
+        headers=auth(owner),
+        json={"email": "editor-roles@example.com", "role": "editor"},
+    )
+    viewer_invite = client.post(
+        f"/api/v1/trips/{trip_id}/invitations",
+        headers=auth(owner),
+        json={"email": "viewer-roles@example.com", "role": "viewer"},
+    )
+    assert editor_invite.status_code == 201
+    assert viewer_invite.status_code == 201
+
+    for token, invitation in [
+        (editor, editor_invite.json()),
+        (viewer, viewer_invite.json()),
+    ]:
+        accepted = client.post(
+            "/api/v1/invitations/accept",
+            headers=auth(token),
+            json={"token": invitation["invitation_token"]},
+        )
+        assert accepted.status_code == 200
+
+    for token, expected_role in [(owner, "owner"), (editor, "editor"), (viewer, "viewer")]:
+        access = client.get(f"/api/v1/trips/{trip_id}/access", headers=auth(token))
+        assert access.status_code == 200
+        assert access.json()["role"] == expected_role
+        listed = client.get("/api/v1/trips", headers=auth(token))
+        assert any(item["id"] == trip_id for item in listed.json())
+        trip = client.get(f"/api/v1/trips/{trip_id}", headers=auth(token))
+        assert trip.status_code == 200
+        assert trip.json()["role"] == expected_role
+
+    flight_payload = {
+        "origin": "OPO",
+        "destination": "FNC",
+        "departure_at": "2027-08-01T08:00:00Z",
+        "arrival_at": "2027-08-01T10:00:00Z",
+        "price_amount": "100.00",
+        "price_currency": "EUR",
+    }
+    flights_url = f"/api/v1/trips/{trip_id}/flights"
+    assert client.get(flights_url, headers=auth(viewer)).status_code == 200
+    assert client.post(flights_url, headers=auth(viewer), json=flight_payload).status_code == 403
+    assert client.post(flights_url, headers=auth(editor), json=flight_payload).status_code == 201
+
+    # Editors can manage trip content but cannot administer membership.
+    assert client.post(
+        f"/api/v1/trips/{trip_id}/participants",
+        headers=auth(editor),
+        json={"name": "Outro participante"},
+    ).status_code == 404
+    # A viewer cannot alter trip metadata or delete the trip.
+    assert client.patch(
+        f"/api/v1/trips/{trip_id}",
+        headers=auth(viewer),
+        json={"name": "Alteração não autorizada"},
+    ).status_code == 404
+    assert client.delete(f"/api/v1/trips/{trip_id}", headers=auth(editor)).status_code == 404
