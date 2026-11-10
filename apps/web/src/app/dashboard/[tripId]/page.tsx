@@ -92,7 +92,7 @@ export default function TripDetailPage() {
       if (item.price_amount !== null) {
         const amount = Number(item.price_amount);
         if (Number.isFinite(amount)) {
-          totals[item.price_currency] = (totals[item.price_currency] ?? 0) + amount;
+          totals[item.price_currency] = (totals[item.price_currency] ?? 0) + Math.round(amount * 100);
         }
       }
       return totals;
@@ -352,11 +352,11 @@ export default function TripDetailPage() {
                 <button className="primary-button trip-submit" type="submit" disabled={saving}>{saving ? "A guardar..." : "Guardar orçamento"}</button>
                 {trip.budget_amount !== null && (() => {
                   const spent = totalsByCurrency[trip.budget_currency] ?? 0;
-                  const remaining = Number(trip.budget_amount) - spent;
+                  const remaining = Math.round(Number(trip.budget_amount) * 100) - spent;
                   return (
                     <p className={remaining >= 0 ? "budget-balance" : "budget-balance budget-over"} role="status">
                       {remaining >= 0 ? "Saldo disponível: " : "Orçamento excedido em: "}
-                      {Math.abs(remaining).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {trip.budget_currency}
+                      {(Math.abs(remaining) / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {trip.budget_currency}
                     </p>
                   );
                 })()}
@@ -374,7 +374,7 @@ export default function TripDetailPage() {
                     {currencyTotals.map(([currency, amount]) => (
                       <div className="budget-total" key={currency}>
                         <span>Total registado em {currency}</span>
-                        <strong>{amount.toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}</strong>
+                        <strong>{(amount / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}</strong>
                       </div>
                     ))}
                   </div>
