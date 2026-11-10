@@ -2,26 +2,30 @@
 
 **Discover better. Compare smarter. Travel further.**
 
-O SKY é uma plataforma inteligente de descoberta, comparação e planeamento de viagens. O objetivo é ajudar cada cliente a encontrar as melhores opções de voos e alojamentos, considerando preço total, qualidade, localização, conveniência, condições e preferências pessoais.
+O SKY é uma plataforma inteligente de descoberta, comparação e planeamento de viagens. O objetivo é ajudar cada cliente a encontrar opções de voos e alojamentos considerando preço total, qualidade, localização, conveniência, condições e preferências pessoais.
 
-A visão de longo prazo é uma plataforma integral de viagens, incluindo descoberta, comparação, planeamento, reservas, pagamentos e acompanhamento pós-compra. O princípio central é recomendar a melhor opção para cada pessoa — não apenas a mais barata — e explicar os motivos da recomendação.
+A visão de longo prazo é uma plataforma integral de viagens. O princípio central é recomendar a melhor opção para cada pessoa — não apenas a mais barata — e explicar os motivos da recomendação.
 
 ## Estado do projeto
 
-**Fases 1 e 2 concluídas. Fase 3 em implementação.** A fundação inclui Docker Compose, PostgreSQL, Redis, API FastAPI, autenticação JWT, migrações Alembic e uma interface Next.js inicial. A API disponibiliza CRUD de viagens e endpoints para associar/listar voos e alojamentos por viagem. Os testes estão publicados, mas a execução local, CI e integração frontend ainda precisam de validação.
+**Fases 1 e 2 concluídas. Fase 3 em implementação.** A base técnica inclui Docker Compose, PostgreSQL, Redis, API FastAPI, autenticação JWT, migrações Alembic e frontend Next.js.
 
 | Área | Estado |
 |---|---|
 | Fase 1 — visão e âmbito do produto | Concluída |
-| Fase 2 — arquitetura, documentação e SKY Design System | Concluída |
-| Docker Compose, PostgreSQL e Redis | Implementação inicial publicada; API aplica migrações Alembic no arranque |
-| API FastAPI e autenticação | Registo, login, perfil e JWT publicados |
-| Gestão de viagens | CRUD publicado; isolamento por utilizador e validações cobertos por testes |
-| Voos e alojamentos nas viagens | Criação e listagem associadas a uma viagem; pesquisa externa ainda não implementada |
-| Frontend Next.js | Estrutura e landing page iniciais publicadas; integração com a API pendente |
-| CI GitHub Actions | Configuração inicial publicada; execução bem-sucedida por confirmar |
-| Integrações externas | Por selecionar |
+| Fase 2 — arquitetura e documentação | Concluída |
+| Docker Compose, PostgreSQL e Redis | Base publicada; validação local ainda necessária |
+| API FastAPI e autenticação | Registo, login, perfil e JWT implementados |
+| Gestão de viagens | CRUD implementado e testado na API |
+| Voos e alojamentos | CRUD completo associado a viagens; testes API aprovados na CI |
+| Frontend — landing page | Publicada |
+| Frontend — registo e login | Implementados com sessão em cookie HttpOnly |
+| Frontend — dashboard | Perfil e listagem de viagens integrados com a API |
+| CI GitHub Actions | Execuções recentes aprovadas na base API; validação das últimas alterações frontend em curso |
+| Pesquisa externa, recomendações e favoritos | Por implementar |
 | Reservas e pagamentos | Fase futura |
+
+As páginas de autenticação e dashboard estão implementadas no código, mas ainda precisam de validação funcional em Docker e testes de ponta a ponta. Não existe ainda pesquisa real de inventário nem ligação a fornecedores externos.
 
 ## Produto e roadmap funcional
 
@@ -40,30 +44,30 @@ A visão de longo prazo é uma plataforma integral de viagens, incluindo descobe
 - Pagamentos, cancelamentos e reembolsos.
 - Notificações e acompanhamento pós-compra.
 
-A arquitetura deve acomodar a evolução para reservas e pagamentos desde o início, mas estes fluxos não fazem parte do MVP. O SKY não armazenará dados completos de cartões; os pagamentos serão delegados a prestadores especializados.
+A arquitetura será preparada para esta evolução, mas reservas e pagamentos não fazem parte da entrega atual. O SKY não armazenará dados completos de cartões; os pagamentos serão delegados a prestadores especializados.
 
 ## Arquitetura tecnológica
 
 | Camada | Tecnologia |
 |---|---|
 | Web | Next.js, React, TypeScript |
-| UI e estilos | Tailwind CSS, shadcn/ui (integração planeada) |
+| UI e estilos | CSS modular global; sistema de design em evolução |
 | API | Python, FastAPI, Pydantic |
-| Persistência | PostgreSQL, SQLAlchemy e migrações Alembic |
-| Cache | Redis (infraestrutura inicial) |
+| Persistência | PostgreSQL, SQLAlchemy e Alembic |
+| Cache | Redis |
 | Ambiente | Docker, Docker Compose |
-| Testes | Pytest, HTTPX; testes frontend e E2E em fases posteriores |
+| Testes | Pytest, HTTPX; testes frontend e E2E por acrescentar |
 | CI/CD | GitHub Actions |
 
-A arquitetura inicial será um **monólito modular**, evitando microserviços prematuros. As versões e dependências serão consolidadas através dos ficheiros de configuração e validadas na primeira execução local e CI.
+A arquitetura inicial é um **monólito modular**, evitando microserviços prematuros. O frontend usa rotas Next.js do lado do servidor como BFF para encaminhar pedidos autenticados à API. O token JWT é guardado num cookie HttpOnly, não acessível a JavaScript no browser.
 
 ## Estrutura do monorepo
 
 ```text
 sky/
 ├── apps/
-│   ├── web/                 # Next.js
-│   └── api/                 # FastAPI
+│   ├── web/                 # Next.js — landing, auth e dashboard
+│   └── api/                 # FastAPI — domínio e API
 ├── packages/                # bibliotecas partilhadas (fases seguintes)
 ├── infrastructure/          # infraestrutura adicional (fases seguintes)
 ├── docs/                    # documentação técnica
@@ -77,7 +81,7 @@ sky/
 
 Requisitos: Docker Desktop com Docker Compose e Git.
 
-1. Clonar o repositório e entrar na pasta:
+1. Clonar o repositório:
    ```powershell
    git clone https://github.com/smpsandro1239/Sky.git
    cd Sky
@@ -86,19 +90,22 @@ Requisitos: Docker Desktop com Docker Compose e Git.
    ```powershell
    Copy-Item .env.example .env
    ```
-3. Construir e iniciar os serviços:
+3. Construir e iniciar:
    ```powershell
    docker compose up --build -d
    ```
-4. A API aplica as migrações da base de dados automaticamente antes de iniciar. Consultar os serviços:
+4. Endereços locais:
    - Web: http://localhost:3000
+   - Login: http://localhost:3000/login
+   - Registo: http://localhost:3000/register
+   - Dashboard: http://localhost:3000/dashboard
    - API: http://localhost:8000
-   - Documentação API: http://localhost:8000/docs
+   - OpenAPI: http://localhost:8000/docs
    - Health check: http://localhost:8000/api/v1/health
 
-Parar os serviços: `docker compose down`. Para remover também os dados locais da base de dados: `docker compose down -v` (ação destrutiva).
+Parar: `docker compose down`. Para remover também os dados da base de dados: `docker compose down -v` (ação destrutiva).
 
-> Nota: os campos da página inicial ainda são demonstrativos e estão desativados. A API disponibiliza autenticação, gestão de viagens e registo/listagem de voos e alojamentos associados; ainda não existe pesquisa real, ligação a fornecedores ou fluxo de reserva.
+**Nota:** a criação de conta, login e leitura do dashboard estão implementados. A criação/edição de viagens diretamente no dashboard, pesquisa real de voos/hotéis e reservas ainda não estão disponíveis.
 
 ## Documentação
 
@@ -106,7 +113,7 @@ Parar os serviços: `docker compose down`. Para remover também os dados locais 
 - [Arquitetura frontend](docs/architecture/FRONTEND.md)
 - [Arquitetura backend](docs/architecture/BACKEND.md)
 - [Modelo de dados](docs/database/DATABASE.md)
-- [Contrato e convenções da API](docs/api/API.md)
+- [Contrato da API](docs/api/API.md)
 - [Segurança](docs/security/SECURITY.md)
 - [Decisões técnicas](docs/decisions/)
 - [SKY Design System](docs/design/SKY_DESIGN_SYSTEM.md)
@@ -118,15 +125,15 @@ Parar os serviços: `docker compose down`. Para remover também os dados locais 
 3. APIs oficiais e fornecedores autorizados; evitar dependência de scraping.
 4. Separação entre domínio de negócio e fornecedores externos.
 5. Privacidade, segurança, acessibilidade e testes desde o início.
-6. Distinguir sempre funcionalidades planeadas das implementadas.
+6. Distinguir sempre funcionalidades implementadas, validadas e planeadas.
 
 ## Roadmap técnico
 
 - [x] **Fase 1 — descoberta e definição do produto.**
 - [x] **Fase 2 — arquitetura e documentação.**
-- [ ] **Fase 3 — fundações do projeto:** Docker, API, autenticação, CRUD de viagens e associação inicial de voos/alojamentos publicados; falta validação local, CI e integração frontend.
-- [ ] **Fase 4 — pesquisa e fornecedores:** APIs e adaptadores para voos e alojamentos.
-- [ ] **Fase 5 — inteligência:** Recommendation Engine e Price Intelligence.
-- [ ] **Fase 6 — experiência de utilização:** interface web e planeador inicial.
-- [ ] **Fase 7 — qualidade e operação:** testes, CI/CD, observabilidade e preparação para produção.
+- [ ] **Fase 3 — fundações:** Docker, API, autenticação, CRUD de viagens, voos e alojamentos; frontend com registo, login e dashboard inicial. Falta validação funcional Docker/E2E.
+- [ ] **Fase 4 — gestão frontend:** criar, editar e eliminar viagens, voos e alojamentos a partir da interface.
+- [ ] **Fase 5 — pesquisa e fornecedores:** APIs oficiais e adaptadores para voos e alojamentos.
+- [ ] **Fase 6 — inteligência:** Recommendation Engine e Price Intelligence.
+- [ ] **Fase 7 — qualidade e operação:** testes E2E, CI/CD, observabilidade e preparação para produção.
 - [ ] **Fase futura — transações:** reservas e pagamentos.
