@@ -19,12 +19,12 @@ A visão de longo prazo é uma plataforma integral de viagens. O princípio cent
 | Gestão de viagens | CRUD implementado e testado na API |
 | Voos e alojamentos | CRUD completo associado a viagens; testes API aprovados na CI |\n| Orçamento por viagem | Limite configurável, moeda, custos de voos/alojamentos e saldo calculado |\n| Despesas por viagem | Registo, edição, eliminação, categorias e integração dos valores no resumo financeiro; testes API e migrações aprovados |
 | Participantes por viagem | Gestão de participantes por viagem, com isolamento por proprietário |
-| Divisão de despesas | Partilhas personalizadas por participante, divisão igualitária no frontend, validação exacta dos totais e proteção contra remoção de participantes com partilhas ativas |
+| Divisão de despesas e acerto de contas | Registo do pagador, partilhas por participante, cálculo de saldos por moeda e sugestões de transferências para liquidar dívidas |
 | Frontend — landing page | Publicada |
 | Frontend — registo e login | Implementados com sessão em cookie HttpOnly |
 | Frontend — dashboard | Perfil, listagem, criação, edição e eliminação de viagens integrados com a API |
 | Frontend — planeador de viagem | Página de detalhe com CRUD de voos, alojamentos e despesas via BFF; orçamento e saldo por moeda |
-| CI GitHub Actions | Pipeline configurado para testes API, validação de migrações, ESLint e TypeScript; validação das alterações de partilha em curso |
+| CI GitHub Actions | Pipeline configurado para testes API, validação de migrações, ESLint e TypeScript; consultar a execução mais recente no GitHub Actions |
 | Pesquisa externa, recomendações e favoritos | Por implementar |
 | Reservas e pagamentos | Fase futura |
 
