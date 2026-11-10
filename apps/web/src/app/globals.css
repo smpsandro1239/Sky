@@ -126,3 +126,16 @@ footer { border-top: 1px solid #1c3043; padding: 25px 28px; text-align: center; 
   .trip-form-grid { grid-template-columns: 1fr; }
   .trip-card-actions { width: 100%; justify-content: space-between; flex-wrap: wrap; }
 }
+
+.trip-form-actions, .trip-action-buttons { display: flex; align-items: center; gap: 10px; }
+.secondary-button, .edit-button {
+  border: 1px solid #38536b; border-radius: 8px; padding: 10px 13px;
+  background: transparent; color: #dbe5f0; cursor: pointer; font-size: 12px; font-weight: 700;
+}
+.secondary-button:hover, .edit-button:hover { border-color: var(--accent); color: var(--accent); }
+.secondary-button:disabled { opacity: .6; cursor: wait; }
+.edit-button { border-color: var(--accent); color: var(--accent); }
+@media (max-width: 700px) {
+  .trip-form-actions { align-items: stretch; flex-direction: column; }
+  .trip-form-actions button { width: 100%; }
+}
