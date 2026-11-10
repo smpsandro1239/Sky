@@ -11,7 +11,7 @@ export default function HomePage() {
     <main>
       <header className="topbar">
         <Link className="brand" href="/">SKY<span>.</span></Link>
-        <span className="tagline">A tua próxima viagem começa aqui</span>
+        <nav className="nav-actions"><span className="tagline">A tua próxima viagem começa aqui</span><Link className="nav-link" href="/login">Entrar</Link><Link className="nav-link primary" href="/register">Criar conta</Link></nav>
       </header>
       <section className="hero">
         <p className="eyebrow">DESCOBRE · COMPARA · VIAJA</p>
