@@ -37,6 +37,8 @@ type Accommodation = {
 type Expense = { id: string; category: string; description: string; expense_date: string; amount: string; currency: string; paid_by_participant_id: string | null; notes: string | null; };
 type TripBalances = { currencies: { currency: string; participants: { participant_id: string; name: string; paid: string; owed: string; net: string }[]; suggested_transfers: { from_participant_id: string; from_name: string; to_participant_id: string; to_name: string; amount: string }[] }[] };
 type Participant = { id: string; trip_id: string; name: string; email: string | null; created_at: string };
+type Invitation = { id: string; trip_id: string; email: string; status: string; expires_at: string; accepted_at: string | null; created_at: string };
+type CreatedInvitation = Invitation & { invitation_token: string };
 type ExpenseShare = { id: string; expense_id: string; participant_id: string; amount: string };
 type ExpenseForm = { category: string; description: string; expense_date: string; amount: string; currency: string; paid_by_participant_id: string; notes: string; };
 type FlightForm = {
@@ -89,6 +91,9 @@ export default function TripDetailPage() {
   const [balances, setBalances] = useState<TripBalances>({ currencies: [] });
   const [participantName, setParticipantName] = useState("");
   const [participantEmail, setParticipantEmail] = useState("");
+  const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [invitationEmail, setInvitationEmail] = useState("");
+  const [invitationLink, setInvitationLink] = useState("");
   const [activeShareExpenseId, setActiveShareExpenseId] = useState<string | null>(null);
   const [shareDraft, setShareDraft] = useState<Record<string, string>>({});
   const [expenseForm, setExpenseForm] = useState<ExpenseForm>(emptyExpense);
@@ -142,7 +147,7 @@ export default function TripDetailPage() {
 
     async function loadTrip() {
       try {
-        const [tripResponse, flightResponse, accommodationResponse, expenseResponse, participantResponse, balanceResponse] = await Promise.all([
+        const [tripResponse, flightResponse, accommodationResponse, expenseResponse, participantResponse, balanceResponse, invitationResponse] = await Promise.all([
           fetch(`/api/backend/trips/${tripId}`, { cache: "no-store" }),
           fetch(`/api/backend/trips/${tripId}/flights`, { cache: "no-store" }),
           fetch(`/api/backend/trips/${tripId}/accommodations`, { cache: "no-store" }),
@@ -153,16 +158,16 @@ export default function TripDetailPage() {
 
         if (cancelled) return;
 
-        if ([tripResponse, flightResponse, accommodationResponse, expenseResponse, participantResponse, balanceResponse].some((response) => response.status === 401)) {
+        if ([tripResponse, flightResponse, accommodationResponse, expenseResponse, participantResponse, balanceResponse, invitationResponse].some((response) => response.status === 401)) {
           router.replace("/login");
           return;
         }
 
-        if (!tripResponse.ok || !flightResponse.ok || !accommodationResponse.ok || !expenseResponse.ok || !participantResponse.ok || !balanceResponse.ok) {
+        if (!tripResponse.ok || !flightResponse.ok || !accommodationResponse.ok || !expenseResponse.ok || !participantResponse.ok || !balanceResponse.ok || !invitationResponse.ok) {
           throw new Error("Não foi possível carregar os dados desta viagem.");
         }
 
-        const [tripData, flightData, accommodationData, expenseData, participantData, balanceData] = await Promise.all([
+        const [tripData, flightData, accommodationData, expenseData, participantData, balanceData, invitationData] = await Promise.all([
           tripResponse.json(),
           flightResponse.json(),
           accommodationResponse.json(),
@@ -179,7 +184,7 @@ export default function TripDetailPage() {
         setAccommodations(accommodationData);
         setExpenses(expenseData);
         setParticipants(participantData);
-        setBalances(balanceData);
+        setBalances(balanceData);\n        setInvitations(invitationData);
       } catch (cause) {
         if (!cancelled) {
           setError(cause instanceof Error ? cause.message : "Ocorreu um erro ao carregar a viagem.");
@@ -248,6 +253,50 @@ export default function TripDetailPage() {
       setError("Não foi possível contactar a API. Tenta novamente.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function createInvitation(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSaving(true);
+    setError("");
+    setInvitationLink("");
+    try {
+      const response = await fetch(`/api/backend/trips/${tripId}/invitations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: invitationEmail.trim().toLowerCase() }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setError(typeof data.detail === "string" ? data.detail : "Não foi possível criar o convite.");
+        return;
+      }
+      const created = data as CreatedInvitation;
+      setInvitations((current) => [created, ...current]);
+      setInvitationLink(`${window.location.origin}/invitations/accept?token=${encodeURIComponent(created.invitation_token)}`);
+      setInvitationEmail("");
+    } catch {
+      setError("Não foi possível contactar a API. Tenta novamente.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function revokeInvitation(id: string) {
+    if (!window.confirm("Queres mesmo revogar este convite?")) return;
+    setError("");
+    try {
+      const response = await fetch(`/api/backend/trips/${tripId}/invitations/${id}`, { method: "DELETE" });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        setError(typeof data.detail === "string" ? data.detail : "Não foi possível revogar o convite.");
+        return;
+      }
+      setInvitations((current) => current.map((item) => item.id === id ? { ...item, status: "revoked" } : item));
+      setInvitationLink("");
+    } catch {
+      setError("Não foi possível contactar a API. Tenta novamente.");
     }
   }
 
@@ -661,6 +710,29 @@ export default function TripDetailPage() {
                 <label>Email (opcional)<input type="email" maxLength={320} value={participantEmail} onChange={(event) => setParticipantEmail(event.target.value)} placeholder="pessoa@exemplo.com" /></label>
                 <button className="primary-button" type="submit" disabled={saving}>{saving ? "A guardar..." : "Adicionar participante"}</button>
               </form>
+              <form className="participant-form" onSubmit={createInvitation}>
+                <label>Convidar por email<input type="email" required maxLength={320} value={invitationEmail} onChange={(event) => setInvitationEmail(event.target.value)} placeholder="pessoa@exemplo.com" /></label>
+                <button className="secondary-button" type="submit" disabled={saving}>{saving ? "A criar..." : "Criar convite"}</button>
+              </form>
+              {invitationLink && (
+                <div className="invitation-link-panel">
+                  <strong>Convite criado</strong>
+                  <p>O link é apresentado apenas agora. Copia-o e envia-o à pessoa convidada; o SKY ainda não envia emails automaticamente.</p>
+                  <input readOnly value={invitationLink} aria-label="Link do convite" />
+                  <button className="secondary-button" type="button" onClick={() => void navigator.clipboard.writeText(invitationLink)}>Copiar link</button>
+                </div>
+              )}
+              {invitations.length > 0 && (
+                <div className="invitation-list">
+                  <h3>Convites</h3>
+                  {invitations.map((invitation) => (
+                    <article className="participant-item" key={invitation.id}>
+                      <div><strong>{invitation.email}</strong><span>{invitation.status === "pending" ? "Pendente" : invitation.status === "accepted" ? "Aceite" : invitation.status === "expired" ? "Expirado" : "Revogado"} · expira {new Date(invitation.expires_at).toLocaleDateString("pt-PT")}</span></div>
+                      {invitation.status === "pending" && <button className="delete-button" type="button" onClick={() => void revokeInvitation(invitation.id)}>Revogar</button>}
+                    </article>
+                  ))}
+                </div>
+              )}
               <div className="participant-list">
                 {participants.length === 0 ? <p className="notice">Ainda não foram adicionados participantes.</p> : participants.map((participant) => (
                   <article className="participant-item" key={participant.id}>
