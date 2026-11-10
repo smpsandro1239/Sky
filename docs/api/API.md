@@ -20,7 +20,7 @@ Formato: JSON. A aplicação disponibiliza documentação OpenAPI em `/docs` e R
 | GET | `/auth/me` | Bearer | Consultar perfil autenticado |
 | GET | `/trips` | Bearer | Listar as viagens do utilizador |
 | POST | `/trips` | Bearer | Criar viagem |
-| GET | `/trips/{trip_id}` | Bearer | Consultar uma viagem própria |
+| GET | `/trips/{trip_id}` | Bearer | Consultar uma viagem própria ou partilhada, incluindo o papel do utilizador |\n| GET | `/trips/{trip_id}/access` | Bearer | Consultar o papel do utilizador na viagem (owner, editor ou viewer) |
 | PATCH | `/trips/{trip_id}` | Bearer | Atualizar uma viagem própria |
 | DELETE | `/trips/{trip_id}` | Bearer | Eliminar uma viagem própria |
 | GET | `/trips/{trip_id}/flights` | Bearer | Listar voos associados à viagem |
@@ -54,17 +54,17 @@ O login devolve um access token JWT. Nos endpoints privados, enviar:
 Authorization: Bearer <access_token>
 ```
 
-A API valida o token e confirma que a conta existe e está ativa. Cada operação sobre voos, alojamentos, despesas, participantes e partilhas valida primeiro a propriedade da viagem e depois a associação do recurso à própria viagem. Recursos de outra conta ou pertencentes a outra viagem não são expostos (404).
+A API valida o token e confirma que a conta existe e está ativa. As viagens podem ser partilhadas com contas registadas. O proprietário tem controlo total; editores podem consultar e alterar voos, alojamentos, despesas, partilhas e balanços; leitores só podem consultar. Apenas o proprietário pode alterar os metadados e orçamento da viagem, gerir participantes e gerir convites. A API valida o papel em cada operação; viagens não partilhadas continuam ocultas (404) e tentativas de escrita por leitores devolvem 403.
 
 ### Convites para participantes
 
 O proprietário da viagem pode criar um convite através de `POST /trips/{trip_id}/invitations`:
 
 ```json
-{ "email": "pessoa@example.com" }
+{ "email": "pessoa@example.com", "role": "viewer" }
 ```
 
-A resposta inclui `invitation_token` uma única vez. O token é gerado aleatoriamente, só o respetivo hash SHA-256 é guardado na base de dados e o convite expira ao fim de 7 dias. A listagem nunca devolve o token. O link de aceitação deve ser partilhado apenas com o destinatário.
+O campo `role` aceita `viewer` (predefinição) ou `editor`. A resposta inclui `invitation_token` uma única vez. O token é gerado aleatoriamente, só o respetivo hash SHA-256 é guardado na base de dados e o convite expira ao fim de 7 dias. A listagem nunca devolve o token. O link de aceitação deve ser partilhado apenas com o destinatário.
 
 A pessoa convidada tem de iniciar sessão com o mesmo endereço de email e enviar `POST /invitations/accept`:
 
@@ -74,7 +74,7 @@ A pessoa convidada tem de iniciar sessão com o mesmo endereço de email e envia
 
 A aceitação associa a conta ao participante existente com o mesmo email ou cria um participante novo. Os tokens são de utilização única. Convites pendentes podem ser revogados pelo proprietário. Convites expirados, revogados ou já aceites não podem ser reutilizados.
 
-**Limitação atual:** o SKY ainda não envia emails automaticamente. O frontend permite copiar o link para o proprietário o partilhar por um canal externo. A associação à viagem não concede acesso de leitura/escrita aos dados da viagem através da API: a autorização de recursos continua reservada ao proprietário até ser implementado um modelo de permissões por membro.
+**Limitação atual:** o SKY ainda não envia emails automaticamente. O frontend permite copiar o link para o proprietário o partilhar por um canal externo. A aceitação associa a conta à viagem com o papel definido pelo proprietário. O papel é aplicado na API e validado em cada operação. Os papéis permitidos são `editor` e `viewer`; o proprietário é sempre o dono original da viagem e não pode ser substituído por um convite.
 
 ### Criar uma viagem
 
