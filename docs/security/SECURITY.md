@@ -2,23 +2,32 @@
 
 ## Objetivo
 
-Definir uma linha de base de segurança e privacidade para o desenvolvimento do SKY. Este documento é uma política de conceção; não certifica que os controlos estejam implementados.
+Definir a linha de base de segurança e documentar os controlos já implementados. Este documento não representa uma auditoria nem uma certificação de segurança.
 
 ## Gestão de segredos
 
-- Nunca guardar chaves, passwords, tokens ou credenciais no Git.
-- Fornecer apenas um `.env.example` com nomes e valores fictícios.
+- Não guardar chaves, passwords, tokens ou credenciais reais no Git.
+- Utilizar `.env.example` apenas com valores demonstrativos.
 - Utilizar variáveis de ambiente ou um gestor de segredos nos ambientes implantados.
 - Rodar credenciais em caso de exposição.
-- Restringir permissões das credenciais por ambiente e finalidade.
+- Restringir permissões por ambiente e finalidade.
 
-## Autenticação e autorização
+## Autenticação e autorização — estado atual
 
-- Adotar um mecanismo de autenticação mantido e revisto.
-- Aplicar autorização no servidor, por recurso e proprietário.
-- Proteger operações administrativas com permissões específicas.
-- Definir expiração, revogação e rotação de sessões/tokens.
-- Não confiar em verificações feitas apenas no frontend.
+- A API emite JWT após autenticação bem-sucedida.
+- Os endpoints privados validam o token e confirmam que o utilizador existe e está ativo.
+- As operações de viagens, voos e alojamentos verificam a propriedade do recurso.
+- O frontend usa Route Handlers Next.js como BFF.
+- O JWT é guardado num cookie `HttpOnly`, `SameSite=Lax`, com `Secure` em produção e expiração limitada ao tempo de vida do token.
+- O token não é exposto ao JavaScript do browser nem guardado em localStorage.
+- O endpoint BFF de leitura tem uma allowlist dos recursos autorizados.
+
+Pendências antes de produção:
+- Testes de integração e E2E do ciclo completo de autenticação.
+- Estratégia de revogação/rotação de sessões e refresh tokens.
+- Rate limiting e proteção contra tentativas automatizadas de login.
+- Revisão de CSRF para operações mutáveis e política de origem.
+- Política de recuperação de conta e verificação de email.
 
 ## Dados pessoais
 
@@ -26,7 +35,7 @@ Definir uma linha de base de segurança e privacidade para o desenvolvimento do 
 - Definir finalidade, retenção e eliminação.
 - Limitar acesso interno por necessidade.
 - Evitar dados pessoais em logs, métricas e mensagens de erro.
-- Disponibilizar processos para pedidos de acesso, correção e apagamento, conforme obrigações legais aplicáveis.
+- Implementar processos para direitos dos titulares conforme obrigações legais.
 
 ## Pagamentos futuros
 
@@ -35,16 +44,16 @@ Definir uma linha de base de segurança e privacidade para o desenvolvimento do 
 - Validar assinaturas dos webhooks.
 - Deduplicar eventos e aplicar idempotência.
 - Manter auditoria e reconciliação de estados.
-- Avaliar obrigações PCI DSS e requisitos legais com o prestador e especialistas competentes.
+- Avaliar PCI DSS e requisitos legais com prestador e especialistas competentes.
 
 ## Segurança da API
 
 - HTTPS em ambientes expostos.
 - Validação estrita de entrada.
-- Proteção contra abuso e rate limiting.
+- Rate limiting e limites de tamanho.
 - CORS com origens permitidas explicitamente.
-- Timeouts e limites de tamanho.
-- Proteção contra SSRF ao integrar serviços externos.
+- Timeouts para fornecedores externos.
+- Proteção contra SSRF nas integrações.
 - Não expor erros internos nem documentação sensível em produção sem decisão explícita.
 
 ## Dependências e cadeia de fornecimento
@@ -64,7 +73,7 @@ Definir uma linha de base de segurança e privacidade para o desenvolvimento do 
 
 ## Conformidade
 
-A implementação deverá ser avaliada face ao RGPD e legislação aplicável na UE, incluindo bases legais, transparência, direitos dos titulares, contratos com subcontratantes e transferências internacionais quando existam.
+A implementação deverá ser avaliada face ao RGPD e legislação aplicável na UE, incluindo bases legais, transparência, direitos dos titulares, contratos com subcontratantes e transferências internacionais.
 
 ## Processo de resposta a incidentes
 
@@ -72,4 +81,4 @@ Documentar deteção, contenção, análise, recuperação, comunicação e liç
 
 ## Estado
 
-Baseline de segurança planeada. Os controlos precisam de ser implementados, testados e auditados.
+Existem controlos iniciais de autenticação, autorização e gestão de sessão via cookie HttpOnly. A solução ainda não foi auditada nem está pronta para produção.
