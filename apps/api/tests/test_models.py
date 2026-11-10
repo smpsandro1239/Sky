@@ -12,6 +12,7 @@ def test_initial_models_are_registered() -> None:
         "trip_expenses",
         "trip_participants",
         "expense_shares",
+        "trip_invitations",
     }
 
 
@@ -25,6 +26,8 @@ def test_trip_relationships_are_defined() -> None:
     assert Base.metadata.tables["trip_expenses"].c.paid_by_participant_id.foreign_keys
     assert "trip_id" in Base.metadata.tables["trip_participants"].c
     assert Base.metadata.tables["trip_participants"].c.trip_id.foreign_keys
+    assert Base.metadata.tables["trip_participants"].c.user_id.foreign_keys
+    assert Base.metadata.tables["trip_invitations"].c.token_hash.unique
     shares = Base.metadata.tables["expense_shares"]
     assert shares.c.expense_id.foreign_keys
     assert shares.c.participant_id.foreign_keys
