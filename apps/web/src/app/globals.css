@@ -304,3 +304,48 @@ footer { border-top: 1px solid #1c3043; padding: 25px 28px; text-align: center; 
   .expense-share-editor { padding: 14px; }
   .expense-share-fields { grid-template-columns: 1fr 1fr; }
 }
+
+/* Group expense balances and settlement suggestions */
+.balances-panel {
+  display: grid;
+  gap: 18px;
+  margin: 28px 0 38px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(16, 30, 48, .72);
+}
+.balances-panel h2 { margin: 8px 0; font-size: 25px; }
+.balance-currency { display: grid; gap: 12px; }
+.balance-currency > h3 { margin: 0; color: var(--accent); font-size: 15px; }
+.balance-list { display: grid; gap: 8px; }
+.balance-row {
+  display: grid;
+  grid-template-columns: minmax(100px, .8fr) minmax(150px, 1.2fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(7, 17, 31, .45);
+}
+.balance-row strong { font-size: 13px; }
+.balance-row span { color: var(--muted); font-size: 12px; }
+.balance-row b { font-size: 12px; text-align: right; }
+.balance-positive { color: #6ee7b7; }
+.balance-negative { color: #fca5a5; }
+.settlement-list {
+  display: grid;
+  gap: 8px;
+  padding: 15px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.settlement-list h4 { margin: 0; font-size: 13px; }
+.settlement-list p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
+.settlement-list p strong { color: var(--text); }
+@media (max-width: 700px) {
+  .balances-panel { padding: 18px; }
+  .balance-row { grid-template-columns: 1fr; gap: 5px; }
+  .balance-row b { text-align: left; }
+}
