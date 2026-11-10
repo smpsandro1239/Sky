@@ -466,7 +466,7 @@ export default function TripDetailPage() {
                 <div>
                   <p className="eyebrow">ORÇAMENTO</p>
                   <h2 id="budget-summary-title">Resumo de custos</h2>
-                  <p className="budget-description">Soma dos preços de voos e alojamentos e das despesas registadas. Os valores são apresentados separadamente por moeda.</p>
+                  <p className="budget-description">Soma dos preços de voos e alojamentos e das despesas registadas. Os valores são apresentados separadamente por moeda. Regista em Despesas apenas custos adicionais, para não duplicares valores de voos ou alojamentos já introduzidos.</p>
                 </div>
                 {currencyTotals.length > 0 ? (
                   <div className="budget-total-list">
