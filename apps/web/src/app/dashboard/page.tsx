@@ -26,6 +26,7 @@ export default function DashboardPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [notes, setNotes] = useState("");
+  const [editingTripId, setEditingTripId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -64,14 +65,16 @@ export default function DashboardPage() {
     return () => { active = false; };
   }, [router]);
 
-  async function handleCreateTrip(event: FormEvent<HTMLFormElement>) {
+  async function handleSaveTrip(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     setSaving(true);
 
     try {
-      const response = await fetch("/api/backend/trips", {
-        method: "POST",
+      const response = await fetch(
+        editingTripId ? `/api/backend/trips/${editingTripId}` : "/api/backend/trips",
+        {
+        method: editingTripId ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: tripName,
@@ -87,7 +90,10 @@ export default function DashboardPage() {
         return;
       }
 
-      setTrips((current) => [data, ...current]);
+      setTrips((current) => editingTripId
+        ? current.map((trip) => trip.id === editingTripId ? data : trip)
+        : [data, ...current]);
+      setEditingTripId(null);
       setTripName("");
       setDestination("");
       setStartDate("");
@@ -98,6 +104,27 @@ export default function DashboardPage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  function editTrip(trip: Trip) {
+    setEditingTripId(trip.id);
+    setTripName(trip.name);
+    setDestination(trip.destination);
+    setStartDate(trip.start_date ?? "");
+    setEndDate(trip.end_date ?? "");
+    setNotes(trip.notes ?? "");
+    setError("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function cancelEdit() {
+    setEditingTripId(null);
+    setTripName("");
+    setDestination("");
+    setStartDate("");
+    setEndDate("");
+    setNotes("");
+    setError("");
   }
 
   async function deleteTrip(tripId: string) {
@@ -141,8 +168,8 @@ export default function DashboardPage() {
 
         <div className="section-heading"><div><p className="eyebrow">PLANEAMENTO</p><h2>As minhas viagens</h2></div></div>
         {error && <p className="form-error" role="alert">{error}</p>}
-        <form className="trip-create-form" onSubmit={handleCreateTrip}>
-          <h3>Criar uma viagem</h3>
+        <form className="trip-create-form" onSubmit={handleSaveTrip}>
+          <h3>{editingTripId ? "Editar viagem" : "Criar uma viagem"}</h3>
           <div className="trip-form-grid">
             <label>Nome da viagem<input required minLength={2} maxLength={160} value={tripName} onChange={(event) => setTripName(event.target.value)} placeholder="Ex.: Férias de verão" /></label>
             <label>Destino<input required minLength={2} maxLength={160} value={destination} onChange={(event) => setDestination(event.target.value)} placeholder="Ex.: Madeira" /></label>
@@ -150,7 +177,10 @@ export default function DashboardPage() {
             <label>Data de regresso<input type="date" min={startDate || undefined} value={endDate} onChange={(event) => setEndDate(event.target.value)} /></label>
           </div>
           <label className="notes-field">Notas (opcional)<textarea rows={3} maxLength={10000} value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="O que queres organizar nesta viagem?" /></label>
-          <button className="primary-button trip-submit" type="submit" disabled={saving || loading}>{saving ? "A guardar..." : "Guardar viagem"}</button>
+          <div className="trip-form-actions">
+            <button className="primary-button trip-submit" type="submit" disabled={saving || loading}>{saving ? "A guardar..." : editingTripId ? "Guardar alterações" : "Guardar viagem"}</button>
+            {editingTripId && <button className="secondary-button" type="button" onClick={cancelEdit} disabled={saving}>Cancelar</button>}
+          </div>
         </form>
 
         {loading && <p className="notice">A carregar a tua área pessoal...</p>}
@@ -167,7 +197,10 @@ export default function DashboardPage() {
                 <div><h3>{trip.name}</h3><p>{trip.destination}</p></div>
                 <div className="trip-card-actions">
                   <span>{trip.start_date ?? "Data por definir"}{trip.end_date ? ` — ${trip.end_date}` : ""}</span>
-                  <button className="delete-button" type="button" onClick={() => deleteTrip(trip.id)}>Eliminar</button>
+                  <div className="trip-action-buttons">
+                    <button className="edit-button" type="button" onClick={() => editTrip(trip)}>Editar</button>
+                    <button className="delete-button" type="button" onClick={() => deleteTrip(trip.id)}>Eliminar</button>
+                  </div>
                 </div>
               </article>
             ))}
