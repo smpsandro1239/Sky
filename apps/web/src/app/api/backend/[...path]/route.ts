@@ -18,11 +18,13 @@ async function proxyRequest(
   const isFlightItem = new RegExp("^trips/" + UUID_PATTERN + "/flights/" + UUID_PATTERN + "$").test(resource);
   const isAccommodationCollection = new RegExp("^trips/" + UUID_PATTERN + "/accommodations$").test(resource);
   const isAccommodationItem = new RegExp("^trips/" + UUID_PATTERN + "/accommodations/" + UUID_PATTERN + "$").test(resource);
+  const isExpenseCollection = new RegExp("^trips/" + UUID_PATTERN + "/expenses$").test(resource);
+  const isExpenseItem = new RegExp("^trips/" + UUID_PATTERN + "/expenses/" + UUID_PATTERN + "$").test(resource);
 
   const allowed =
-    (method === "GET" && (isProfile || isCollection || isTripItem || isFlightCollection || isAccommodationCollection)) ||
-    (method === "POST" && (isCollection || isFlightCollection || isAccommodationCollection)) ||
-    ((method === "PATCH" || method === "DELETE") && (isTripItem || isFlightItem || isAccommodationItem));
+    (method === "GET" && (isProfile || isCollection || isTripItem || isFlightCollection || isAccommodationCollection || isExpenseCollection)) ||
+    (method === "POST" && (isCollection || isFlightCollection || isAccommodationCollection || isExpenseCollection)) ||
+    ((method === "PATCH" || method === "DELETE") && (isTripItem || isFlightItem || isAccommodationItem || isExpenseItem));
 
   if (!allowed) {
     return NextResponse.json({ detail: "Recurso ou operação não permitido." }, { status: 404 });
