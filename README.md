@@ -20,8 +20,9 @@ A visão de longo prazo é uma plataforma integral de viagens. O princípio cent
 | Voos e alojamentos | CRUD completo associado a viagens; testes API aprovados na CI |
 | Frontend — landing page | Publicada |
 | Frontend — registo e login | Implementados com sessão em cookie HttpOnly |
-| Frontend — dashboard | Perfil, listagem, criação e eliminação de viagens integrados com a API |
-| CI GitHub Actions | Execuções recentes aprovadas na base API; validação das últimas alterações frontend em curso |
+| Frontend — dashboard | Perfil, listagem, criação, edição e eliminação de viagens integrados com a API |
+| Frontend — planeador de viagem | Página de detalhe com CRUD de voos e alojamentos via BFF |
+| CI GitHub Actions | Pipeline configurado para testes API, ESLint e TypeScript; execução das últimas alterações ainda não confirmada |
 | Pesquisa externa, recomendações e favoritos | Por implementar |
 | Reservas e pagamentos | Fase futura |
 
@@ -105,7 +106,7 @@ Requisitos: Docker Desktop com Docker Compose e Git.
 
 Parar: `docker compose down`. Para remover também os dados da base de dados: `docker compose down -v` (ação destrutiva).
 
-**Nota:** a criação de conta, login e gestão básica de viagens (listar, criar, editar e eliminar) estão implementados no dashboard. A validação funcional ponta a ponta em Docker/browser, a pesquisa real de voos/hotéis e as reservas ainda não estão disponíveis.
+**Nota:** o dashboard permite gerir viagens e a página de detalhe permite registar, editar e eliminar voos e alojamentos associados. Estas operações usam a API através do BFF autenticado. A validação funcional ponta a ponta em Docker/browser e a execução CI das últimas alterações ainda não estão confirmadas. A pesquisa de inventário real e as reservas não estão implementadas.
 
 ## Documentação
 
@@ -131,8 +132,8 @@ Parar: `docker compose down`. Para remover também os dados da base de dados: `d
 
 - [x] **Fase 1 — descoberta e definição do produto.**
 - [x] **Fase 2 — arquitetura e documentação.**
-- [ ] **Fase 3 — fundações:** Docker, API, autenticação, CRUD de viagens, voos e alojamentos; frontend com registo, login, dashboard e criação/eliminação de viagens. Falta validação funcional Docker/E2E.
-- [ ] **Fase 4 — gestão frontend:** edição de viagens integrada no dashboard; gestão frontend de voos e alojamentos ainda por implementar.
+- [ ] **Fase 3 — fundações:** Docker, API, autenticação e CRUD de viagens, voos e alojamentos; base funcional publicada. Falta validação funcional Docker/E2E.
+- [x] **Fase 4 — gestão frontend (primeira entrega):** gestão de viagens, voos e alojamentos integrada no dashboard/planeador através do BFF. Falta validação E2E e refinamento de UX.
 - [ ] **Fase 5 — pesquisa e fornecedores:** APIs oficiais e adaptadores para voos e alojamentos.
 - [ ] **Fase 6 — inteligência:** Recommendation Engine e Price Intelligence.
 - [ ] **Fase 7 — qualidade e operação:** testes E2E, CI/CD, observabilidade e preparação para produção.
