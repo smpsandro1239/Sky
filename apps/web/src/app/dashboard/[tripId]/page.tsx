@@ -449,12 +449,12 @@ export default function TripDetailPage() {
                 })()}
               </form>
             </section>
-            {(flights.length > 0 || accommodations.length > 0) && (
+            {(flights.length > 0 || accommodations.length > 0 || expenses.length > 0) && (
               <section className="budget-summary" aria-labelledby="budget-summary-title">
                 <div>
                   <p className="eyebrow">ORÇAMENTO</p>
                   <h2 id="budget-summary-title">Resumo de custos</h2>
-                  <p className="budget-description">Soma dos preços registados para voos e alojamentos. Os valores são apresentados separadamente por moeda.</p>
+                  <p className="budget-description">Soma dos preços de voos e alojamentos e das despesas registadas. Os valores são apresentados separadamente por moeda.</p>
                 </div>
                 {currencyTotals.length > 0 ? (
                   <div className="budget-total-list">
