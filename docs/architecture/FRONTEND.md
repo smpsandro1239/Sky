@@ -40,7 +40,7 @@ Após login bem-sucedido:
 4. O browser não recebe o JWT no corpo da resposta nem o guarda em localStorage.
 5. Os pedidos autenticados permitidos passam pelo handler `/api/backend/*`, que lê o cookie no servidor e encaminha o Bearer token para a API.
 
-O handler backend tem uma allowlist explícita: GET em `auth/me` e `trips`, POST em `trips` e PATCH/DELETE apenas em `trips/{uuid}`. O dashboard já permite listar, criar e eliminar viagens. A edição de viagens e as operações frontend sobre voos/alojamentos ainda não estão expostas.
+O handler backend tem uma allowlist explícita: GET em `auth/me` e `trips`, POST em `trips` e PATCH/DELETE apenas em `trips/{uuid}`. O dashboard permite listar, criar, editar e eliminar viagens. As operações frontend sobre voos/alojamentos ainda não estão expostas.
 
 ## Estado e dados
 
@@ -68,4 +68,4 @@ A CI executa ESLint e TypeScript. Testes de componentes, integração BFF e Play
 
 ## Estado
 
-Landing page, registo, login e dashboard implementados. O dashboard permite listar, criar e eliminar viagens através do BFF e da API. A validação de ponta a ponta em Docker e browser continua pendente.
+Landing page, registo, login e dashboard implementados. O dashboard permite listar, criar, editar e eliminar viagens através do BFF e da API. A edição usa PATCH no BFF, que encaminha o pedido autenticado através do cookie HttpOnly. A validação de ponta a ponta em Docker e browser continua pendente.
