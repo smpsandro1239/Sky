@@ -48,7 +48,7 @@ A arquitetura deve acomodar a evolução para reservas e pagamentos desde o iní
 | Web | Next.js, React, TypeScript |
 | UI e estilos | Tailwind CSS, shadcn/ui (integração planeada) |
 | API | Python, FastAPI, Pydantic |
-| Persistência | PostgreSQL (infraestrutura inicial; modelo por implementar) |
+| Persistência | PostgreSQL, SQLAlchemy e migrações Alembic (esquema inicial publicado) |
 | Cache | Redis (infraestrutura inicial) |
 | Ambiente | Docker, Docker Compose |
 | Testes | Pytest, HTTPX; testes frontend e E2E em fases posteriores |
