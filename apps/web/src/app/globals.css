@@ -349,3 +349,12 @@ footer { border-top: 1px solid #1c3043; padding: 25px 28px; text-align: center; 
   .balance-row { grid-template-columns: 1fr; gap: 5px; }
   .balance-row b { text-align: left; }
 }
+
+
+/* Trip invitations */
+.invitation-link-panel, .invitation-list { margin-top: 22px; padding: 18px; border: 1px solid var(--line); border-radius: 12px; background: rgba(9,22,37,.7); }
+.invitation-link-panel { display: grid; gap: 12px; }
+.invitation-link-panel p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.invitation-link-panel input { width: 100%; min-width: 0; padding: 12px; border: 1px solid #30465b; border-radius: 8px; background: #07111f; color: var(--text); }
+.invitation-list h3 { margin: 0 0 12px; font-size: 15px; }
+.invitation-success { padding: 12px 14px; border: 1px solid #397b70; border-radius: 9px; color: #a9eee0; background: rgba(57,123,112,.13); font-size: 13px; line-height: 1.5; }
