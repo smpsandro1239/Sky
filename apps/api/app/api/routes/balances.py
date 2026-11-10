@@ -61,5 +61,34 @@ def get_trip_balances(
                 "owed": str(values["owed"].quantize(Decimal("0.01"))),
                 "net": str(net.quantize(Decimal("0.01"))),
             })
-        result.append({"currency": currency, "participants": rows})
+        creditors = [
+            {"id": UUID(row["participant_id"]), "name": row["name"], "cents": int(Decimal(row["net"]) * 100)}
+            for row in rows if Decimal(row["net"]) > 0
+        ]
+        debtors = [
+            {"id": UUID(row["participant_id"]), "name": row["name"], "cents": int(abs(Decimal(row["net"])) * 100)}
+            for row in rows if Decimal(row["net"]) < 0
+        ]
+        settlements = []
+        creditor_index = 0
+        debtor_index = 0
+        while creditor_index < len(creditors) and debtor_index < len(debtors):
+            creditor = creditors[creditor_index]
+            debtor = debtors[debtor_index]
+            cents = min(creditor["cents"], debtor["cents"])
+            if cents > 0:
+                settlements.append({
+                    "from_participant_id": str(debtor["id"]),
+                    "from_name": debtor["name"],
+                    "to_participant_id": str(creditor["id"]),
+                    "to_name": creditor["name"],
+                    "amount": f"{cents // 100}.{cents % 100:02d}",
+                })
+                creditor["cents"] -= cents
+                debtor["cents"] -= cents
+            if creditor["cents"] == 0:
+                creditor_index += 1
+            if debtor["cents"] == 0:
+                debtor_index += 1
+        result.append({"currency": currency, "participants": rows, "suggested_transfers": settlements})
     return {"currencies": result}
