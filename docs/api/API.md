@@ -2,7 +2,7 @@
 
 ## Estado
 
-A API FastAPI disponibiliza saúde, autenticação, gestão de viagens e operações CRUD de voos e alojamentos associados a viagens. Pesquisa externa, favoritos, recomendações e alertas continuam por implementar. A execução da CI e dos testes deve ser consultada no GitHub Actions.
+A API FastAPI disponibiliza saúde, autenticação, gestão de viagens, voos, alojamentos, despesas, participantes e partilhas de despesas. Pesquisa externa, favoritos, recomendações e alertas continuam por implementar. A execução da CI e dos testes deve ser consultada no GitHub Actions.
 
 ## Base path
 
@@ -31,6 +31,15 @@ Formato: JSON. A aplicação disponibiliza documentação OpenAPI em `/docs` e R
 | POST | `/trips/{trip_id}/accommodations` | Bearer | Associar um alojamento |
 | PATCH | `/trips/{trip_id}/accommodations/{accommodation_id}` | Bearer | Atualizar um alojamento |
 | DELETE | `/trips/{trip_id}/accommodations/{accommodation_id}` | Bearer | Eliminar um alojamento |
+| GET | `/trips/{trip_id}/expenses` | Bearer | Listar despesas da viagem |
+| POST | `/trips/{trip_id}/expenses` | Bearer | Registar despesa |
+| PATCH | `/trips/{trip_id}/expenses/{expense_id}` | Bearer | Atualizar despesa; rejeita alterações que invalidem partilhas existentes |
+| DELETE | `/trips/{trip_id}/expenses/{expense_id}` | Bearer | Eliminar despesa e respetivas partilhas |
+| GET | `/trips/{trip_id}/participants` | Bearer | Listar participantes |
+| POST | `/trips/{trip_id}/participants` | Bearer | Adicionar participante |
+| DELETE | `/trips/{trip_id}/participants/{participant_id}` | Bearer | Remover participante sem partilhas ativas |
+| GET | `/trips/{trip_id}/expenses/{expense_id}/shares` | Bearer | Consultar divisão da despesa |
+| PATCH | `/trips/{trip_id}/expenses/{expense_id}/shares` | Bearer | Substituir a divisão da despesa (lista de partes); lista vazia limpa a divisão |
 
 ### Autenticação e autorização
 
@@ -40,7 +49,7 @@ O login devolve um access token JWT. Nos endpoints privados, enviar:
 Authorization: Bearer <access_token>
 ```
 
-A API valida o token e confirma que a conta existe e está ativa. Cada operação sobre voos e alojamentos valida primeiro a propriedade da viagem e depois a associação do recurso à própria viagem. Recursos de outra conta ou pertencentes a outra viagem não são expostos (404).
+A API valida o token e confirma que a conta existe e está ativa. Cada operação sobre voos, alojamentos, despesas, participantes e partilhas valida primeiro a propriedade da viagem e depois a associação do recurso à própria viagem. Recursos de outra conta ou pertencentes a outra viagem não são expostos (404).
 
 ### Criar uma viagem
 
@@ -96,7 +105,7 @@ A data de saída tem de ser posterior à data de entrada. O preço é opcional e
 
 Os endpoints PATCH aceitam apenas os campos a alterar. A API valida o estado completo resultante antes de persistir a alteração: por exemplo, não permite que a chegada de um voo fique antes da partida nem que a saída de um alojamento fique antes da entrada. Os campos obrigatórios não podem ser anulados.
 
-### Códigos HTTP
+### Dividir uma despesa entre participantes\n\nO pedido `PATCH /trips/{trip_id}/expenses/{expense_id}/shares` recebe uma lista completa de partes. Cada participante só pode surgir uma vez, tem de pertencer à viagem e cada valor tem de ser positivo. A soma é comparada ao total da despesa em cêntimos; diferenças de um cêntimo são rejeitadas. Enviar `[]` remove todas as partes. Um participante com partilhas associadas não pode ser eliminado (409).\n\nExemplo:\n\n```json\n[\n  { "participant_id": "UUID-DO-PARTICIPANTE-1", "amount": "12.50" },\n  { "participant_id": "UUID-DO-PARTICIPANTE-2", "amount": "12.50" }\n]\n```\n\n### Códigos HTTP
 
 - `201`: recurso criado.
 - `200`: pedido concluído.
@@ -104,7 +113,7 @@ Os endpoints PATCH aceitam apenas os campos a alterar. A API valida o estado com
 - `401`: autenticação em falta ou inválida.
 - `404`: viagem/recurso inexistente ou sem acesso.
 - `422`: payload inválido ou combinação de campos inconsistente.
-- `409`: conflito no registo de conta.
+- `409`: conflito de estado, por exemplo remoção de participante com partilhas ou alteração de despesa que invalidaria a divisão.
 
 ## Endpoints planeados
 
