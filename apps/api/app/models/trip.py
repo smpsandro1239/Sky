@@ -30,3 +30,4 @@ class Trip(Base):
     accommodations: Mapped[list["Accommodation"]] = relationship(
         back_populates="trip", cascade="all, delete-orphan"
     )
+    expenses: Mapped[list["Expense"]] = relationship(back_populates="trip", cascade="all, delete-orphan")
