@@ -34,6 +34,8 @@ type Accommodation = {
   price_amount: string | null;
   price_currency: string;
 };
+type Expense = { id: string; category: string; description: string; expense_date: string; amount: string; currency: string; notes: string | null; };
+type ExpenseForm = { category: string; description: string; expense_date: string; amount: string; currency: string; notes: string; };
 type FlightForm = {
   provider: string;
   origin: string;
@@ -53,6 +55,8 @@ type AccommodationForm = {
   price_currency: string;
 };
 
+const emptyExpense: ExpenseForm = { category: "alimentacao", description: "", expense_date: new Date().toISOString().slice(0, 10), amount: "", currency: "EUR", notes: "" };
+const expenseCategoryLabels: Record<string, string> = { alimentacao: "Alimentação", alojamento: "Alojamento", atividades: "Atividades", compras: "Compras", transportes: "Transportes", outros: "Outros" };
 const emptyFlight: FlightForm = {
   provider: "", origin: "", destination: "", departure_at: "", arrival_at: "",
   price_amount: "", price_currency: "EUR",
@@ -77,6 +81,9 @@ export default function TripDetailPage() {
   const [trip, setTrip] = useState<Trip | null>(null);
   const [flights, setFlights] = useState<Flight[]>([]);
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [expenseForm, setExpenseForm] = useState<ExpenseForm>(emptyExpense);
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -99,6 +106,12 @@ export default function TripDetailPage() {
     },
     {},
   );
+  expenses.forEach((expense) => {
+    const amount = Number(expense.amount);
+    if (Number.isFinite(amount)) {
+      totalsByCurrency[expense.currency] = (totalsByCurrency[expense.currency] ?? 0) + Math.round(amount * 100);
+    }
+  });
   const currencyTotals = Object.entries(totalsByCurrency).sort(([currencyA], [currencyB]) =>
     currencyA.localeCompare(currencyB),
   );
@@ -108,27 +121,29 @@ export default function TripDetailPage() {
 
     async function loadTrip() {
       try {
-        const [tripResponse, flightResponse, accommodationResponse] = await Promise.all([
+        const [tripResponse, flightResponse, accommodationResponse, expenseResponse] = await Promise.all([
           fetch(`/api/backend/trips/${tripId}`, { cache: "no-store" }),
           fetch(`/api/backend/trips/${tripId}/flights`, { cache: "no-store" }),
           fetch(`/api/backend/trips/${tripId}/accommodations`, { cache: "no-store" }),
+          fetch(`/api/backend/trips/${tripId}/expenses`, { cache: "no-store" }),
         ]);
 
         if (cancelled) return;
 
-        if ([tripResponse, flightResponse, accommodationResponse].some((response) => response.status === 401)) {
+        if ([tripResponse, flightResponse, accommodationResponse, expenseResponse].some((response) => response.status === 401)) {
           router.replace("/login");
           return;
         }
 
-        if (!tripResponse.ok || !flightResponse.ok || !accommodationResponse.ok) {
+        if (!tripResponse.ok || !flightResponse.ok || !accommodationResponse.ok || !expenseResponse.ok) {
           throw new Error("Não foi possível carregar os dados desta viagem.");
         }
 
-        const [tripData, flightData, accommodationData] = await Promise.all([
+        const [tripData, flightData, accommodationData, expenseData] = await Promise.all([
           tripResponse.json(),
           flightResponse.json(),
           accommodationResponse.json(),
+          expenseResponse.json(),
         ]);
 
         if (cancelled) return;
@@ -137,6 +152,7 @@ export default function TripDetailPage() {
         setBudgetCurrency(tripData.budget_currency ?? "EUR");
         setFlights(flightData);
         setAccommodations(accommodationData);
+        setExpenses(expenseData);
       } catch (cause) {
         if (!cancelled) {
           setError(cause instanceof Error ? cause.message : "Ocorreu um erro ao carregar a viagem.");
@@ -178,6 +194,77 @@ export default function TripDetailPage() {
       setError("Não foi possível contactar a API. Tenta novamente.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function saveExpense(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSaving(true);
+    setError("");
+    try {
+      const payload = {
+        ...expenseForm,
+        description: expenseForm.description.trim(),
+        amount: Number(expenseForm.amount),
+        currency: expenseForm.currency.trim().toUpperCase(),
+        notes: expenseForm.notes.trim() || null,
+      };
+      const response = await fetch(
+        editingExpenseId
+          ? `/api/backend/trips/${tripId}/expenses/${editingExpenseId}`
+          : `/api/backend/trips/${tripId}/expenses`,
+        {
+          method: editingExpenseId ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setError(typeof data.detail === "string" ? data.detail : "Não foi possível guardar a despesa.");
+        return;
+      }
+      setExpenses((current) => editingExpenseId
+        ? current.map((item) => item.id === editingExpenseId ? data : item)
+        : [data, ...current]);
+      setExpenseForm(emptyExpense);
+      setEditingExpenseId(null);
+    } catch {
+      setError("Não foi possível contactar a API. Tenta novamente.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function editExpense(item: Expense) {
+    setEditingExpenseId(item.id);
+    setExpenseForm({
+      category: item.category,
+      description: item.description,
+      expense_date: item.expense_date,
+      amount: item.amount,
+      currency: item.currency,
+      notes: item.notes ?? "",
+    });
+  }
+
+  async function deleteExpense(id: string) {
+    if (!window.confirm("Queres mesmo eliminar esta despesa?")) return;
+    setError("");
+    try {
+      const response = await fetch(`/api/backend/trips/${tripId}/expenses/${id}`, { method: "DELETE" });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        setError(typeof data.detail === "string" ? data.detail : "Não foi possível eliminar a despesa.");
+        return;
+      }
+      setExpenses((current) => current.filter((item) => item.id !== id));
+      if (editingExpenseId === id) {
+        setEditingExpenseId(null);
+        setExpenseForm(emptyExpense);
+      }
+    } catch {
+      setError("Não foi possível contactar a API. Tenta novamente.");
     }
   }
 
@@ -383,6 +470,31 @@ export default function TripDetailPage() {
                 )}
               </section>
             )}
+
+            <div className="section-heading"><div><p className="eyebrow">GESTÃO FINANCEIRA</p><h2>Despesas</h2></div></div>
+            <form className="trip-create-form" onSubmit={saveExpense}>
+              <h3>{editingExpenseId ? "Editar despesa" : "Registar despesa"}</h3>
+              <div className="trip-form-grid">
+                <label>Categoria<select value={expenseForm.category} onChange={(e) => setExpenseForm({ ...expenseForm, category: e.target.value })}>{Object.entries(expenseCategoryLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
+                <label>Descrição<input required minLength={2} maxLength={180} value={expenseForm.description} onChange={(e) => setExpenseForm({ ...expenseForm, description: e.target.value })} placeholder="Ex.: Jantar" /></label>
+                <label>Data<input required type="date" value={expenseForm.expense_date} onChange={(e) => setExpenseForm({ ...expenseForm, expense_date: e.target.value })} /></label>
+                <label>Valor<input required type="number" min="0.01" step="0.01" value={expenseForm.amount} onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })} placeholder="0,00" /></label>
+                <label>Moeda<input required minLength={3} maxLength={3} value={expenseForm.currency} onChange={(e) => setExpenseForm({ ...expenseForm, currency: e.target.value.toUpperCase() })} /></label>
+                <label>Notas<input maxLength={2000} value={expenseForm.notes} onChange={(e) => setExpenseForm({ ...expenseForm, notes: e.target.value })} placeholder="Opcional" /></label>
+              </div>
+              <div className="trip-form-actions">
+                <button className="primary-button trip-submit" type="submit" disabled={saving}>{saving ? "A guardar..." : editingExpenseId ? "Guardar alterações" : "Registar despesa"}</button>
+                {editingExpenseId && <button className="secondary-button" type="button" onClick={() => { setEditingExpenseId(null); setExpenseForm(emptyExpense); }}>Cancelar</button>}
+              </div>
+            </form>
+            <div className="trip-list">
+              {expenses.length === 0 ? <div className="empty-state"><p>Ainda não existem despesas registadas nesta viagem.</p></div> : expenses.map((item) => (
+                <article className="trip-card" key={item.id}>
+                  <div><h3>{item.description}</h3><p>{expenseCategoryLabels[item.category] ?? item.category} · {new Date(item.expense_date + "T12:00:00").toLocaleDateString("pt-PT")}</p>{item.notes && <p>{item.notes}</p>}</div>
+                  <div className="trip-card-actions"><strong>{Number(item.amount).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {item.currency}</strong><div className="trip-action-buttons"><button className="edit-button" type="button" onClick={() => editExpense(item)}>Editar</button><button className="delete-button" type="button" onClick={() => void deleteExpense(item.id)}>Eliminar</button></div></div>
+                </article>
+              ))}
+            </div>
 
             <div className="section-heading"><div><p className="eyebrow">TRANSPORTE</p><h2>Voos</h2></div></div>
             <form className="trip-create-form" onSubmit={saveFlight}>
