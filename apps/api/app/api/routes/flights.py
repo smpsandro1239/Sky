@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
-from app.api.routes.trips import get_user_trip
+from app.api.routes.trips import get_accessible_trip, get_user_trip, require_trip_editor
 from app.models.flight import Flight
 from app.models.user import User
 from app.schemas.flight import FlightCreate, FlightResponse, FlightUpdate
@@ -30,7 +30,7 @@ def create_flight(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> Flight:
-    trip = get_user_trip(db, trip_id, user.id)
+    trip = require_trip_editor(db, trip_id, user.id)
     flight = Flight(trip_id=trip.id, **payload.model_dump())
     db.add(flight)
     db.commit()
@@ -44,7 +44,7 @@ def list_flights(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> list[Flight]:
-    trip = get_user_trip(db, trip_id, user.id)
+    trip = get_accessible_trip(db, trip_id, user.id)
     statement = select(Flight).where(Flight.trip_id == trip.id).order_by(Flight.departure_at)
     return list(db.scalars(statement).all())
 
@@ -57,7 +57,7 @@ def update_flight(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> Flight:
-    trip = get_user_trip(db, trip_id, user.id)
+    trip = require_trip_editor(db, trip_id, user.id)
     flight = get_trip_flight(db, trip.id, flight_id)
     changes = payload.model_dump(exclude_unset=True)
     values = {
@@ -84,7 +84,7 @@ def delete_flight(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> Response:
-    trip = get_user_trip(db, trip_id, user.id)
+    trip = require_trip_editor(db, trip_id, user.id)
     flight = get_trip_flight(db, trip.id, flight_id)
     db.delete(flight)
     db.commit()
