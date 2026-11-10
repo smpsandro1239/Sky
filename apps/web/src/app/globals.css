@@ -139,3 +139,13 @@ footer { border-top: 1px solid #1c3043; padding: 25px 28px; text-align: center; 
   .trip-form-actions { align-items: stretch; flex-direction: column; }
   .trip-form-actions button { width: 100%; }
 }
+
+.back-link { display: inline-block; margin-bottom: 24px; color: var(--accent); font-size: 13px; font-weight: 700; text-decoration: none; }
+.back-link:hover { text-decoration: underline; }
+.trip-notes { margin: 18px 0 30px; padding: 16px 18px; border-left: 3px solid var(--accent); background: rgba(16,30,48,.55); color: var(--muted); line-height: 1.6; white-space: pre-wrap; }
+.trip-action-buttons { flex-wrap: wrap; }
+.trip-action-buttons a { text-decoration: none; white-space: nowrap; }
+@media (max-width: 700px) {
+  .trip-card-actions { align-items: flex-start; flex-direction: column; }
+  .trip-action-buttons { width: 100%; }
+}
