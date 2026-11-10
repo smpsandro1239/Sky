@@ -20,7 +20,8 @@ Formato: JSON. A aplicação disponibiliza documentação OpenAPI em `/docs` e R
 | GET | `/auth/me` | Bearer | Consultar perfil autenticado |
 | GET | `/trips` | Bearer | Listar as viagens do utilizador |
 | POST | `/trips` | Bearer | Criar viagem |
-| GET | `/trips/{trip_id}` | Bearer | Consultar uma viagem própria ou partilhada, incluindo o papel do utilizador |\n| GET | `/trips/{trip_id}/access` | Bearer | Consultar o papel do utilizador na viagem (owner, editor ou viewer) |
+| GET | `/trips/{trip_id}` | Bearer | Consultar uma viagem própria ou partilhada, incluindo o papel do utilizador |
+| GET | `/trips/{trip_id}/access` | Bearer | Consultar o papel do utilizador na viagem (owner, editor ou viewer) |
 | PATCH | `/trips/{trip_id}` | Bearer | Atualizar uma viagem própria |
 | DELETE | `/trips/{trip_id}` | Bearer | Eliminar uma viagem própria |
 | GET | `/trips/{trip_id}/flights` | Bearer | Listar voos associados à viagem |
@@ -130,7 +131,22 @@ A data de saída tem de ser posterior à data de entrada. O preço é opcional e
 
 Os endpoints PATCH aceitam apenas os campos a alterar. A API valida o estado completo resultante antes de persistir a alteração: por exemplo, não permite que a chegada de um voo fique antes da partida nem que a saída de um alojamento fique antes da entrada. Os campos obrigatórios não podem ser anulados.
 
-### Dividir uma despesa entre participantes\n\nAo criar ou atualizar uma despesa, `paid_by_participant_id` identifica opcionalmente o participante que adiantou o valor. O identificador tem de pertencer à viagem. O pedido `PATCH /trips/{trip_id}/expenses/{expense_id}/shares` recebe uma lista completa de partes. Cada participante só pode surgir uma vez, tem de pertencer à viagem e cada valor tem de ser positivo. A soma é comparada ao total da despesa em cêntimos; diferenças de um cêntimo são rejeitadas. Enviar `[]` remove todas as partes. Um participante que seja pagador ou tenha partilhas associadas não pode ser eliminado (409).\n\nO endpoint `GET /trips/{trip_id}/balances` calcula, para cada moeda, o total pago, a parte atribuída e o saldo líquido de cada participante. Inclui sugestões de transferências entre devedores e credores para liquidar os saldos com o menor número de movimentos gerado pelo algoritmo guloso. Só entram no cálculo despesas com pagador identificado e divisão guardada; despesas sem pagador ou sem partilhas ficam de fora.\n\nExemplo:\n\n```json\n[\n  { "participant_id": "UUID-DO-PARTICIPANTE-1", "amount": "12.50" },\n  { "participant_id": "UUID-DO-PARTICIPANTE-2", "amount": "12.50" }\n]\n```\n\n### Códigos HTTP
+### Dividir uma despesa entre participantes
+
+Ao criar ou atualizar uma despesa, `paid_by_participant_id` identifica opcionalmente o participante que adiantou o valor. O identificador tem de pertencer à viagem. O pedido `PATCH /trips/{trip_id}/expenses/{expense_id}/shares` recebe uma lista completa de partes. Cada participante só pode surgir uma vez, tem de pertencer à viagem e cada valor tem de ser positivo. A soma é comparada ao total da despesa em cêntimos; diferenças de um cêntimo são rejeitadas. Enviar `[]` remove todas as partes. Um participante que seja pagador ou tenha partilhas associadas não pode ser eliminado (409).
+
+O endpoint `GET /trips/{trip_id}/balances` calcula, para cada moeda, o total pago, a parte atribuída e o saldo líquido de cada participante. Inclui sugestões de transferências entre devedores e credores para liquidar os saldos com o menor número de movimentos gerado pelo algoritmo guloso. Só entram no cálculo despesas com pagador identificado e divisão guardada; despesas sem pagador ou sem partilhas ficam de fora.
+
+Exemplo:
+
+```json
+[
+  { "participant_id": "UUID-DO-PARTICIPANTE-1", "amount": "12.50" },
+  { "participant_id": "UUID-DO-PARTICIPANTE-2", "amount": "12.50" }
+]
+```
+
+### Códigos HTTP
 
 - `201`: recurso criado.
 - `200`: pedido concluído.
