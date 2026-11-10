@@ -2,16 +2,26 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 const API_URL = process.env.API_INTERNAL_URL ?? "http://localhost:8000";
+const UUID_PATTERN = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}";
 
-export async function GET(
-  _request: Request,
+async function proxyRequest(
+  request: Request,
   context: { params: Promise<{ path: string[] }> },
+  method: "GET" | "POST" | "PATCH" | "DELETE",
 ) {
   const { path } = await context.params;
   const resource = path.join("/");
+  const isCollection = resource === "trips";
+  const isProfile = resource === "auth/me";
+  const isTripItem = new RegExp(`^trips/${UUID_PATTERN}$`).test(resource);
 
-  if (resource !== "auth/me" && resource !== "trips") {
-    return NextResponse.json({ detail: "Recurso não permitido." }, { status: 404 });
+  const allowed =
+    (method === "GET" && (isProfile || isCollection)) ||
+    (method === "POST" && isCollection) ||
+    ((method === "PATCH" || method === "DELETE") && isTripItem);
+
+  if (!allowed) {
+    return NextResponse.json({ detail: "Recurso ou operação não permitido." }, { status: 404 });
   }
 
   const cookieStore = await cookies();
@@ -21,8 +31,17 @@ export async function GET(
     return NextResponse.json({ detail: "Sessão não autenticada." }, { status: 401 });
   }
 
+  const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+  let body: string | undefined;
+  if (method === "POST" || method === "PATCH") {
+    headers["Content-Type"] = "application/json";
+    body = await request.text();
+  }
+
   const apiResponse = await fetch(`${API_URL}/api/v1/${resource}`, {
-    headers: { Authorization: `Bearer ${token}` },
+    method,
+    headers,
+    body,
     cache: "no-store",
   }).catch(() => null);
 
@@ -33,6 +52,28 @@ export async function GET(
     );
   }
 
+  if (apiResponse.status === 204) {
+    return new NextResponse(null, { status: 204 });
+  }
+
   const data = await apiResponse.json().catch(() => ({}));
   return NextResponse.json(data, { status: apiResponse.status });
+}
+
+type RouteContext = { params: Promise<{ path: string[] }> };
+
+export async function GET(request: Request, context: RouteContext) {
+  return proxyRequest(request, context, "GET");
+}
+
+export async function POST(request: Request, context: RouteContext) {
+  return proxyRequest(request, context, "POST");
+}
+
+export async function PATCH(request: Request, context: RouteContext) {
+  return proxyRequest(request, context, "PATCH");
+}
+
+export async function DELETE(request: Request, context: RouteContext) {
+  return proxyRequest(request, context, "DELETE");
 }
