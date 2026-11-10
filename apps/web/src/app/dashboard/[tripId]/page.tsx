@@ -11,6 +11,8 @@ type Trip = {
   start_date: string | null;
   end_date: string | null;
   notes: string | null;
+  budget_amount: string | null;
+  budget_currency: string;
 };
 type Flight = {
   id: string;
@@ -82,6 +84,8 @@ export default function TripDetailPage() {
   const [accommodationForm, setAccommodationForm] = useState<AccommodationForm>(emptyAccommodation);
   const [editingFlightId, setEditingFlightId] = useState<string | null>(null);
   const [editingAccommodationId, setEditingAccommodationId] = useState<string | null>(null);
+  const [budgetAmount, setBudgetAmount] = useState("");
+  const [budgetCurrency, setBudgetCurrency] = useState("EUR");
 
   const totalsByCurrency = [...flights, ...accommodations].reduce<Record<string, number>>(
     (totals, item) => {
@@ -129,6 +133,8 @@ export default function TripDetailPage() {
 
         if (cancelled) return;
         setTrip(tripData);
+        setBudgetAmount(tripData.budget_amount ?? "");
+        setBudgetCurrency(tripData.budget_currency ?? "EUR");
         setFlights(flightData);
         setAccommodations(accommodationData);
       } catch (cause) {
@@ -145,6 +151,35 @@ export default function TripDetailPage() {
       cancelled = true;
     };
   }, [router, tripId]);
+
+  async function saveBudget(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!trip) return;
+    setSaving(true);
+    setError("");
+    try {
+      const response = await fetch(`/api/backend/trips/${tripId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          budget_amount: budgetAmount === "" ? null : Number(budgetAmount),
+          budget_currency: budgetCurrency.trim().toUpperCase(),
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setError(typeof data.detail === "string" ? data.detail : "Não foi possível guardar o orçamento.");
+        return;
+      }
+      setTrip(data);
+      setBudgetAmount(data.budget_amount ?? "");
+      setBudgetCurrency(data.budget_currency ?? "EUR");
+    } catch {
+      setError("Não foi possível contactar a API. Tenta novamente.");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   function resetFlight() {
     setFlightForm(emptyFlight);
@@ -301,6 +336,32 @@ export default function TripDetailPage() {
             <h1>{trip.name}</h1>
             <p className="intro dashboard-intro">{trip.destination}{trip.start_date ? ` · ${trip.start_date}` : ""}{trip.end_date ? ` — ${trip.end_date}` : ""}</p>
             {trip.notes && <p className="trip-notes">{trip.notes}</p>}
+            <section className="budget-summary" aria-labelledby="trip-budget-title">
+              <div>
+                <p className="eyebrow">CONTROLO FINANCEIRO</p>
+                <h2 id="trip-budget-title">Orçamento da viagem</h2>
+                <p className="budget-description">Define o limite que pretendes gastar. O saldo é calculado apenas com custos registados na mesma moeda.</p>
+              </div>
+              <form className="budget-editor" onSubmit={saveBudget}>
+                <label>Limite de orçamento
+                  <input type="number" min="0" step="0.01" value={budgetAmount} onChange={(event) => setBudgetAmount(event.target.value)} placeholder="Ex.: 1500" />
+                </label>
+                <label>Moeda
+                  <input required minLength={3} maxLength={3} value={budgetCurrency} onChange={(event) => setBudgetCurrency(event.target.value.toUpperCase())} />
+                </label>
+                <button className="primary-button trip-submit" type="submit" disabled={saving}>{saving ? "A guardar..." : "Guardar orçamento"}</button>
+                {trip.budget_amount !== null && (() => {
+                  const spent = totalsByCurrency[trip.budget_currency] ?? 0;
+                  const remaining = Number(trip.budget_amount) - spent;
+                  return (
+                    <p className={remaining >= 0 ? "budget-balance" : "budget-balance budget-over"} role="status">
+                      {remaining >= 0 ? "Saldo disponível: " : "Orçamento excedido em: "}
+                      {Math.abs(remaining).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {trip.budget_currency}
+                    </p>
+                  );
+                })()}
+              </form>
+            </section>
             {(flights.length > 0 || accommodations.length > 0) && (
               <section className="budget-summary" aria-labelledby="budget-summary-title">
                 <div>
