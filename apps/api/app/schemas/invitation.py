@@ -1,11 +1,14 @@
 from datetime import datetime
 from uuid import UUID
 
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 
 class InvitationCreate(BaseModel):
     email: EmailStr
+    role: Literal["editor", "viewer"] = "viewer"
 
     @field_validator("email")
     @classmethod
@@ -23,6 +26,7 @@ class InvitationResponse(BaseModel):
     id: UUID
     trip_id: UUID
     email: str
+    role: str
     status: str
     expires_at: datetime
     accepted_at: datetime | None
