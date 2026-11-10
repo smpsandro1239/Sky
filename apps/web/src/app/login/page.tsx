@@ -27,7 +27,11 @@ export default function LoginPage() {
         setError(data.detail ?? "Não foi possível iniciar sessão.");
         return;
       }
-      router.replace("/dashboard");
+      const requestedNext = new URLSearchParams(window.location.search).get("next");
+      const safeNext = requestedNext?.startsWith("/") && !requestedNext.startsWith("//")
+        ? requestedNext
+        : "/dashboard";
+      router.replace(safeNext);
       router.refresh();
     } catch {
       setError("Não foi possível contactar o serviço. Tenta novamente.");
