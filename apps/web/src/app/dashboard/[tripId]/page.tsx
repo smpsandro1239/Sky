@@ -751,7 +751,7 @@ export default function TripDetailPage() {
                 {participants.length === 0 ? <p className="notice">Ainda não foram adicionados participantes.</p> : participants.map((participant) => (
                   <article className="participant-item" key={participant.id}>
                     <div><strong>{participant.name}</strong>{participant.email && <span>{participant.email}</span>}</div>
-                    {accessRole === "owner" && {accessRole === "owner" && <button className="delete-button" type="button" onClick={() => void removeParticipant(participant.id)}>Remover</button>}}
+                    {accessRole === "owner" && <button className="delete-button" type="button" onClick={() => void removeParticipant(participant.id)}>Remover</button>}
                   </article>
                 ))}
               </div>
