@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
 from app.api.routes.trips import get_user_trip
+from app.models.expense import Expense
 from app.models.expense_share import ExpenseShare
 from app.models.participant import TripParticipant
 from app.models.user import User
@@ -61,10 +62,13 @@ def delete_participant(
     has_shares = db.scalar(
         select(ExpenseShare.id).where(ExpenseShare.participant_id == participant.id).limit(1)
     )
-    if has_shares is not None:
+    is_payer = db.scalar(
+        select(Expense.id).where(Expense.paid_by_participant_id == participant.id).limit(1)
+    )
+    if has_shares is not None or is_payer is not None:
         raise HTTPException(
             status_code=409,
-            detail="Não é possível remover este participante enquanto tiver despesas partilhadas.",
+            detail="Não é possível remover este participante enquanto estiver associado a despesas como pagador ou participante.",
         )
     db.delete(participant)
     db.commit()
