@@ -8,16 +8,16 @@ A visão de longo prazo é uma plataforma integral de viagens, incluindo descobe
 
 ## Estado do projeto
 
-**Estado atual: documentação e arquitetura inicial.** A aplicação ainda não está implementada. Os serviços Docker, APIs, integrações e interfaces descritos neste repositório são planeados, não funcionalidades disponíveis.
+**Estado atual: Fases 1 e 2 concluídas.** A visão do produto, o âmbito inicial, a arquitetura e a documentação técnica de base estão concluídos. A implementação da plataforma é a etapa seguinte. Os serviços Docker, APIs, integrações e interfaces só devem ser considerados disponíveis quando estiverem efetivamente implementados e testados.
 
 | Área | Estado |
 |---|---|
-| Visão e âmbito do produto | Definidos |
-| Direção visual SKY Design System | Aprovada |
-| Arquitetura técnica | Proposta |
-| Documentação inicial | Em construção |
-| Frontend e backend | Por implementar |
-| Base de dados e Docker | Por implementar |
+| Fase 1 — visão e âmbito do produto | Concluída |
+| Fase 2 — arquitetura, documentação e SKY Design System | Concluída |
+| Arquitetura técnica | Documentada |
+| Documentação técnica inicial | Concluída |
+| Frontend e backend | Por implementar (fase seguinte) |
+| Base de dados e Docker | Por implementar (fase seguinte) |
 | Integrações externas | Por selecionar |
 | Reservas e pagamentos | Fase futura |
 
@@ -124,15 +124,15 @@ Consultar [SKY Design System](docs/design/SKY_DESIGN_SYSTEM.md).
 
 ## Roadmap técnico
 
-1. Concluir documentação e decisões arquiteturais.
-2. Criar monorepo, Docker Compose e configuração local.
-3. Implementar fundações do backend, frontend e persistência.
-4. Implementar pesquisa e adaptadores de fornecedores.
-5. Desenvolver Recommendation Engine e Price Intelligence.
-6. Construir a experiência web e o planeador inicial.
-7. Adicionar testes, CI/CD, observabilidade e preparação para produção.
-8. Desenvolver reservas e pagamentos numa fase posterior.
+- [x] **Fase 1 — descoberta e definição do produto:** visão, objetivos, âmbito e funcionalidades prioritárias.
+- [x] **Fase 2 — arquitetura e documentação:** arquitetura, contratos e convenções, segurança, modelo de dados, decisões técnicas e SKY Design System.
+- [ ] **Fase 3 — fundações do projeto:** monorepo, Docker Compose, configuração local e estrutura inicial de frontend e backend.
+- [ ] **Fase 4 — pesquisa e fornecedores:** APIs e adaptadores para voos e alojamentos.
+- [ ] **Fase 5 — inteligência:** Recommendation Engine e Price Intelligence.
+- [ ] **Fase 6 — experiência de utilização:** interface web e planeador inicial.
+- [ ] **Fase 7 — qualidade e operação:** testes, CI/CD, observabilidade e preparação para produção.
+- [ ] **Fase futura — transações:** reservas e pagamentos.
 
 ## Estado de execução
 
-Este repositório encontra-se na fase de documentação. Ainda não existem instruções de arranque Docker funcionais nem serviços de aplicação implementados. Esses comandos serão acrescentados e testados quando os respetivos ficheiros forem criados.
+As Fases 1 e 2 estão concluídas. O repositório está preparado para iniciar a Fase 3: criação da estrutura executável do monorepo e do ambiente Docker. Até essa implementação estar concluída e validada, não devem ser considerados disponíveis comandos de arranque, serviços de aplicação ou integrações.
