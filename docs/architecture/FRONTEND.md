@@ -4,95 +4,68 @@
 
 Criar uma experiência responsiva, rápida e acessível para descobrir destinos, pesquisar voos e alojamentos, comparar opções e organizar viagens.
 
-## Stack proposta
+## Stack implementada
 
-- Next.js e React.
-- TypeScript com configuração estrita.
-- Tailwind CSS e shadcn/ui como base de componentes.
-- Lucide para ícones.
-- Motion para animações funcionais e discretas.
-- Recharts para visualização de preços.
-- MapLibre GL para mapas, sujeito à escolha de fornecedor de tiles/geocoding.
+- Next.js 16 com App Router.
+- React 19 e TypeScript em modo estrito.
+- CSS global com tokens de cor e layouts responsivos.
+- Next.js Route Handlers como Backend for Frontend (BFF) para autenticação e pedidos autenticados.
 
-As versões serão fixadas durante a implementação após validação de compatibilidade.
+Tailwind CSS e shadcn/ui continuam como opções de evolução; ainda não estão integrados.
 
-## Organização proposta
+## Rotas existentes
 
-```text
-apps/web/
-├── public/
-├── src/
-│   ├── app/
-│   ├── components/
-│   │   ├── layout/
-│   │   ├── search/
-│   │   ├── flights/
-│   │   ├── hotels/
-│   │   ├── recommendations/
-│   │   └── ui/
-│   ├── features/
-│   ├── hooks/
-│   ├── lib/
-│   ├── services/
-│   ├── styles/
-│   └── types/
-└── tests/
-```
+- `/`: landing page.
+- `/login`: início de sessão.
+- `/register`: criação de conta.
+- `/dashboard`: perfil e listagem das viagens do utilizador.
 
-A estrutura poderá ser ajustada quando os fluxos reais e os limites entre funcionalidades estiverem implementados.
+Rotas previstas para fases seguintes:
 
-## Rotas previstas
-
-- `/`: página inicial e pesquisa.
 - `/flights`: resultados de voos.
 - `/hotels`: resultados de alojamento.
 - `/destinations`: descoberta de destinos.
-- `/trips`: viagens guardadas e planeador.
+- `/trips`: viagens e planeador.
 - `/favorites`: favoritos.
 - `/account`: perfil e preferências.
 
-As rotas protegidas exigem autenticação quando esta estiver implementada.
+## Autenticação e BFF
 
-## Componentes de produto
+O browser envia credenciais para `/api/auth/login` e `/api/auth/register`. O Next.js encaminha o pedido para a API FastAPI através de `API_INTERNAL_URL`.
 
-- `SkyButton`
-- `SkyInput`
-- `SkyDatePicker`
-- `SkySearchBar`
-- `FlightCard`
-- `HotelCard`
-- `PriceBadge`
-- `DestinationCard`
-- `InteractiveMap`
-- `PriceChart`
-- `FilterSidebar`
-- `NavigationBar`
+Após login bem-sucedido:
+1. O BFF obtém o JWT na API.
+2. O BFF consulta `/auth/me` para confirmar o perfil.
+3. O JWT é guardado num cookie `HttpOnly`, `SameSite=Lax`, com `Secure` em produção e duração limitada pela expiração do token.
+4. O browser não recebe o JWT no corpo da resposta nem o guarda em localStorage.
+5. Os pedidos autenticados permitidos passam pelo handler `/api/backend/*`, que lê o cookie no servidor e encaminha o Bearer token para a API.
 
-Os componentes de domínio devem receber dados tipados e não fazer chamadas diretas a fornecedores.
+O handler backend tem uma allowlist explícita dos recursos atualmente expostos: `auth/me` e `trips`. A allowlist deverá ser alargada apenas quando novos fluxos frontend forem implementados.
 
 ## Estado e dados
 
-- Estado local para interações isoladas.
-- Estado de URL para filtros e pesquisas partilháveis.
-- Camada de serviços para comunicação com a API.
-- Cache de pedidos e invalidação definidos por funcionalidade.
-- Não guardar tokens sensíveis em localStorage.
+- Estado local React para formulários e carregamento.
+- Camada BFF para comunicação autenticada.
+- Dados de perfil e viagens carregados a partir da API.
+- Tokens sensíveis não são guardados em localStorage.
+- Os resultados e formulários de pesquisa ainda não estão ligados a fornecedores externos.
+
+## Componentes de produto
+
+Componentes de domínio previstos: `FlightCard`, `HotelCard`, `PriceBadge`, `DestinationCard`, `InteractiveMap`, `PriceChart` e `FilterSidebar`. Ainda não estão implementados como biblioteca partilhada.
 
 ## Design e acessibilidade
 
-- Mobile-first e layouts adaptáveis.
-- Modos claro e escuro.
-- Contraste e navegação por teclado.
-- Labels, foco visível e mensagens de erro acessíveis.
-- Objetivo de conformidade WCAG 2.2 AA.
-- Respeitar redução de movimento do sistema operativo.
+- Layouts adaptáveis a dispositivos móveis.
+- Cores e superfícies definidas por variáveis CSS.
+- Labels e mensagens de erro nos formulários.
+- Foco visível nos campos.
+- Objetivo de conformidade WCAG 2.2 AA; auditoria formal ainda por realizar.
 
 ## Testes
 
-- Vitest para lógica e componentes.
-- Testing Library para interações.
-- Playwright para fluxos críticos: pesquisa, filtros, favoritos e autenticação.
+A CI executa ESLint e TypeScript. Testes de componentes, integração BFF e Playwright/E2E ainda estão por acrescentar.
 
 ## Estado
 
-Arquitetura proposta. A aplicação frontend ainda não está implementada.
+Landing page, registo, login e dashboard inicial implementados. A validação de ponta a ponta em Docker e browser continua pendente. A gestão de viagens diretamente pela interface ainda não está disponível.
