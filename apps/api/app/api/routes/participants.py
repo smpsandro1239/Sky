@@ -1,11 +1,12 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
 from app.api.routes.trips import get_user_trip
+from app.models.expense_share import ExpenseShare
 from app.models.participant import TripParticipant
 from app.models.user import User
 from app.schemas.participant import ParticipantCreate, ParticipantResponse
@@ -56,8 +57,15 @@ def delete_participant(
         )
     )
     if participant is None:
-        from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Participante não encontrado.")
+    has_shares = db.scalar(
+        select(ExpenseShare.id).where(ExpenseShare.participant_id == participant.id).limit(1)
+    )
+    if has_shares is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="Não é possível remover este participante enquanto tiver despesas partilhadas.",
+        )
     db.delete(participant)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
