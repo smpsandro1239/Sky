@@ -10,7 +10,7 @@ class Settings:
         "DATABASE_URL",
         "postgresql+psycopg://sky:change-me-local-only@localhost:5432/sky",
     )
-    secret_key: str = os.getenv("SKY_SECRET_KEY", "dev-only-change-this-secret-key")
+    secret_key: str = os.getenv("SKY_SECRET_KEY", "dev-only-change-this-secret-key-rotate-before-production")
     access_token_minutes: int = int(os.getenv("ACCESS_TOKEN_MINUTES", "20"))
     frontend_url: str = os.getenv("FRONTEND_URL", "http://localhost:3000")
     cors_origins: list[str] = [
@@ -26,7 +26,7 @@ class Settings:
 
     def validate_security(self) -> None:
         if self.environment == "production":
-            if self.secret_key == "dev-only-change-this-secret-key" or len(self.secret_key) < 32:
+            if self.secret_key.startswith("dev-only-") or len(self.secret_key) < 32:
                 raise RuntimeError("Em produção, SKY_SECRET_KEY tem de ter pelo menos 32 caracteres e ser única.")
         if self.access_token_minutes < 1:
             raise RuntimeError("ACCESS_TOKEN_MINUTES tem de ser superior a zero.")
