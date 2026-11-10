@@ -177,3 +177,21 @@ footer { border-top: 1px solid #1c3043; padding: 25px 28px; text-align: center; 
   .budget-editor { grid-template-columns: 1fr; }
   .budget-editor .trip-submit, .budget-balance { grid-column: auto; }
 }
+
+
+/* Expense management */
+.trip-form-grid select {
+  width: 100%;
+  min-width: 0;
+  padding: 13px 14px;
+  border: 1px solid #30465b;
+  border-radius: 9px;
+  background: #091625;
+  color: var(--text);
+  font: inherit;
+}
+.trip-form-grid select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(97, 213, 196, .12);
+}
