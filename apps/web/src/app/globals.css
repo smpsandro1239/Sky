@@ -58,3 +58,54 @@ footer { border-top: 1px solid #1c3043; padding: 25px 28px; text-align: center; 
   .fields, .cards { grid-template-columns: 1fr; }
   h1 { letter-spacing: -1.2px; }
 }
+
+/* Authentication and account pages */
+.auth-shell { min-height: 100vh; max-width: 1180px; margin: 0 auto; padding: 30px 28px 70px; }
+.auth-brand { display: inline-block; }
+.auth-card { width: min(100%, 470px); margin: 65px auto 0; padding: 38px; border: 1px solid var(--line); border-radius: 20px; background: rgba(16,30,48,.92); box-shadow: 0 24px 80px rgba(0,0,0,.18); }
+.auth-card h1 { margin: 12px 0; font-size: clamp(34px, 5vw, 48px); letter-spacing: -1.5px; }
+.auth-description { color: var(--muted); line-height: 1.65; margin: 0 0 28px; }
+.auth-form { display: grid; gap: 18px; }
+.auth-form label { display: grid; gap: 8px; color: #dbe5f0; font-size: 13px; }
+.auth-form input { width: 100%; padding: 14px 15px; border: 1px solid #30465b; border-radius: 10px; background: #091625; color: var(--text); outline: none; }
+.auth-form input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(97,213,196,.12); }
+.field-hint, .auth-footnote { color: var(--muted); font-size: 11px; line-height: 1.5; }
+.primary-button { border: 0; border-radius: 10px; padding: 15px 18px; background: var(--accent); color: #06201f; font-weight: 800; cursor: pointer; transition: opacity .2s ease, transform .2s ease; }
+.primary-button:hover { transform: translateY(-1px); }
+.primary-button:disabled { opacity: .6; cursor: wait; transform: none; }
+.form-error { padding: 12px 14px; border: 1px solid #854d54; border-radius: 9px; color: #ffb8bf; background: rgba(133,77,84,.13); font-size: 13px; line-height: 1.5; }
+.auth-switch { margin: 24px 0 0; text-align: center; color: var(--muted); font-size: 13px; }
+.auth-switch a { color: var(--accent); font-weight: 700; }
+.auth-footnote { margin: 18px 0 0; text-align: center; }
+.nav-actions { display: flex; align-items: center; gap: 18px; }
+.nav-link { color: var(--muted); font-size: 13px; font-weight: 700; }
+.nav-link:hover, .text-button:hover { color: var(--accent); }
+.nav-link.primary { padding: 11px 16px; border: 1px solid var(--accent); border-radius: 9px; color: var(--accent); }
+.dashboard-shell { min-height: 100vh; }
+.dashboard-header { max-width: 1180px; margin: 0 auto; padding: 26px 28px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); }
+.text-button { border: 0; background: transparent; color: var(--muted); cursor: pointer; font-size: 13px; font-weight: 700; }
+.dashboard-content { max-width: 1180px; margin: 0 auto; padding: 65px 28px 100px; }
+.dashboard-content h1 { margin: 14px 0; font-size: clamp(40px, 6vw, 64px); }
+.dashboard-intro { margin-bottom: 35px; }
+.dashboard-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; max-width: 620px; margin: 32px 0 65px; }
+.stat-card { padding: 22px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+.stat-card span { display: block; color: var(--muted); font-size: 12px; }
+.stat-card strong { display: block; margin-top: 10px; font-size: 28px; }
+.section-heading { display: flex; align-items: end; justify-content: space-between; margin-bottom: 22px; }
+.section-heading h2 { margin: 8px 0 0; font-size: 30px; }
+.empty-state { padding: 35px; border: 1px dashed #38536b; border-radius: 16px; background: rgba(16,30,48,.55); }
+.empty-state h3 { margin: 0 0 8px; font-size: 20px; }
+.empty-state p { color: var(--muted); line-height: 1.6; }
+.coming-soon { display: inline-block; margin-top: 12px; color: var(--accent); font-size: 12px; font-weight: 700; }
+.trip-list { display: grid; gap: 12px; }
+.trip-card { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 22px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+.trip-card h3 { margin: 0 0 7px; font-size: 18px; }
+.trip-card p, .trip-card span { color: var(--muted); margin: 0; font-size: 13px; }
+@media (max-width: 700px) {
+  .auth-shell { padding: 22px 18px 50px; }
+  .auth-card { margin-top: 38px; padding: 26px 22px; }
+  .dashboard-header { padding: 20px 18px; }
+  .dashboard-content { padding: 45px 18px 70px; }
+  .dashboard-stats { grid-template-columns: 1fr 1fr; }
+  .trip-card { align-items: flex-start; flex-direction: column; }
+}
