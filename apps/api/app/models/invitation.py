@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint, func
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -10,7 +10,10 @@ from app.database.base import Base
 
 class TripInvitation(Base):
     __tablename__ = "trip_invitations"
-    __table_args__ = (UniqueConstraint("token_hash", name="uq_trip_invitations_token_hash"),)
+    __table_args__ = (
+        UniqueConstraint("token_hash", name="uq_trip_invitations_token_hash"),
+        CheckConstraint("role IN ('editor', 'viewer')", name="ck_trip_invitation_role"),
+    )
 
     id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4)
     trip_id: Mapped[UUID] = mapped_column(
