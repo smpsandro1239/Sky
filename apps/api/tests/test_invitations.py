@@ -1,5 +1,5 @@
 import pytest
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone\nfrom uuid import UUID
 
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, select
@@ -167,7 +167,7 @@ def test_invitation_token_is_stored_as_hash_and_expiration_is_enforced(client: T
     # The raw bearer token is never persisted in the invitation record.
     db_generator = app.dependency_overrides[get_db]()
     db = next(db_generator)
-    record = db.scalar(select(TripInvitation).where(TripInvitation.id == invitation["id"]))
+    record = db.scalar(select(TripInvitation).where(TripInvitation.id == UUID(invitation["id"])))
     assert record is not None
     assert record.token_hash != invitation["invitation_token"]
     record.expires_at = datetime.now(timezone.utc) - timedelta(minutes=1)
