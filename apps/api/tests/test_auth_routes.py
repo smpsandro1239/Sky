@@ -47,7 +47,7 @@ def test_register_login_and_get_current_user(client: TestClient) -> None:
 
     assert registration.status_code == 201
     user = registration.json()
-    assert user["email"] == "Sky.User@example.com"
+    assert user["email"] == "sky.user@example.com"
     assert user["display_name"] == "Sky User"
     assert user["is_active"] is True
     assert user["is_verified"] is False
