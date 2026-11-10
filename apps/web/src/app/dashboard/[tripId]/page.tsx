@@ -162,7 +162,7 @@ export default function TripDetailPage() {
 
         if (cancelled) return;
 
-        if ([tripResponse, flightResponse, accommodationResponse, expenseResponse, participantResponse, balanceResponse, invitationResponse].some((response) => response.status === 401)) {
+        if ([tripResponse, flightResponse, accommodationResponse, expenseResponse, participantResponse, balanceResponse, accessResponse].some((response) => response.status === 401)) {
           router.replace("/login");
           return;
         }
@@ -750,8 +750,8 @@ export default function TripDetailPage() {
               <div className="participant-list">
                 {participants.length === 0 ? <p className="notice">Ainda não foram adicionados participantes.</p> : participants.map((participant) => (
                   <article className="participant-item" key={participant.id}>
-                    <div><strong>{participant.name}</strong>{participant.email && <span>{participant.email}</span>}</div>
-                    {accessRole === "owner" && <button className="delete-button" type="button" onClick={() => void removeParticipant(participant.id)}>Remover</button>}
+                    <div><strong>{participant.name}</strong>{participant.email && <span>{participant.email}</span>}<span>{participant.role === "editor" ? "Editor" : participant.role === "viewer" ? "Leitor" : "Participante"}</span></div>
+                    {accessRole === "owner" && {accessRole === "owner" && <button className="delete-button" type="button" onClick={() => void removeParticipant(participant.id)}>Remover</button>}}
                   </article>
                 ))}
               </div>
@@ -853,7 +853,7 @@ export default function TripDetailPage() {
               {flights.length === 0 ? <div className="empty-state"><p>Ainda não existem voos associados a esta viagem.</p></div> : flights.map((flight) => (
                 <article className="trip-card" key={flight.id}>
                   <div><h3>{flight.origin} → {flight.destination}</h3><p>{flight.provider || "Companhia por definir"} · {new Date(flight.departure_at).toLocaleString("pt-PT")}</p></div>
-                  <div className="trip-card-actions"><span>{flight.price_amount ? `${flight.price_amount} ${flight.price_currency}` : "Preço por definir"}</span><div className="trip-action-buttons"><button className="edit-button" type="button" onClick={() => editFlight(flight)}>Editar</button><button className="delete-button" type="button" onClick={() => void deleteItem("flights", flight.id)}>Eliminar</button></div></div>
+                  <div className="trip-card-actions"><span>{flight.price_amount ? `${flight.price_amount} ${flight.price_currency}` : "Preço por definir"}</span>{accessRole !== "viewer" && <div className="trip-action-buttons"><button className="edit-button" type="button" onClick={() => editFlight(flight)}>Editar</button><button className="delete-button" type="button" onClick={() => void deleteItem("flights", flight.id)}>Eliminar</button></div>}</div>
                 </article>
               ))}
             </div>
@@ -879,7 +879,7 @@ export default function TripDetailPage() {
               {accommodations.length === 0 ? <div className="empty-state"><p>Ainda não existem alojamentos associados a esta viagem.</p></div> : accommodations.map((item) => (
                 <article className="trip-card" key={item.id}>
                   <div><h3>{item.name}</h3><p>{item.location} · {item.check_in} — {item.check_out}</p></div>
-                  <div className="trip-card-actions"><span>{item.price_amount ? `${item.price_amount} ${item.price_currency}` : "Preço por definir"}</span><div className="trip-action-buttons"><button className="edit-button" type="button" onClick={() => editAccommodation(item)}>Editar</button><button className="delete-button" type="button" onClick={() => void deleteItem("accommodations", item.id)}>Eliminar</button></div></div>
+                  <div className="trip-card-actions"><span>{item.price_amount ? `${item.price_amount} ${item.price_currency}` : "Preço por definir"}</span>{accessRole !== "viewer" && <div className="trip-action-buttons"><button className="edit-button" type="button" onClick={() => editAccommodation(item)}>Editar</button><button className="delete-button" type="button" onClick={() => void deleteItem("accommodations", item.id)}>Eliminar</button></div>}</div>
                 </article>
               ))}
             </div>
