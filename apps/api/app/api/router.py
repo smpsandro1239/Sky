@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.api.routes.accommodations import router as accommodations_router
+from app.api.routes.balances import router as balances_router
 from app.api.routes.auth import router as auth_router
 from app.api.routes.expense_shares import router as expense_shares_router
 from app.api.routes.expenses import router as expenses_router
@@ -17,4 +18,5 @@ api_router.include_router(flights_router)
 api_router.include_router(accommodations_router)
 api_router.include_router(expenses_router)
 api_router.include_router(expense_shares_router)
+api_router.include_router(balances_router)
 api_router.include_router(participants_router)
