@@ -69,6 +69,7 @@ def create_invitation(
         trip_id=trip.id,
         invited_by_user_id=user.id,
         email=email,
+        role=payload.role,
         token_hash=_token_hash(raw_token),
         status="pending",
         expires_at=datetime.now(timezone.utc) + INVITATION_LIFETIME,
@@ -170,6 +171,7 @@ def accept_invitation(
             name=user.display_name or user.email.split("@", 1)[0],
             email=user.email,
             user_id=user.id,
+            role=invitation.role,
         )
         db.add(participant)
     else:
@@ -177,6 +179,7 @@ def accept_invitation(
             raise HTTPException(status_code=409, detail="Este participante já está associado a outra conta.")
         existing.user_id = user.id
         existing.email = user.email
+        existing.role = invitation.role
         if not existing.name.strip():
             existing.name = user.display_name or user.email.split("@", 1)[0]
 
