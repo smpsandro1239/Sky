@@ -12,6 +12,8 @@
 
 ## Entidades previstas para o MVP
 
+As tabelas atualmente implementadas são `users`, `auth_identities`, `trips`, `trip_flights` e `trip_accommodations`. As restantes entidades abaixo continuam conceptuais/planeadas.
+
 | Entidade | Responsabilidade |
 |---|---|
 | users | Conta e identidade interna |
@@ -80,6 +82,8 @@ Não armazenar números completos de cartões nem códigos de segurança. Guarda
 
 As alterações ao esquema devem ser versionadas por migrações. Evitar alterações manuais não reproduzíveis em ambientes partilhados. Definir índices com base em consultas reais e medir antes de otimizar.
 
-## Estado
+## Esquema inicial implementado
 
-Modelo conceptual inicial. Não existe ainda esquema SQL ou migrações implementadas.
+A migração Alembic `0001_initial` cria as tabelas `users`, `auth_identities`, `trips`, `trip_flights` e `trip_accommodations`, com chaves UUID, relações e índices iniciais. O serviço API executa `alembic upgrade head` antes de arrancar no contentor. A migração inicial não significa que as funcionalidades de pesquisa, ofertas ou reservas estejam implementadas.
+
+O CRUD da API está disponível para `trips`. A gestão de voos e alojamentos associados a uma viagem ainda está por implementar.
