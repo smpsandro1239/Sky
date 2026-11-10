@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type User = { id: string; email: string; display_name: string | null };
@@ -19,7 +19,13 @@ export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [tripName, setTripName] = useState("");
+  const [destination, setDestination] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [notes, setNotes] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -58,6 +64,59 @@ export default function DashboardPage() {
     return () => { active = false; };
   }, [router]);
 
+  async function handleCreateTrip(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    setSaving(true);
+
+    try {
+      const response = await fetch("/api/backend/trips", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: tripName,
+          destination,
+          start_date: startDate || null,
+          end_date: endDate || null,
+          notes: notes || null,
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setError(data.detail ?? "Não foi possível criar a viagem.");
+        return;
+      }
+
+      setTrips((current) => [data, ...current]);
+      setTripName("");
+      setDestination("");
+      setStartDate("");
+      setEndDate("");
+      setNotes("");
+    } catch {
+      setError("Não foi possível contactar o serviço. Tenta novamente.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteTrip(tripId: string) {
+    if (!window.confirm("Tens a certeza de que pretendes eliminar esta viagem?")) return;
+    setError("");
+
+    try {
+      const response = await fetch(`/api/backend/trips/${tripId}`, { method: "DELETE" });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        setError(data.detail ?? "Não foi possível eliminar a viagem.");
+        return;
+      }
+      setTrips((current) => current.filter((trip) => trip.id !== tripId));
+    } catch {
+      setError("Não foi possível contactar o serviço. Tenta novamente.");
+    }
+  }
+
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
     router.replace("/");
@@ -81,13 +140,24 @@ export default function DashboardPage() {
         </div>
 
         <div className="section-heading"><div><p className="eyebrow">PLANEAMENTO</p><h2>As minhas viagens</h2></div></div>
-        {loading && <p className="notice">A carregar a tua área pessoal...</p>}
         {error && <p className="form-error" role="alert">{error}</p>}
+        <form className="trip-create-form" onSubmit={handleCreateTrip}>
+          <h3>Criar uma viagem</h3>
+          <div className="trip-form-grid">
+            <label>Nome da viagem<input required minLength={2} maxLength={160} value={tripName} onChange={(event) => setTripName(event.target.value)} placeholder="Ex.: Férias de verão" /></label>
+            <label>Destino<input required minLength={2} maxLength={160} value={destination} onChange={(event) => setDestination(event.target.value)} placeholder="Ex.: Madeira" /></label>
+            <label>Data de partida<input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} /></label>
+            <label>Data de regresso<input type="date" min={startDate || undefined} value={endDate} onChange={(event) => setEndDate(event.target.value)} /></label>
+          </div>
+          <label className="notes-field">Notas (opcional)<textarea rows={3} maxLength={10000} value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="O que queres organizar nesta viagem?" /></label>
+          <button className="primary-button trip-submit" type="submit" disabled={saving || loading}>{saving ? "A guardar..." : "Guardar viagem"}</button>
+        </form>
+
+        {loading && <p className="notice">A carregar a tua área pessoal...</p>}
         {!loading && !error && trips.length === 0 && (
           <div className="empty-state">
             <h3>Ainda não tens viagens.</h3>
-            <p>O próximo passo será criar a tua primeira viagem diretamente nesta área.</p>
-            <span className="coming-soon">Criação de viagens — próxima entrega</span>
+            <p>Cria a tua primeira viagem no formulário acima.</p>
           </div>
         )}
         {!loading && trips.length > 0 && (
@@ -95,7 +165,10 @@ export default function DashboardPage() {
             {trips.map((trip) => (
               <article className="trip-card" key={trip.id}>
                 <div><h3>{trip.name}</h3><p>{trip.destination}</p></div>
-                <span>{trip.start_date ?? "Data por definir"}{trip.end_date ? ` — ${trip.end_date}` : ""}</span>
+                <div className="trip-card-actions">
+                  <span>{trip.start_date ?? "Data por definir"}{trip.end_date ? ` — ${trip.end_date}` : ""}</span>
+                  <button className="delete-button" type="button" onClick={() => deleteTrip(trip.id)}>Eliminar</button>
+                </div>
               </article>
             ))}
           </div>
