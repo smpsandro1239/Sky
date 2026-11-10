@@ -20,3 +20,4 @@ class TripParticipant(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     trip: Mapped["Trip"] = relationship(back_populates="participants")
+    expense_shares: Mapped[list["ExpenseShare"]] = relationship(back_populates="participant")
