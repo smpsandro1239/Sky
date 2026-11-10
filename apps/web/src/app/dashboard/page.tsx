@@ -74,19 +74,20 @@ export default function DashboardPage() {
       const response = await fetch(
         editingTripId ? `/api/backend/trips/${editingTripId}` : "/api/backend/trips",
         {
-        method: editingTripId ? "PATCH" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: tripName,
-          destination,
-          start_date: startDate || null,
-          end_date: endDate || null,
-          notes: notes || null,
-        }),
-      });
+          method: editingTripId ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: tripName,
+            destination,
+            start_date: startDate || null,
+            end_date: endDate || null,
+            notes: notes || null,
+          }),
+        },
+      );
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setError(data.detail ?? "Não foi possível criar a viagem.");
+        setError(data.detail ?? (editingTripId ? "Não foi possível atualizar a viagem." : "Não foi possível criar a viagem."));
         return;
       }
 
@@ -139,6 +140,7 @@ export default function DashboardPage() {
         return;
       }
       setTrips((current) => current.filter((trip) => trip.id !== tripId));
+      if (editingTripId === tripId) cancelEdit();
     } catch {
       setError("Não foi possível contactar o serviço. Tenta novamente.");
     }
