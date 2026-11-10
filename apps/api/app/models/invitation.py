@@ -21,6 +21,7 @@ class TripInvitation(Base):
     )
     email: Mapped[str] = mapped_column(String(320), nullable=False, index=True)
     token_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    role: Mapped[str] = mapped_column(String(20), nullable=False, default="viewer", server_default="viewer")
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending", server_default="pending")
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
