@@ -6,7 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
-from app.api.routes.trips import get_user_trip
+from app.api.routes.trips import get_accessible_trip, get_user_trip, require_trip_editor
 from app.models.expense import Expense
 from app.models.expense_share import ExpenseShare
 from app.models.participant import TripParticipant
@@ -48,7 +48,7 @@ def create_expense(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> Expense:
-    trip = get_user_trip(db, trip_id, user.id)
+    trip = require_trip_editor(db, trip_id, user.id)
     validate_payer(db, trip.id, payload.paid_by_participant_id)
     expense = Expense(trip_id=trip.id, **payload.model_dump())
     db.add(expense)
@@ -63,7 +63,7 @@ def list_expenses(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> list[Expense]:
-    trip = get_user_trip(db, trip_id, user.id)
+    trip = get_accessible_trip(db, trip_id, user.id)
     statement = select(Expense).where(Expense.trip_id == trip.id).order_by(
         Expense.expense_date.desc(), Expense.created_at.desc()
     )
@@ -78,7 +78,7 @@ def update_expense(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> Expense:
-    trip = get_user_trip(db, trip_id, user.id)
+    trip = require_trip_editor(db, trip_id, user.id)
     expense = get_trip_expense(db, trip.id, expense_id)
     changes = payload.model_dump(exclude_unset=True)
     values = {field: getattr(expense, field) for field in ExpenseCreate.model_fields}
@@ -114,7 +114,7 @@ def delete_expense(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> Response:
-    trip = get_user_trip(db, trip_id, user.id)
+    trip = require_trip_editor(db, trip_id, user.id)
     expense = get_trip_expense(db, trip.id, expense_id)
     db.delete(expense)
     db.commit()
