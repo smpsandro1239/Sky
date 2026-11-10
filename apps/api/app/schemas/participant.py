@@ -34,4 +34,5 @@ class ParticipantResponse(BaseModel):
     trip_id: UUID
     name: str
     email: str | None
+    role: str
     created_at: datetime
