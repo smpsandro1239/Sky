@@ -36,6 +36,7 @@ type Accommodation = {
 };
 type Expense = { id: string; category: string; description: string; expense_date: string; amount: string; currency: string; notes: string | null; };
 type Participant = { id: string; trip_id: string; name: string; email: string | null; created_at: string };
+type ExpenseShare = { id: string; expense_id: string; participant_id: string; amount: string };
 type ExpenseForm = { category: string; description: string; expense_date: string; amount: string; currency: string; notes: string; };
 type FlightForm = {
   provider: string;
@@ -86,6 +87,8 @@ export default function TripDetailPage() {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [participantName, setParticipantName] = useState("");
   const [participantEmail, setParticipantEmail] = useState("");
+  const [activeShareExpenseId, setActiveShareExpenseId] = useState<string | null>(null);
+  const [shareDraft, setShareDraft] = useState<Record<string, string>>({});
   const [expenseForm, setExpenseForm] = useState<ExpenseForm>(emptyExpense);
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -254,6 +257,71 @@ export default function TripDetailPage() {
       setParticipants((current) => current.filter((participant) => participant.id !== id));
     } catch {
       setError("Não foi possível contactar a API. Tenta novamente.");
+    }
+  }
+
+  async function openExpenseShares(item: Expense) {
+    if (activeShareExpenseId === item.id) {
+      setActiveShareExpenseId(null);
+      return;
+    }
+    setError("");
+    try {
+      const response = await fetch(`/api/backend/trips/${tripId}/expenses/${item.id}/shares`, { cache: "no-store" });
+      const data = await response.json().catch(() => []);
+      if (!response.ok) {
+        setError(typeof data.detail === "string" ? data.detail : "Não foi possível carregar a divisão.");
+        return;
+      }
+      const draft: Record<string, string> = {};
+      (data as ExpenseShare[]).forEach((share) => { draft[share.participant_id] = share.amount; });
+      setShareDraft(draft);
+      setActiveShareExpenseId(item.id);
+    } catch {
+      setError("Não foi possível contactar a API. Tenta novamente.");
+    }
+  }
+
+  function splitExpenseEqually(item: Expense) {
+    if (participants.length === 0) {
+      setError("Adiciona participantes antes de dividir esta despesa.");
+      return;
+    }
+    const totalCents = Math.round(Number(item.amount) * 100);
+    const baseCents = Math.floor(totalCents / participants.length);
+    const remainder = totalCents % participants.length;
+    const draft: Record<string, string> = {};
+    participants.forEach((participant, index) => {
+      const cents = baseCents + (index < remainder ? 1 : 0);
+      draft[participant.id] = (cents / 100).toFixed(2);
+    });
+    setShareDraft(draft);
+  }
+
+  async function saveExpenseShares(event: FormEvent<HTMLFormElement>, expenseId: string) {
+    event.preventDefault();
+    setSaving(true);
+    setError("");
+    try {
+      const shares = Object.entries(shareDraft)
+        .filter(([, amount]) => amount.trim() !== "")
+        .map(([participant_id, amount]) => ({ participant_id, amount: Number(amount) }));
+      const response = await fetch(`/api/backend/trips/${tripId}/expenses/${expenseId}/shares`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(shares),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setError(typeof data.detail === "string" ? data.detail : "Não foi possível guardar a divisão.");
+        return;
+      }
+      setActiveShareExpenseId(null);
+      setShareDraft({});
+    } catch {
+      setError("Não foi possível contactar a API. Tenta novamente.");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -569,7 +637,7 @@ export default function TripDetailPage() {
               <div>
                 <p className="eyebrow">VIAGEM EM GRUPO</p>
                 <h2 id="participants-title">Participantes</h2>
-                <p className="budget-description">Adiciona as pessoas que fazem parte desta viagem. Esta lista será utilizada na próxima etapa para dividir despesas.</p>
+                <p className="budget-description">Adiciona as pessoas que fazem parte desta viagem e associa-as às despesas que devem partilhar.</p>
               </div>
               <form className="participant-form" onSubmit={addParticipant}>
                 <label>Nome<input required minLength={2} maxLength={120} value={participantName} onChange={(event) => setParticipantName(event.target.value)} placeholder="Nome do participante" /></label>
@@ -606,7 +674,27 @@ export default function TripDetailPage() {
               {expenses.length === 0 ? <div className="empty-state"><p>Ainda não existem despesas registadas nesta viagem.</p></div> : expenses.map((item) => (
                 <article className="trip-card" key={item.id}>
                   <div><h3>{item.description}</h3><p>{expenseCategoryLabels[item.category] ?? item.category} · {new Date(item.expense_date + "T12:00:00").toLocaleDateString("pt-PT")}</p>{item.notes && <p>{item.notes}</p>}</div>
-                  <div className="trip-card-actions"><strong>{Number(item.amount).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {item.currency}</strong><div className="trip-action-buttons"><button className="edit-button" type="button" onClick={() => editExpense(item)}>Editar</button><button className="delete-button" type="button" onClick={() => void deleteExpense(item.id)}>Eliminar</button></div></div>
+                  <div className="trip-card-actions"><strong>{Number(item.amount).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {item.currency}</strong><div className="trip-action-buttons"><button className="edit-button" type="button" onClick={() => editExpense(item)}>Editar</button><button className="delete-button" type="button" onClick={() => void deleteExpense(item.id)}>Eliminar</button></div><button className="secondary-button" type="button" onClick={() => void openExpenseShares(item)}>{activeShareExpenseId === item.id ? "Fechar divisão" : "Dividir despesa"}</button></div>
+                  {activeShareExpenseId === item.id && (
+                    <form className="expense-share-editor" onSubmit={(event) => void saveExpenseShares(event, item.id)}>
+                      <div><strong>Divisão de {item.description}</strong><p className="budget-description">A soma das partes tem de corresponder a {Number(item.amount).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {item.currency}.</p></div>
+                      {participants.length === 0 ? <p className="notice">Adiciona participantes à viagem para poderes dividir esta despesa.</p> : (
+                        <>
+                          <div className="expense-share-fields">
+                            {participants.map((participant) => (
+                              <label key={participant.id}>{participant.name}
+                                <input type="number" min="0" step="0.01" value={shareDraft[participant.id] ?? ""} onChange={(event) => setShareDraft((current) => ({ ...current, [participant.id]: event.target.value }))} placeholder="0,00" />
+                              </label>
+                            ))}
+                          </div>
+                          <div className="trip-form-actions">
+                            <button className="secondary-button" type="button" onClick={() => splitExpenseEqually(item)}>Dividir igualmente</button>
+                            <button className="primary-button" type="submit" disabled={saving}>{saving ? "A guardar..." : "Guardar divisão"}</button>
+                          </div>
+                        </>
+                      )}
+                    </form>
+                  )}
                 </article>
               ))}
             </div>
