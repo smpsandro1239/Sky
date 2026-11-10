@@ -2,12 +2,13 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import ValidationError
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
 from app.api.routes.trips import get_user_trip
 from app.models.expense import Expense
+from app.models.expense_share import ExpenseShare
 from app.models.user import User
 from app.schemas.expense import ExpenseCreate, ExpenseResponse, ExpenseUpdate
 
@@ -71,6 +72,18 @@ def update_expense(
         validated = ExpenseCreate.model_validate(values)
     except ValidationError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    existing_share_total = db.scalar(
+        select(func.coalesce(func.sum(ExpenseShare.amount), 0)).where(
+            ExpenseShare.expense_id == expense.id
+        )
+    )
+    if existing_share_total and existing_share_total != validated.amount:
+        raise HTTPException(
+            status_code=409,
+            detail="O novo valor não corresponde às partilhas existentes. Actualiza primeiro a divisão da despesa.",
+        )
+
     for field, value in validated.model_dump().items():
         setattr(expense, field, value)
     db.commit()
