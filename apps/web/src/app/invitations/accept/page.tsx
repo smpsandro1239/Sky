@@ -35,7 +35,7 @@ export default function AcceptInvitationPage() {
         setError(typeof data.detail === "string" ? data.detail : "Não foi possível aceitar o convite.");
         return;
       }
-      setMessage("Convite aceite. Já fazes parte desta viagem.");
+      setMessage("A tua conta foi associada à lista de participantes desta viagem. O acesso partilhado à área da viagem ainda não está disponível.");
     } catch {
       setError("Não foi possível contactar a API. Tenta novamente.");
     } finally {
