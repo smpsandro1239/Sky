@@ -205,3 +205,96 @@ def test_expense_amount_cannot_break_existing_shares(client: TestClient) -> None
     accepted = client.patch(expense_url, headers=headers, json={"description": "Jantar atualizado"})
     assert accepted.status_code == 200
     assert accepted.json()["amount"] == "18.00"
+
+
+def test_balances_calculate_net_positions_per_currency(client: TestClient) -> None:
+    token = register_and_login(client, "balances-net@example.com")
+    trip_id = create_trip(client, token)
+    payer = create_participant(client, token, trip_id, "Ana")
+    other = create_participant(client, token, trip_id, "Rui")
+    response = client.post(
+        f"/api/v1/trips/{trip_id}/expenses",
+        headers=auth(token),
+        json={
+            "category": "alimentacao",
+            "description": "Jantar",
+            "expense_date": "2027-08-02",
+            "amount": "30.00",
+            "currency": "EUR",
+            "paid_by_participant_id": payer,
+        },
+    )
+    assert response.status_code == 201
+    expense_id = response.json()["id"]
+    shares = client.patch(
+        f"/api/v1/trips/{trip_id}/expenses/{expense_id}/shares",
+        headers=auth(token),
+        json=[
+            {"participant_id": payer, "amount": "10.00"},
+            {"participant_id": other, "amount": "20.00"},
+        ],
+    )
+    assert shares.status_code == 200
+
+    result = client.get(f"/api/v1/trips/{trip_id}/balances", headers=auth(token))
+    assert result.status_code == 200
+    eur = result.json()["currencies"][0]
+    assert eur["currency"] == "EUR"
+    positions = {item["participant_id"]: item for item in eur["participants"]}
+    assert positions[payer]["paid"] == "30.00"
+    assert positions[payer]["owed"] == "10.00"
+    assert positions[payer]["net"] == "20.00"
+    assert positions[other]["paid"] == "0.00"
+    assert positions[other]["owed"] == "20.00"
+    assert positions[other]["net"] == "-20.00"
+
+
+def test_expense_payer_must_belong_to_trip_and_cannot_be_removed(client: TestClient) -> None:
+    token = register_and_login(client, "balances-payer-scope@example.com")
+    trip_id = create_trip(client, token, "Viagem principal")
+    other_trip = create_trip(client, token, "Outra viagem")
+    local = create_participant(client, token, trip_id, "Ana")
+    foreign = create_participant(client, token, other_trip, "Rui")
+    headers = auth(token)
+    url = f"/api/v1/trips/{trip_id}/expenses"
+
+    rejected = client.post(
+        url,
+        headers=headers,
+        json={
+            "category": "alimentacao",
+            "description": "Jantar",
+            "expense_date": "2027-08-02",
+            "amount": "10.00",
+            "currency": "EUR",
+            "paid_by_participant_id": foreign,
+        },
+    )
+    assert rejected.status_code == 422
+
+    created = client.post(
+        url,
+        headers=headers,
+        json={
+            "category": "alimentacao",
+            "description": "Jantar",
+            "expense_date": "2027-08-02",
+            "amount": "10.00",
+            "currency": "EUR",
+            "paid_by_participant_id": local,
+        },
+    )
+    assert created.status_code == 201
+    deleted = client.delete(
+        f"/api/v1/trips/{trip_id}/participants/{local}",
+        headers=headers,
+    )
+    assert deleted.status_code == 409
+
+
+def test_balances_require_trip_ownership(client: TestClient) -> None:
+    owner = register_and_login(client, "balances-owner@example.com")
+    other = register_and_login(client, "balances-outsider@example.com")
+    trip_id = create_trip(client, owner)
+    response = client.get(f"/api/v1/trips/{trip_id}/balances", headers=auth(other))
+    assert response.status_code == 404
