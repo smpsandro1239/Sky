@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
-from app.api.routes.trips import get_user_trip
+from app.api.routes.trips import get_accessible_trip, get_user_trip, require_trip_editor
 from app.models.accommodation import Accommodation
 from app.models.user import User
 from app.schemas.accommodation import (
@@ -39,7 +39,7 @@ def create_accommodation(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> Accommodation:
-    trip = get_user_trip(db, trip_id, user.id)
+    trip = require_trip_editor(db, trip_id, user.id)
     accommodation = Accommodation(trip_id=trip.id, **payload.model_dump())
     db.add(accommodation)
     db.commit()
@@ -53,7 +53,7 @@ def list_accommodations(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> list[Accommodation]:
-    trip = get_user_trip(db, trip_id, user.id)
+    trip = get_accessible_trip(db, trip_id, user.id)
     statement = select(Accommodation).where(
         Accommodation.trip_id == trip.id
     ).order_by(Accommodation.check_in)
@@ -68,7 +68,7 @@ def update_accommodation(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> Accommodation:
-    trip = get_user_trip(db, trip_id, user.id)
+    trip = require_trip_editor(db, trip_id, user.id)
     accommodation = get_trip_accommodation(db, trip.id, accommodation_id)
     changes = payload.model_dump(exclude_unset=True)
     values = {
@@ -95,7 +95,7 @@ def delete_accommodation(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> Response:
-    trip = get_user_trip(db, trip_id, user.id)
+    trip = require_trip_editor(db, trip_id, user.id)
     accommodation = get_trip_accommodation(db, trip.id, accommodation_id)
     db.delete(accommodation)
     db.commit()
