@@ -1,12 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { FormEvent, useEffect, useState } from "react";
 
 export default function AcceptInvitationPage() {
-  const searchParams = useSearchParams();
-  const token = searchParams.get("token") ?? "";
+  const [token, setToken] = useState("");
+  const [tokenReady, setTokenReady] = useState(false);
+  useEffect(() => {
+    setToken(new URLSearchParams(window.location.search).get("token") ?? "");
+    setTokenReady(true);
+  }, []);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -47,7 +50,7 @@ export default function AcceptInvitationPage() {
         <p className="eyebrow">CONVITE DE VIAGEM</p>
         <h1>Aderir à viagem</h1>
         <p className="auth-description">Aceita o convite para te associares à viagem e participares na gestão das despesas.</p>
-        {!token ? <p className="form-error" role="alert">O link não contém um token de convite válido.</p> : (
+        {!tokenReady ? <p className="notice">A validar o link...</p> : !token ? <p className="form-error" role="alert">O link não contém um token de convite válido.</p> : (
           <form className="auth-form" onSubmit={accept}>
             {error && <p className="form-error" role="alert">{error}</p>}
             {message && <p className="invitation-success" role="status">{message}</p>}
