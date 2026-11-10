@@ -105,7 +105,7 @@ Requisitos: Docker Desktop com Docker Compose e Git.
 
 Parar: `docker compose down`. Para remover também os dados da base de dados: `docker compose down -v` (ação destrutiva).
 
-**Nota:** a criação de conta, login e leitura do dashboard estão implementados. A criação/edição de viagens diretamente no dashboard, pesquisa real de voos/hotéis e reservas ainda não estão disponíveis.
+**Nota:** a criação de conta, login e gestão básica de viagens (listar, criar, editar e eliminar) estão implementados no dashboard. A validação funcional ponta a ponta em Docker/browser, a pesquisa real de voos/hotéis e as reservas ainda não estão disponíveis.
 
 ## Documentação
 
@@ -132,7 +132,7 @@ Parar: `docker compose down`. Para remover também os dados da base de dados: `d
 - [x] **Fase 1 — descoberta e definição do produto.**
 - [x] **Fase 2 — arquitetura e documentação.**
 - [ ] **Fase 3 — fundações:** Docker, API, autenticação, CRUD de viagens, voos e alojamentos; frontend com registo, login, dashboard e criação/eliminação de viagens. Falta validação funcional Docker/E2E.
-- [ ] **Fase 4 — gestão frontend:** criar, editar e eliminar viagens, voos e alojamentos a partir da interface.
+- [ ] **Fase 4 — gestão frontend:** edição de viagens integrada no dashboard; gestão frontend de voos e alojamentos ainda por implementar.
 - [ ] **Fase 5 — pesquisa e fornecedores:** APIs oficiais e adaptadores para voos e alojamentos.
 - [ ] **Fase 6 — inteligência:** Recommendation Engine e Price Intelligence.
 - [ ] **Fase 7 — qualidade e operação:** testes E2E, CI/CD, observabilidade e preparação para produção.
