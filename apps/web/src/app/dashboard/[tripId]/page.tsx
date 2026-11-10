@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 type Trip = {
@@ -83,35 +83,52 @@ export default function TripDetailPage() {
   const [editingFlightId, setEditingFlightId] = useState<string | null>(null);
   const [editingAccommodationId, setEditingAccommodationId] = useState<string | null>(null);
 
-  const loadTrip = useCallback(async () => {
-    setError("");
-    try {
-      const [tripResponse, flightResponse, accommodationResponse] = await Promise.all([
-        fetch(`/api/backend/trips/${tripId}`, { cache: "no-store" }),
-        fetch(`/api/backend/trips/${tripId}/flights`, { cache: "no-store" }),
-        fetch(`/api/backend/trips/${tripId}/accommodations`, { cache: "no-store" }),
-      ]);
-      if ([tripResponse, flightResponse, accommodationResponse].some((response) => response.status === 401)) {
-        router.replace("/login");
-        return;
-      }
-      if (!tripResponse.ok || !flightResponse.ok || !accommodationResponse.ok) {
-        throw new Error("Não foi possível carregar os dados desta viagem.");
-      }
-      const [tripData, flightData, accommodationData] = await Promise.all([
-        tripResponse.json(), flightResponse.json(), accommodationResponse.json(),
-      ]);
-      setTrip(tripData);
-      setFlights(flightData);
-      setAccommodations(accommodationData);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Ocorreu um erro ao carregar a viagem.");
-    } finally {
-      setLoading(false);
-    }
-  }, [router, tripId]);
+  useEffect(() => {
+    let cancelled = false;
 
-  useEffect(() => { void loadTrip(); }, [loadTrip]);
+    async function loadTrip() {
+      try {
+        const [tripResponse, flightResponse, accommodationResponse] = await Promise.all([
+          fetch(`/api/backend/trips/${tripId}`, { cache: "no-store" }),
+          fetch(`/api/backend/trips/${tripId}/flights`, { cache: "no-store" }),
+          fetch(`/api/backend/trips/${tripId}/accommodations`, { cache: "no-store" }),
+        ]);
+
+        if (cancelled) return;
+
+        if ([tripResponse, flightResponse, accommodationResponse].some((response) => response.status === 401)) {
+          router.replace("/login");
+          return;
+        }
+
+        if (!tripResponse.ok || !flightResponse.ok || !accommodationResponse.ok) {
+          throw new Error("Não foi possível carregar os dados desta viagem.");
+        }
+
+        const [tripData, flightData, accommodationData] = await Promise.all([
+          tripResponse.json(),
+          flightResponse.json(),
+          accommodationResponse.json(),
+        ]);
+
+        if (cancelled) return;
+        setTrip(tripData);
+        setFlights(flightData);
+        setAccommodations(accommodationData);
+      } catch (cause) {
+        if (!cancelled) {
+          setError(cause instanceof Error ? cause.message : "Ocorreu um erro ao carregar a viagem.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    void loadTrip();
+    return () => {
+      cancelled = true;
+    };
+  }, [router, tripId]);
 
   function resetFlight() {
     setFlightForm(emptyFlight);
