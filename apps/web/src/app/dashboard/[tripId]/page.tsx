@@ -154,6 +154,7 @@ export default function TripDetailPage() {
           fetch(`/api/backend/trips/${tripId}/expenses`, { cache: "no-store" }),
           fetch(`/api/backend/trips/${tripId}/participants`, { cache: "no-store" }),
           fetch(`/api/backend/trips/${tripId}/balances`, { cache: "no-store" }),
+          fetch(`/api/backend/trips/${tripId}/invitations`, { cache: "no-store" }),
         ]);
 
         if (cancelled) return;
@@ -174,6 +175,7 @@ export default function TripDetailPage() {
           expenseResponse.json(),
           participantResponse.json(),
           balanceResponse.json(),
+          invitationResponse.json(),
         ]);
 
         if (cancelled) return;
@@ -184,7 +186,8 @@ export default function TripDetailPage() {
         setAccommodations(accommodationData);
         setExpenses(expenseData);
         setParticipants(participantData);
-        setBalances(balanceData);\n        setInvitations(invitationData);
+        setBalances(balanceData);
+        setInvitations(invitationData);
       } catch (cause) {
         if (!cancelled) {
           setError(cause instanceof Error ? cause.message : "Ocorreu um erro ao carregar a viagem.");
