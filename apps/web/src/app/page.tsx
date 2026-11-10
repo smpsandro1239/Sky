@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 const destinations = [
   { name: "Lisboa", country: "Portugal", detail: "Cultura, gastronomia e escapadinhas" },
   { name: "Madeira", country: "Portugal", detail: "Natureza, mar e montanha" },
@@ -8,7 +10,7 @@ export default function HomePage() {
   return (
     <main>
       <header className="topbar">
-        <a className="brand" href="/">SKY<span>.</span></a>
+        <Link className="brand" href="/">SKY<span>.</span></Link>
         <span className="tagline">A tua próxima viagem começa aqui</span>
       </header>
       <section className="hero">
