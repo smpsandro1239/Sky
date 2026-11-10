@@ -5,6 +5,7 @@ from app import models
 def test_initial_models_are_registered() -> None:
     assert set(Base.metadata.tables) == {
         "users",
+        "auth_identities",
         "trips",
         "trip_flights",
         "trip_accommodations",
