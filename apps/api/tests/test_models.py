@@ -24,6 +24,8 @@ def test_trip_relationships_are_defined() -> None:
     assert Base.metadata.tables["trip_expenses"].c.trip_id.foreign_keys
     assert "paid_by_participant_id" in Base.metadata.tables["trip_expenses"].c
     assert Base.metadata.tables["trip_expenses"].c.paid_by_participant_id.foreign_keys
+    assert "role" in Base.metadata.tables["trip_participants"].c
+    assert "role" in Base.metadata.tables["trip_invitations"].c
     assert "trip_id" in Base.metadata.tables["trip_participants"].c
     assert Base.metadata.tables["trip_participants"].c.trip_id.foreign_keys
     assert Base.metadata.tables["trip_participants"].c.user_id.foreign_keys
