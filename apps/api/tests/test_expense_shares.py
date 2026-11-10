@@ -183,3 +183,25 @@ def test_expense_shares_require_trip_ownership(client: TestClient) -> None:
 
     assert client.get(url, headers=auth(other)).status_code == 404
     assert client.patch(url, headers=auth(other), json=[]).status_code == 404
+
+
+def test_expense_amount_cannot_break_existing_shares(client: TestClient) -> None:
+    token = register_and_login(client, "shares-amount-edit@example.com")
+    trip_id = create_trip(client, token)
+    expense_id = create_expense(client, token, trip_id, "18.00")
+    participant_id = create_participant(client, token, trip_id, "Pessoa")
+    headers = auth(token)
+    shares_url = f"/api/v1/trips/{trip_id}/expenses/{expense_id}/shares"
+    expense_url = f"/api/v1/trips/{trip_id}/expenses/{expense_id}"
+
+    assert client.patch(
+        shares_url, headers=headers,
+        json=[{"participant_id": participant_id, "amount": "18.00"}],
+    ).status_code == 200
+
+    rejected = client.patch(expense_url, headers=headers, json={"amount": "20.00"})
+    assert rejected.status_code == 409
+
+    accepted = client.patch(expense_url, headers=headers, json={"description": "Jantar atualizado"})
+    assert accepted.status_code == 200
+    assert accepted.json()["amount"] == "18.00"
