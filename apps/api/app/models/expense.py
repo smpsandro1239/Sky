@@ -21,10 +21,14 @@ class Expense(Base):
     expense_date: Mapped[date] = mapped_column(Date, nullable=False)
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     currency: Mapped[str] = mapped_column(String(3), nullable=False, default="EUR")
+    paid_by_participant_id: Mapped[UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("trip_participants.id", ondelete="RESTRICT"), nullable=True, index=True
+    )
     notes: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     trip: Mapped["Trip"] = relationship(back_populates="expenses")
+    paid_by: Mapped["TripParticipant | None"] = relationship(foreign_keys=[paid_by_participant_id])
     shares: Mapped[list["ExpenseShare"]] = relationship(
         back_populates="expense", cascade="all, delete-orphan"
     )
