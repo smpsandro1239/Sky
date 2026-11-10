@@ -8,13 +8,13 @@ A visão de longo prazo é uma plataforma integral de viagens, incluindo descobe
 
 ## Estado do projeto
 
-**Fases 1 e 2 concluídas. Fase 3 em implementação.** A fundação inicial inclui Docker Compose, PostgreSQL, Redis, API FastAPI, autenticação por token e uma interface Next.js inicial. A API já inclui endpoints de gestão de viagens associados ao utilizador autenticado. A execução local e a integração contínua ainda precisam de ser validadas.
+**Fases 1 e 2 concluídas. Fase 3 em implementação.** A fundação inicial inclui Docker Compose, PostgreSQL, Redis, API FastAPI, autenticação por token, migrações Alembic e uma interface Next.js inicial. A API já inclui endpoints de gestão de viagens associados ao utilizador autenticado. A execução local e a integração contínua ainda precisam de ser validadas.
 
 | Área | Estado |
 |---|---|
 | Fase 1 — visão e âmbito do produto | Concluída |
 | Fase 2 — arquitetura, documentação e SKY Design System | Concluída |
-| Docker Compose, PostgreSQL e Redis | Implementação inicial publicada |
+| Docker Compose, PostgreSQL e Redis | Implementação inicial publicada; API aplica migrações Alembic no arranque |
 | API FastAPI, autenticação e gestão de viagens | Endpoints de registo, login, perfil e CRUD de viagens; testes adicionados; execução CI por confirmar |
 | Frontend Next.js | Estrutura e landing page iniciais publicadas |
 | CI GitHub Actions | Configuração inicial publicada |
@@ -89,7 +89,7 @@ Requisitos: Docker Desktop com Docker Compose e Git.
    ```powershell
    docker compose up --build -d
    ```
-4. Consultar os serviços:
+4. A API aplica as migrações da base de dados automaticamente antes de iniciar. Consultar os serviços:
    - Web: http://localhost:3000
    - API: http://localhost:8000
    - Documentação API: http://localhost:8000/docs
