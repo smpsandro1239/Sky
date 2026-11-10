@@ -21,7 +21,9 @@ A visão de longo prazo é uma plataforma integral de viagens. O princípio cent
 | Orçamento por viagem | Limite configurável, moeda, custos de voos/alojamentos e saldo calculado |
 | Despesas por viagem | Registo, edição, eliminação, categorias e integração dos valores no resumo financeiro; testes API e migrações aprovados |
 | Participantes por viagem | Gestão de participantes por viagem, com isolamento por proprietário |
-| Divisão de despesas e acerto de contas | Registo do pagador, partilhas por participante, cálculo de saldos por moeda e sugestões de transferências para liquidar dívidas |\n| Convites para viagens | Convites com token aleatório, hash persistido, expiração de 7 dias, aceitação associada ao email autenticado e revogação; envio de email automático ainda não configurado |\n| Frontend — convites | Criação, cópia de link, revogação e página de aceitação autenticada |
+| Divisão de despesas e acerto de contas | Registo do pagador, partilhas por participante, cálculo de saldos por moeda e sugestões de transferências para liquidar dívidas |
+| Convites para viagens | Convites com token aleatório, hash persistido, expiração de 7 dias, aceitação associada ao email autenticado e revogação; envio de email automático ainda não configurado |
+| Frontend — convites | Criação, cópia de link, revogação e página de aceitação autenticada |
 | Frontend — landing page | Publicada |
 | Frontend — registo e login | Implementados com sessão em cookie HttpOnly |
 | Frontend — dashboard | Perfil, listagem, criação, edição e eliminação de viagens integrados com a API |
@@ -30,7 +32,7 @@ A visão de longo prazo é uma plataforma integral de viagens. O princípio cent
 | Pesquisa externa, recomendações e favoritos | Por implementar |
 | Reservas e pagamentos | Fase futura |
 
-As páginas de autenticação e dashboard estão implementadas no código, mas ainda precisam de validação funcional em Docker e testes de ponta a ponta. Não existe ainda pesquisa real de inventário nem ligação a fornecedores externos.
+As páginas de autenticação e dashboard estão implementadas no código, mas ainda precisam de validação funcional em Docker e testes de ponta a ponta. Não existe ainda pesquisa real de inventário nem ligação a fornecedores externos. Os convites podem ser criados e aceites por link; o envio automático por email ainda não está configurado.
 
 ## Produto e roadmap funcional
 
