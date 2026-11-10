@@ -13,6 +13,7 @@ type Trip = {
   notes: string | null;
   budget_amount: string | null;
   budget_currency: string;
+  role: "owner" | "editor" | "viewer";
 };
 type Flight = {
   id: string;
@@ -84,6 +85,8 @@ export default function TripDetailPage() {
   const tripId = params.tripId;
   const router = useRouter();
   const [trip, setTrip] = useState<Trip | null>(null);
+  const [accessRole, setAccessRole] = useState<"owner" | "editor" | "viewer">("viewer");
+  const [invitationRole, setInvitationRole] = useState<"editor" | "viewer">("viewer");
   const [flights, setFlights] = useState<Flight[]>([]);
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -147,14 +150,14 @@ export default function TripDetailPage() {
 
     async function loadTrip() {
       try {
-        const [tripResponse, flightResponse, accommodationResponse, expenseResponse, participantResponse, balanceResponse, invitationResponse] = await Promise.all([
+        const [tripResponse, flightResponse, accommodationResponse, expenseResponse, participantResponse, balanceResponse, accessResponse] = await Promise.all([
           fetch(`/api/backend/trips/${tripId}`, { cache: "no-store" }),
           fetch(`/api/backend/trips/${tripId}/flights`, { cache: "no-store" }),
           fetch(`/api/backend/trips/${tripId}/accommodations`, { cache: "no-store" }),
           fetch(`/api/backend/trips/${tripId}/expenses`, { cache: "no-store" }),
           fetch(`/api/backend/trips/${tripId}/participants`, { cache: "no-store" }),
           fetch(`/api/backend/trips/${tripId}/balances`, { cache: "no-store" }),
-          fetch(`/api/backend/trips/${tripId}/invitations`, { cache: "no-store" }),
+          fetch(`/api/backend/trips/${tripId}/access`, { cache: "no-store" }),
         ]);
 
         if (cancelled) return;
@@ -164,22 +167,28 @@ export default function TripDetailPage() {
           return;
         }
 
-        if (!tripResponse.ok || !flightResponse.ok || !accommodationResponse.ok || !expenseResponse.ok || !participantResponse.ok || !balanceResponse.ok || !invitationResponse.ok) {
+        if (!tripResponse.ok || !flightResponse.ok || !accommodationResponse.ok || !expenseResponse.ok || !participantResponse.ok || !balanceResponse.ok || !accessResponse.ok) {
           throw new Error("Não foi possível carregar os dados desta viagem.");
         }
 
-        const [tripData, flightData, accommodationData, expenseData, participantData, balanceData, invitationData] = await Promise.all([
+        const [tripData, flightData, accommodationData, expenseData, participantData, balanceData, accessData] = await Promise.all([
           tripResponse.json(),
           flightResponse.json(),
           accommodationResponse.json(),
           expenseResponse.json(),
           participantResponse.json(),
           balanceResponse.json(),
-          invitationResponse.json(),
+          accessResponse.json(),
         ]);
 
         if (cancelled) return;
-        setTrip(tripData);
+        const invitationResponse = accessData.role === "owner"
+          ? await fetch(`/api/backend/trips/${tripId}/invitations`, { cache: "no-store" })
+          : null;
+        if (invitationResponse && !invitationResponse.ok) throw new Error("Não foi possível carregar os convites.");
+        const invitationData = invitationResponse ? await invitationResponse.json() : [];
+        setTrip({ ...tripData, role: accessData.role });
+        setAccessRole(accessData.role);
         setBudgetAmount(tripData.budget_amount ?? "");
         setBudgetCurrency(tripData.budget_currency ?? "EUR");
         setFlights(flightData);
@@ -268,7 +277,7 @@ export default function TripDetailPage() {
       const response = await fetch(`/api/backend/trips/${tripId}/invitations`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: invitationEmail.trim().toLowerCase() }),
+        body: JSON.stringify({ email: invitationEmail.trim().toLowerCase(), role: invitationRole }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
@@ -616,7 +625,8 @@ export default function TripDetailPage() {
         {error && <p className="form-error" role="alert">{error}</p>}
         {trip ? (
           <>
-            <p className="eyebrow">PLANEAMENTO DA VIAGEM</p>
+            <p className="eyebrow">PLANEAMENTO DA VIAGEM · {accessRole === "owner" ? "PROPRIETÁRIO" : accessRole === "editor" ? "EDITOR" : "LEITOR"}</p>
+            {accessRole === "viewer" && <p className="notice">Tens acesso de leitura. Podes consultar os dados e os balanços, mas não podes alterar esta viagem.</p>}
             <h1>{trip.name}</h1>
             <p className="intro dashboard-intro">{trip.destination}{trip.start_date ? ` · ${trip.start_date}` : ""}{trip.end_date ? ` — ${trip.end_date}` : ""}</p>
             {trip.notes && <p className="trip-notes">{trip.notes}</p>}
@@ -626,7 +636,7 @@ export default function TripDetailPage() {
                 <h2 id="trip-budget-title">Orçamento da viagem</h2>
                 <p className="budget-description">Define o limite que pretendes gastar. O saldo é calculado apenas com custos registados na mesma moeda.</p>
               </div>
-              <form className="budget-editor" onSubmit={saveBudget}>
+              {accessRole === "owner" && <form className="budget-editor" onSubmit={saveBudget}>
                 <label>Limite de orçamento
                   <input type="number" min="0" step="0.01" value={budgetAmount} onChange={(event) => setBudgetAmount(event.target.value)} placeholder="Ex.: 1500" />
                 </label>
@@ -644,7 +654,7 @@ export default function TripDetailPage() {
                     </p>
                   );
                 })()}
-              </form>
+              </form>}
             </section>
             {(flights.length > 0 || accommodations.length > 0 || expenses.length > 0) && (
               <section className="budget-summary" aria-labelledby="budget-summary-title">
@@ -708,16 +718,17 @@ export default function TripDetailPage() {
                 <h2 id="participants-title">Participantes</h2>
                 <p className="budget-description">Adiciona as pessoas que fazem parte desta viagem e associa-as às despesas que devem partilhar.</p>
               </div>
-              <form className="participant-form" onSubmit={addParticipant}>
+              {accessRole === "owner" && <form className="participant-form" onSubmit={addParticipant}>
                 <label>Nome<input required minLength={2} maxLength={120} value={participantName} onChange={(event) => setParticipantName(event.target.value)} placeholder="Nome do participante" /></label>
                 <label>Email (opcional)<input type="email" maxLength={320} value={participantEmail} onChange={(event) => setParticipantEmail(event.target.value)} placeholder="pessoa@exemplo.com" /></label>
                 <button className="primary-button" type="submit" disabled={saving}>{saving ? "A guardar..." : "Adicionar participante"}</button>
-              </form>
-              <form className="participant-form" onSubmit={createInvitation}>
+              </form>}
+              {accessRole === "owner" && <form className="participant-form" onSubmit={createInvitation}>
                 <label>Convidar por email<input type="email" required maxLength={320} value={invitationEmail} onChange={(event) => setInvitationEmail(event.target.value)} placeholder="pessoa@exemplo.com" /></label>
+                <label>Permissão<select value={invitationRole} onChange={(event) => setInvitationRole(event.target.value as "editor" | "viewer")}><option value="viewer">Leitor — só consulta</option><option value="editor">Editor — pode alterar dados</option></select></label>
                 <button className="secondary-button" type="submit" disabled={saving}>{saving ? "A criar..." : "Criar convite"}</button>
-              </form>
-              {invitationLink && (
+              </form>}
+              {accessRole === "owner" && invitationLink && (
                 <div className="invitation-link-panel">
                   <strong>Convite criado</strong>
                   <p>O link é apresentado apenas agora. Copia-o e envia-o à pessoa convidada; o SKY ainda não envia emails automaticamente.</p>
@@ -725,7 +736,7 @@ export default function TripDetailPage() {
                   <button className="secondary-button" type="button" onClick={() => void navigator.clipboard.writeText(invitationLink)}>Copiar link</button>
                 </div>
               )}
-              {invitations.length > 0 && (
+              {accessRole === "owner" && invitations.length > 0 && (
                 <div className="invitation-list">
                   <h3>Convites</h3>
                   {invitations.map((invitation) => (
@@ -740,7 +751,7 @@ export default function TripDetailPage() {
                 {participants.length === 0 ? <p className="notice">Ainda não foram adicionados participantes.</p> : participants.map((participant) => (
                   <article className="participant-item" key={participant.id}>
                     <div><strong>{participant.name}</strong>{participant.email && <span>{participant.email}</span>}</div>
-                    <button className="delete-button" type="button" onClick={() => void removeParticipant(participant.id)}>Remover</button>
+                    {accessRole === "owner" && <button className="delete-button" type="button" onClick={() => void removeParticipant(participant.id)}>Remover</button>}
                   </article>
                 ))}
               </div>
@@ -776,7 +787,7 @@ export default function TripDetailPage() {
               </section>
             )}
             <div className="section-heading"><div><p className="eyebrow">GESTÃO FINANCEIRA</p><h2>Despesas</h2></div></div>
-            <form className="trip-create-form" onSubmit={saveExpense}>
+            {accessRole !== "viewer" && <form className="trip-create-form" onSubmit={saveExpense}>
               <h3>{editingExpenseId ? "Editar despesa" : "Registar despesa"}</h3>
               <div className="trip-form-grid">
                 <label>Categoria<select value={expenseForm.category} onChange={(e) => setExpenseForm({ ...expenseForm, category: e.target.value })}>{Object.entries(expenseCategoryLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
@@ -791,12 +802,12 @@ export default function TripDetailPage() {
                 <button className="primary-button trip-submit" type="submit" disabled={saving}>{saving ? "A guardar..." : editingExpenseId ? "Guardar alterações" : "Registar despesa"}</button>
                 {editingExpenseId && <button className="secondary-button" type="button" onClick={() => { setEditingExpenseId(null); setExpenseForm(emptyExpense); }}>Cancelar</button>}
               </div>
-            </form>
+            </form>}
             <div className="trip-list">
               {expenses.length === 0 ? <div className="empty-state"><p>Ainda não existem despesas registadas nesta viagem.</p></div> : expenses.map((item) => (
                 <article className="trip-card" key={item.id}>
                   <div><h3>{item.description}</h3><p>{expenseCategoryLabels[item.category] ?? item.category} · {new Date(item.expense_date + "T12:00:00").toLocaleDateString("pt-PT")}</p>{item.paid_by_participant_id && <p>Pago por: {participants.find((participant) => participant.id === item.paid_by_participant_id)?.name ?? "Participante"}</p>}{item.notes && <p>{item.notes}</p>}</div>
-                  <div className="trip-card-actions"><strong>{Number(item.amount).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {item.currency}</strong><div className="trip-action-buttons"><button className="edit-button" type="button" onClick={() => editExpense(item)}>Editar</button><button className="delete-button" type="button" onClick={() => void deleteExpense(item.id)}>Eliminar</button></div><button className="secondary-button" type="button" onClick={() => void openExpenseShares(item)}>{activeShareExpenseId === item.id ? "Fechar divisão" : "Dividir despesa"}</button></div>
+                  <div className="trip-card-actions"><strong>{Number(item.amount).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {item.currency}</strong><div className="trip-action-buttons">{accessRole !== "viewer" && <><button className="edit-button" type="button" onClick={() => editExpense(item)}>Editar</button><button className="delete-button" type="button" onClick={() => void deleteExpense(item.id)}>Eliminar</button></>}</div>{accessRole !== "viewer" && <button className="secondary-button" type="button" onClick={() => void openExpenseShares(item)}>{activeShareExpenseId === item.id ? "Fechar divisão" : "Dividir despesa"}</button>}</div>
                   {activeShareExpenseId === item.id && (
                     <form className="expense-share-editor" onSubmit={(event) => void saveExpenseShares(event, item.id)}>
                       <div><strong>Divisão de {item.description}</strong><p className="budget-description">A soma das partes tem de corresponder a {Number(item.amount).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {item.currency}.</p></div>
@@ -822,7 +833,7 @@ export default function TripDetailPage() {
             </div>
 
             <div className="section-heading"><div><p className="eyebrow">TRANSPORTE</p><h2>Voos</h2></div></div>
-            <form className="trip-create-form" onSubmit={saveFlight}>
+            {accessRole !== "viewer" && <form className="trip-create-form" onSubmit={saveFlight}>
               <h3>{editingFlightId ? "Editar voo" : "Adicionar voo"}</h3>
               <div className="trip-form-grid">
                 <label>Companhia / fornecedor<input maxLength={80} value={flightForm.provider} onChange={(e) => setFlightForm({ ...flightForm, provider: e.target.value })} placeholder="Opcional" /></label>
@@ -837,7 +848,7 @@ export default function TripDetailPage() {
                 <button className="primary-button trip-submit" type="submit" disabled={saving}>{saving ? "A guardar..." : editingFlightId ? "Guardar alterações" : "Adicionar voo"}</button>
                 {editingFlightId && <button className="secondary-button" type="button" onClick={resetFlight}>Cancelar</button>}
               </div>
-            </form>
+            </form>}
             <div className="trip-list">
               {flights.length === 0 ? <div className="empty-state"><p>Ainda não existem voos associados a esta viagem.</p></div> : flights.map((flight) => (
                 <article className="trip-card" key={flight.id}>
@@ -848,7 +859,7 @@ export default function TripDetailPage() {
             </div>
 
             <div className="section-heading"><div><p className="eyebrow">ESTADIA</p><h2>Alojamentos</h2></div></div>
-            <form className="trip-create-form" onSubmit={saveAccommodation}>
+            {accessRole !== "viewer" && <form className="trip-create-form" onSubmit={saveAccommodation}>
               <h3>{editingAccommodationId ? "Editar alojamento" : "Adicionar alojamento"}</h3>
               <div className="trip-form-grid">
                 <label>Nome<input required minLength={2} maxLength={180} value={accommodationForm.name} onChange={(e) => setAccommodationForm({ ...accommodationForm, name: e.target.value })} placeholder="Nome do hotel ou alojamento" /></label>
@@ -863,7 +874,7 @@ export default function TripDetailPage() {
                 <button className="primary-button trip-submit" type="submit" disabled={saving}>{saving ? "A guardar..." : editingAccommodationId ? "Guardar alterações" : "Adicionar alojamento"}</button>
                 {editingAccommodationId && <button className="secondary-button" type="button" onClick={resetAccommodation}>Cancelar</button>}
               </div>
-            </form>
+            </form>}
             <div className="trip-list">
               {accommodations.length === 0 ? <div className="empty-state"><p>Ainda não existem alojamentos associados a esta viagem.</p></div> : accommodations.map((item) => (
                 <article className="trip-card" key={item.id}>
