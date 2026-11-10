@@ -17,11 +17,11 @@ A visão de longo prazo é uma plataforma integral de viagens. O princípio cent
 | Docker Compose, PostgreSQL e Redis | Base publicada; validação local ainda necessária |
 | API FastAPI e autenticação | Registo, login, perfil e JWT implementados |
 | Gestão de viagens | CRUD implementado e testado na API |
-| Voos e alojamentos | CRUD completo associado a viagens; testes API aprovados na CI |\n| Orçamento por viagem | Limite configurável, moeda, custos de voos/alojamentos e saldo calculado; CI das últimas alterações pendente |
+| Voos e alojamentos | CRUD completo associado a viagens; testes API aprovados na CI |\n| Orçamento por viagem | Limite configurável, moeda, custos de voos/alojamentos e saldo calculado |\n| Despesas por viagem | Registo, edição, eliminação, categorias e integração dos valores no resumo financeiro; CI pendente |
 | Frontend — landing page | Publicada |
 | Frontend — registo e login | Implementados com sessão em cookie HttpOnly |
 | Frontend — dashboard | Perfil, listagem, criação, edição e eliminação de viagens integrados com a API |
-| Frontend — planeador de viagem | Página de detalhe com CRUD de voos e alojamentos via BFF; editor de orçamento e saldo por moeda |
+| Frontend — planeador de viagem | Página de detalhe com CRUD de voos, alojamentos e despesas via BFF; orçamento e saldo por moeda |
 | CI GitHub Actions | Pipeline configurado para testes API, ESLint e TypeScript; execução das últimas alterações ainda não confirmada |
 | Pesquisa externa, recomendações e favoritos | Por implementar |
 | Reservas e pagamentos | Fase futura |
@@ -106,7 +106,7 @@ Requisitos: Docker Desktop com Docker Compose e Git.
 
 Parar: `docker compose down`. Para remover também os dados da base de dados: `docker compose down -v` (ação destrutiva).
 
-**Nota:** o dashboard permite gerir viagens e a página de detalhe permite registar, editar e eliminar voos e alojamentos associados. Estas operações usam a API através do BFF autenticado. A validação funcional ponta a ponta em Docker/browser ainda não está confirmada. A CI das alterações de orçamento está em execução; consultar [GitHub Actions](https://github.com/smpsandro1239/Sky/actions) para o resultado atualizado. A pesquisa de inventário real e as reservas não estão implementadas.
+**Nota:** o dashboard permite gerir viagens e a página de detalhe permite registar, editar e eliminar voos e alojamentos associados. Estas operações usam a API através do BFF autenticado. A validação funcional ponta a ponta em Docker/browser ainda não está confirmada. A CI das alterações mais recentes está em execução; consultar [GitHub Actions](https://github.com/smpsandro1239/Sky/actions) para o resultado atualizado. A pesquisa de inventário real e as reservas não estão implementadas.
 
 ## Documentação
 
