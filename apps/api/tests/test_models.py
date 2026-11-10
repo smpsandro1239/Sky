@@ -10,6 +10,7 @@ def test_initial_models_are_registered() -> None:
         "trip_flights",
         "trip_accommodations",
         "trip_expenses",
+        "trip_participants",
     }
 
 
@@ -19,3 +20,5 @@ def test_trip_relationships_are_defined() -> None:
     assert trip.c.user_id.foreign_keys
     assert "trip_id" in Base.metadata.tables["trip_expenses"].c
     assert Base.metadata.tables["trip_expenses"].c.trip_id.foreign_keys
+    assert "trip_id" in Base.metadata.tables["trip_participants"].c
+    assert Base.metadata.tables["trip_participants"].c.trip_id.foreign_keys
