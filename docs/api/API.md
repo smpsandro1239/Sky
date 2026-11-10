@@ -2,7 +2,7 @@
 
 ## Estado
 
-A API FastAPI disponibiliza saúde, autenticação, gestão de viagens, voos, alojamentos, despesas, participantes e partilhas de despesas. Pesquisa externa, favoritos, recomendações e alertas continuam por implementar. A execução da CI e dos testes deve ser consultada no GitHub Actions.
+A API FastAPI disponibiliza saúde, autenticação, gestão de viagens, voos, alojamentos, despesas, participantes, partilhas e balanços de despesas. Pesquisa externa, favoritos, recomendações e alertas continuam por implementar. A execução da CI e dos testes deve ser consultada no GitHub Actions.
 
 ## Base path
 
@@ -39,6 +39,7 @@ Formato: JSON. A aplicação disponibiliza documentação OpenAPI em `/docs` e R
 | POST | `/trips/{trip_id}/participants` | Bearer | Adicionar participante |
 | DELETE | `/trips/{trip_id}/participants/{participant_id}` | Bearer | Remover participante sem partilhas ativas |
 | GET | `/trips/{trip_id}/expenses/{expense_id}/shares` | Bearer | Consultar divisão da despesa |
+| GET | `/trips/{trip_id}/balances` | Bearer | Calcular saldos e transferências sugeridas por moeda |
 | PATCH | `/trips/{trip_id}/expenses/{expense_id}/shares` | Bearer | Substituir a divisão da despesa (lista de partes); lista vazia limpa a divisão |
 
 ### Autenticação e autorização
@@ -105,7 +106,7 @@ A data de saída tem de ser posterior à data de entrada. O preço é opcional e
 
 Os endpoints PATCH aceitam apenas os campos a alterar. A API valida o estado completo resultante antes de persistir a alteração: por exemplo, não permite que a chegada de um voo fique antes da partida nem que a saída de um alojamento fique antes da entrada. Os campos obrigatórios não podem ser anulados.
 
-### Dividir uma despesa entre participantes\n\nO pedido `PATCH /trips/{trip_id}/expenses/{expense_id}/shares` recebe uma lista completa de partes. Cada participante só pode surgir uma vez, tem de pertencer à viagem e cada valor tem de ser positivo. A soma é comparada ao total da despesa em cêntimos; diferenças de um cêntimo são rejeitadas. Enviar `[]` remove todas as partes. Um participante com partilhas associadas não pode ser eliminado (409).\n\nExemplo:\n\n```json\n[\n  { "participant_id": "UUID-DO-PARTICIPANTE-1", "amount": "12.50" },\n  { "participant_id": "UUID-DO-PARTICIPANTE-2", "amount": "12.50" }\n]\n```\n\n### Códigos HTTP
+### Dividir uma despesa entre participantes\n\nAo criar ou atualizar uma despesa, `paid_by_participant_id` identifica opcionalmente o participante que adiantou o valor. O identificador tem de pertencer à viagem. O pedido `PATCH /trips/{trip_id}/expenses/{expense_id}/shares` recebe uma lista completa de partes. Cada participante só pode surgir uma vez, tem de pertencer à viagem e cada valor tem de ser positivo. A soma é comparada ao total da despesa em cêntimos; diferenças de um cêntimo são rejeitadas. Enviar `[]` remove todas as partes. Um participante que seja pagador ou tenha partilhas associadas não pode ser eliminado (409).\n\nO endpoint `GET /trips/{trip_id}/balances` calcula, para cada moeda, o total pago, a parte atribuída e o saldo líquido de cada participante. Inclui sugestões de transferências entre devedores e credores para liquidar os saldos com o menor número de movimentos gerado pelo algoritmo guloso. Só entram no cálculo despesas com pagador identificado e divisão guardada; despesas sem pagador ou sem partilhas ficam de fora.\n\nExemplo:\n\n```json\n[\n  { "participant_id": "UUID-DO-PARTICIPANTE-1", "amount": "12.50" },\n  { "participant_id": "UUID-DO-PARTICIPANTE-2", "amount": "12.50" }\n]\n```\n\n### Códigos HTTP
 
 - `201`: recurso criado.
 - `200`: pedido concluído.
@@ -113,7 +114,7 @@ Os endpoints PATCH aceitam apenas os campos a alterar. A API valida o estado com
 - `401`: autenticação em falta ou inválida.
 - `404`: viagem/recurso inexistente ou sem acesso.
 - `422`: payload inválido ou combinação de campos inconsistente.
-- `409`: conflito de estado, por exemplo remoção de participante com partilhas ou alteração de despesa que invalidaria a divisão.
+- `409`: conflito de estado, por exemplo remoção de participante ligado a despesas ou alteração de despesa que invalidaria a divisão.
 
 ## Endpoints planeados
 
