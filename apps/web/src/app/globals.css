@@ -109,3 +109,20 @@ footer { border-top: 1px solid #1c3043; padding: 25px 28px; text-align: center; 
   .dashboard-stats { grid-template-columns: 1fr 1fr; }
   .trip-card { align-items: flex-start; flex-direction: column; }
 }
+
+.trip-create-form { margin: 25px 0 38px; padding: 26px; border: 1px solid var(--line); border-radius: 16px; background: rgba(16,30,48,.72); }
+.trip-create-form h3 { margin: 0 0 20px; font-size: 18px; }
+.trip-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.trip-create-form label { display: grid; gap: 8px; color: #dbe5f0; font-size: 12px; }
+.trip-create-form input, .trip-create-form textarea { width: 100%; min-width: 0; padding: 13px 14px; border: 1px solid #30465b; border-radius: 9px; background: #091625; color: var(--text); font: inherit; }
+.trip-create-form input:focus, .trip-create-form textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(97,213,196,.12); }
+.notes-field { margin-top: 16px; }
+.trip-submit { margin-top: 18px; min-width: 180px; }
+.trip-card-actions { display: flex; align-items: center; gap: 18px; }
+.delete-button { border: 1px solid #854d54; border-radius: 8px; padding: 8px 11px; background: transparent; color: #ffb8bf; cursor: pointer; font-size: 12px; }
+.delete-button:hover { background: rgba(133,77,84,.16); }
+@media (max-width: 700px) {
+  .trip-create-form { padding: 20px; }
+  .trip-form-grid { grid-template-columns: 1fr; }
+  .trip-card-actions { width: 100%; justify-content: space-between; flex-wrap: wrap; }
+}
