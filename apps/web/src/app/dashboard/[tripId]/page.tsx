@@ -83,6 +83,22 @@ export default function TripDetailPage() {
   const [editingFlightId, setEditingFlightId] = useState<string | null>(null);
   const [editingAccommodationId, setEditingAccommodationId] = useState<string | null>(null);
 
+  const totalsByCurrency = [...flights, ...accommodations].reduce<Record<string, number>>(
+    (totals, item) => {
+      if (item.price_amount !== null) {
+        const amount = Number(item.price_amount);
+        if (Number.isFinite(amount)) {
+          totals[item.price_currency] = (totals[item.price_currency] ?? 0) + amount;
+        }
+      }
+      return totals;
+    },
+    {},
+  );
+  const currencyTotals = Object.entries(totalsByCurrency).sort(([currencyA], [currencyB]) =>
+    currencyA.localeCompare(currencyB),
+  );
+
   useEffect(() => {
     let cancelled = false;
 
@@ -143,16 +159,16 @@ export default function TripDetailPage() {
     event.preventDefault();
     setSaving(true);
     setError("");
-    const payload = {
-      provider: flightForm.provider.trim() || null,
-      origin: flightForm.origin.trim().toUpperCase(),
-      destination: flightForm.destination.trim().toUpperCase(),
-      departure_at: new Date(flightForm.departure_at).toISOString(),
-      arrival_at: flightForm.arrival_at ? new Date(flightForm.arrival_at).toISOString() : null,
-      price_amount: flightForm.price_amount ? Number(flightForm.price_amount) : null,
-      price_currency: flightForm.price_currency.trim().toUpperCase(),
-    };
     try {
+      const payload = {
+        provider: flightForm.provider.trim() || null,
+        origin: flightForm.origin.trim().toUpperCase(),
+        destination: flightForm.destination.trim().toUpperCase(),
+        departure_at: new Date(flightForm.departure_at).toISOString(),
+        arrival_at: flightForm.arrival_at ? new Date(flightForm.arrival_at).toISOString() : null,
+        price_amount: flightForm.price_amount ? Number(flightForm.price_amount) : null,
+        price_currency: flightForm.price_currency.trim().toUpperCase(),
+      };
       const response = await fetch(
         editingFlightId
           ? `/api/backend/trips/${tripId}/flights/${editingFlightId}`
@@ -183,16 +199,16 @@ export default function TripDetailPage() {
     event.preventDefault();
     setSaving(true);
     setError("");
-    const payload = {
-      provider: accommodationForm.provider.trim() || null,
-      name: accommodationForm.name.trim(),
-      location: accommodationForm.location.trim(),
-      check_in: accommodationForm.check_in,
-      check_out: accommodationForm.check_out,
-      price_amount: accommodationForm.price_amount ? Number(accommodationForm.price_amount) : null,
-      price_currency: accommodationForm.price_currency.trim().toUpperCase(),
-    };
     try {
+      const payload = {
+        provider: accommodationForm.provider.trim() || null,
+        name: accommodationForm.name.trim(),
+        location: accommodationForm.location.trim(),
+        check_in: accommodationForm.check_in,
+        check_out: accommodationForm.check_out,
+        price_amount: accommodationForm.price_amount ? Number(accommodationForm.price_amount) : null,
+        price_currency: accommodationForm.price_currency.trim().toUpperCase(),
+      };
       const response = await fetch(
         editingAccommodationId
           ? `/api/backend/trips/${tripId}/accommodations/${editingAccommodationId}`
@@ -285,6 +301,27 @@ export default function TripDetailPage() {
             <h1>{trip.name}</h1>
             <p className="intro dashboard-intro">{trip.destination}{trip.start_date ? ` · ${trip.start_date}` : ""}{trip.end_date ? ` — ${trip.end_date}` : ""}</p>
             {trip.notes && <p className="trip-notes">{trip.notes}</p>}
+            {(flights.length > 0 || accommodations.length > 0) && (
+              <section className="budget-summary" aria-labelledby="budget-summary-title">
+                <div>
+                  <p className="eyebrow">ORÇAMENTO</p>
+                  <h2 id="budget-summary-title">Resumo de custos</h2>
+                  <p className="budget-description">Soma dos preços registados para voos e alojamentos. Os valores são apresentados separadamente por moeda.</p>
+                </div>
+                {currencyTotals.length > 0 ? (
+                  <div className="budget-total-list">
+                    {currencyTotals.map(([currency, amount]) => (
+                      <div className="budget-total" key={currency}>
+                        <span>Total registado em {currency}</span>
+                        <strong>{amount.toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}</strong>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="notice">Ainda não existem preços registados.</p>
+                )}
+              </section>
+            )}
 
             <div className="section-heading"><div><p className="eyebrow">TRANSPORTE</p><h2>Voos</h2></div></div>
             <form className="trip-create-form" onSubmit={saveFlight}>
