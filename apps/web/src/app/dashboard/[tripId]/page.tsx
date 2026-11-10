@@ -34,10 +34,11 @@ type Accommodation = {
   price_amount: string | null;
   price_currency: string;
 };
-type Expense = { id: string; category: string; description: string; expense_date: string; amount: string; currency: string; notes: string | null; };
+type Expense = { id: string; category: string; description: string; expense_date: string; amount: string; currency: string; paid_by_participant_id: string | null; notes: string | null; };
+type TripBalances = { currencies: { currency: string; participants: { participant_id: string; name: string; paid: string; owed: string; net: string }[] }[] };
 type Participant = { id: string; trip_id: string; name: string; email: string | null; created_at: string };
 type ExpenseShare = { id: string; expense_id: string; participant_id: string; amount: string };
-type ExpenseForm = { category: string; description: string; expense_date: string; amount: string; currency: string; notes: string; };
+type ExpenseForm = { category: string; description: string; expense_date: string; amount: string; currency: string; paid_by_participant_id: string; notes: string; };
 type FlightForm = {
   provider: string;
   origin: string;
@@ -57,7 +58,7 @@ type AccommodationForm = {
   price_currency: string;
 };
 
-const emptyExpense: ExpenseForm = { category: "alimentacao", description: "", expense_date: new Date().toISOString().slice(0, 10), amount: "", currency: "EUR", notes: "" };
+const emptyExpense: ExpenseForm = { category: "alimentacao", description: "", expense_date: new Date().toISOString().slice(0, 10), amount: "", currency: "EUR", paid_by_participant_id: "", notes: "" };
 const expenseCategoryLabels: Record<string, string> = { alimentacao: "Alimentação", alojamento: "Alojamento", atividades: "Atividades", compras: "Compras", transportes: "Transportes", outros: "Outros" };
 const emptyFlight: FlightForm = {
   provider: "", origin: "", destination: "", departure_at: "", arrival_at: "",
@@ -85,6 +86,7 @@ export default function TripDetailPage() {
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
+  const [balances, setBalances] = useState<TripBalances>({ currencies: [] });
   const [participantName, setParticipantName] = useState("");
   const [participantEmail, setParticipantEmail] = useState("");
   const [activeShareExpenseId, setActiveShareExpenseId] = useState<string | null>(null);
@@ -140,31 +142,33 @@ export default function TripDetailPage() {
 
     async function loadTrip() {
       try {
-        const [tripResponse, flightResponse, accommodationResponse, expenseResponse, participantResponse] = await Promise.all([
+        const [tripResponse, flightResponse, accommodationResponse, expenseResponse, participantResponse, balanceResponse] = await Promise.all([
           fetch(`/api/backend/trips/${tripId}`, { cache: "no-store" }),
           fetch(`/api/backend/trips/${tripId}/flights`, { cache: "no-store" }),
           fetch(`/api/backend/trips/${tripId}/accommodations`, { cache: "no-store" }),
           fetch(`/api/backend/trips/${tripId}/expenses`, { cache: "no-store" }),
           fetch(`/api/backend/trips/${tripId}/participants`, { cache: "no-store" }),
+          fetch(`/api/backend/trips/${tripId}/balances`, { cache: "no-store" }),
         ]);
 
         if (cancelled) return;
 
-        if ([tripResponse, flightResponse, accommodationResponse, expenseResponse, participantResponse].some((response) => response.status === 401)) {
+        if ([tripResponse, flightResponse, accommodationResponse, expenseResponse, participantResponse, balanceResponse].some((response) => response.status === 401)) {
           router.replace("/login");
           return;
         }
 
-        if (!tripResponse.ok || !flightResponse.ok || !accommodationResponse.ok || !expenseResponse.ok || !participantResponse.ok) {
+        if (!tripResponse.ok || !flightResponse.ok || !accommodationResponse.ok || !expenseResponse.ok || !participantResponse.ok || !balanceResponse.ok) {
           throw new Error("Não foi possível carregar os dados desta viagem.");
         }
 
-        const [tripData, flightData, accommodationData, expenseData, participantData] = await Promise.all([
+        const [tripData, flightData, accommodationData, expenseData, participantData, balanceData] = await Promise.all([
           tripResponse.json(),
           flightResponse.json(),
           accommodationResponse.json(),
           expenseResponse.json(),
           participantResponse.json(),
+          balanceResponse.json(),
         ]);
 
         if (cancelled) return;
@@ -175,6 +179,7 @@ export default function TripDetailPage() {
         setAccommodations(accommodationData);
         setExpenses(expenseData);
         setParticipants(participantData);
+        setBalances(balanceData);
       } catch (cause) {
         if (!cancelled) {
           setError(cause instanceof Error ? cause.message : "Ocorreu um erro ao carregar a viagem.");
@@ -318,6 +323,8 @@ export default function TripDetailPage() {
       }
       setActiveShareExpenseId(null);
       setShareDraft({});
+      const balanceResponse = await fetch(`/api/backend/trips/${tripId}/balances`, { cache: "no-store" });
+      if (balanceResponse.ok) setBalances(await balanceResponse.json());
     } catch {
       setError("Não foi possível contactar a API. Tenta novamente.");
     } finally {
@@ -335,6 +342,7 @@ export default function TripDetailPage() {
         description: expenseForm.description.trim(),
         amount: Number(expenseForm.amount),
         currency: expenseForm.currency.trim().toUpperCase(),
+        paid_by_participant_id: expenseForm.paid_by_participant_id || null,
         notes: expenseForm.notes.trim() || null,
       };
       const response = await fetch(
@@ -357,6 +365,8 @@ export default function TripDetailPage() {
         : [data, ...current]);
       setExpenseForm(emptyExpense);
       setEditingExpenseId(null);
+      const balanceResponse = await fetch(`/api/backend/trips/${tripId}/balances`, { cache: "no-store" });
+      if (balanceResponse.ok) setBalances(await balanceResponse.json());
     } catch {
       setError("Não foi possível contactar a API. Tenta novamente.");
     } finally {
@@ -372,6 +382,7 @@ export default function TripDetailPage() {
       expense_date: item.expense_date,
       amount: item.amount,
       currency: item.currency,
+      paid_by_participant_id: item.paid_by_participant_id ?? "",
       notes: item.notes ?? "",
     });
   }
@@ -654,6 +665,25 @@ export default function TripDetailPage() {
               </div>
             </section>
 
+            {balances.currencies.length > 0 && (
+              <section className="balances-panel" aria-labelledby="balances-title">
+                <div><p className="eyebrow">ACERTO DE CONTAS</p><h2 id="balances-title">Saldo entre participantes</h2><p className="budget-description">Só inclui despesas com pagador identificado e divisão guardada. Valores positivos indicam a receber; valores negativos indicam a pagar.</p></div>
+                {balances.currencies.map((group) => (
+                  <div className="balance-currency" key={group.currency}>
+                    <h3>{group.currency}</h3>
+                    <div className="balance-list">
+                      {group.participants.map((entry) => (
+                        <div className="balance-row" key={entry.participant_id}>
+                          <strong>{entry.name}</strong>
+                          <span>Pagou {Number(entry.paid).toLocaleString("pt-PT", { minimumFractionDigits: 2 })} · Parte {Number(entry.owed).toLocaleString("pt-PT", { minimumFractionDigits: 2 })}</span>
+                          <b className={Number(entry.net) >= 0 ? "balance-positive" : "balance-negative"}>{Number(entry.net) > 0 ? "A receber " : Number(entry.net) < 0 ? "A pagar " : ""}{Math.abs(Number(entry.net)).toLocaleString("pt-PT", { minimumFractionDigits: 2 })} {group.currency}</b>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </section>
+            )}
             <div className="section-heading"><div><p className="eyebrow">GESTÃO FINANCEIRA</p><h2>Despesas</h2></div></div>
             <form className="trip-create-form" onSubmit={saveExpense}>
               <h3>{editingExpenseId ? "Editar despesa" : "Registar despesa"}</h3>
@@ -663,6 +693,7 @@ export default function TripDetailPage() {
                 <label>Data<input required type="date" value={expenseForm.expense_date} onChange={(e) => setExpenseForm({ ...expenseForm, expense_date: e.target.value })} /></label>
                 <label>Valor<input required type="number" min="0.01" step="0.01" value={expenseForm.amount} onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })} placeholder="0,00" /></label>
                 <label>Moeda<input required minLength={3} maxLength={3} value={expenseForm.currency} onChange={(e) => setExpenseForm({ ...expenseForm, currency: e.target.value.toUpperCase() })} /></label>
+                <label>Pago por<select value={expenseForm.paid_by_participant_id} onChange={(e) => setExpenseForm({ ...expenseForm, paid_by_participant_id: e.target.value })}><option value="">Não indicado</option>{participants.map((participant) => <option key={participant.id} value={participant.id}>{participant.name}</option>)}</select></label>
                 <label>Notas<input maxLength={2000} value={expenseForm.notes} onChange={(e) => setExpenseForm({ ...expenseForm, notes: e.target.value })} placeholder="Opcional" /></label>
               </div>
               <div className="trip-form-actions">
