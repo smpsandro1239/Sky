@@ -241,3 +241,72 @@ def test_trip_budget_rejects_negative_amount_and_invalid_currency(client: TestCl
         },
     )
     assert invalid_currency.status_code == 422
+
+
+def test_trip_expenses_crud_and_user_isolation(client: TestClient) -> None:
+    owner_token = register_and_login(client, "expense-owner@example.com")
+    other_token = register_and_login(client, "expense-other@example.com")
+    headers = auth(owner_token)
+    trip_response = client.post(
+        "/api/v1/trips",
+        headers=headers,
+        json={"name": "Férias", "destination": "Porto"},
+    )
+    trip_id = trip_response.json()["id"]
+    expense_response = client.post(
+        f"/api/v1/trips/{trip_id}/expenses",
+        headers=headers,
+        json={
+            "category": "alimentacao",
+            "description": "Jantar",
+            "expense_date": "2027-08-02",
+            "amount": "42.50",
+            "currency": "eur",
+            "notes": "Restaurante local",
+        },
+    )
+    assert expense_response.status_code == 201
+    expense = expense_response.json()
+    assert expense["category"] == "alimentacao"
+    assert expense["amount"] == "42.50"
+    assert expense["currency"] == "EUR"
+
+    listed = client.get(f"/api/v1/trips/{trip_id}/expenses", headers=headers)
+    assert listed.status_code == 200
+    assert len(listed.json()) == 1
+
+    expense_id = expense["id"]
+    updated = client.patch(
+        f"/api/v1/trips/{trip_id}/expenses/{expense_id}",
+        headers=headers,
+        json={"amount": "50.00", "description": "Jantar atualizado"},
+    )
+    assert updated.status_code == 200
+    assert updated.json()["amount"] == "50.00"
+    assert updated.json()["description"] == "Jantar atualizado"
+
+    assert client.get(
+        f"/api/v1/trips/{trip_id}/expenses", headers=auth(other_token)
+    ).status_code == 404
+    deleted = client.delete(
+        f"/api/v1/trips/{trip_id}/expenses/{expense_id}", headers=headers
+    )
+    assert deleted.status_code == 204
+    assert client.get(
+        f"/api/v1/trips/{trip_id}/expenses", headers=headers
+    ).json() == []
+
+
+def test_expenses_reject_invalid_category_and_non_positive_amount(client: TestClient) -> None:
+    token = register_and_login(client, "expense-validation@example.com")
+    headers = auth(token)
+    trip = client.post(
+        "/api/v1/trips", headers=headers,
+        json={"name": "Teste", "destination": "Braga"},
+    ).json()
+    url = f"/api/v1/trips/{trip['id']}/expenses"
+    base = {"description": "Despesa", "expense_date": "2027-08-02", "amount": "10"}
+    invalid_category = client.post(url, headers=headers, json={**base, "category": "categoria-x"})
+    assert invalid_category.status_code == 422
+    invalid_amount = client.post(url, headers=headers, json={**base, "category": "outros", "amount": "0"})
+    assert invalid_amount.status_code == 422
