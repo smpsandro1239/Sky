@@ -12,6 +12,7 @@ type Trip = {
   start_date: string | null;
   end_date: string | null;
   notes: string | null;
+  role: "owner" | "editor" | "viewer";
 };
 
 export default function DashboardPage() {
@@ -198,11 +199,10 @@ export default function DashboardPage() {
               <article className="trip-card" key={trip.id}>
                 <div><h3>{trip.name}</h3><p>{trip.destination}</p></div>
                 <div className="trip-card-actions">
-                  <span>{trip.start_date ?? "Data por definir"}{trip.end_date ? ` — ${trip.end_date}` : ""}</span>
+                  <span>{trip.role === "owner" ? "Proprietário" : trip.role === "editor" ? "Editor" : "Leitor"} · {trip.start_date ?? "Data por definir"}{trip.end_date ? ` — ${trip.end_date}` : ""}</span>
                   <div className="trip-action-buttons">
                     <Link className="edit-button" href={`/dashboard/${trip.id}`}>Gerir viagem</Link>
-                    <button className="edit-button" type="button" onClick={() => editTrip(trip)}>Editar</button>
-                    <button className="delete-button" type="button" onClick={() => deleteTrip(trip.id)}>Eliminar</button>
+                    {trip.role === "owner" && <><button className="edit-button" type="button" onClick={() => editTrip(trip)}>Editar</button><button className="delete-button" type="button" onClick={() => deleteTrip(trip.id)}>Eliminar</button></>}
                   </div>
                 </div>
               </article>
