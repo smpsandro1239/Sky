@@ -42,12 +42,15 @@ def create_invitation(
     email = str(payload.email).strip().lower()
     if email == user.email.lower():
         raise HTTPException(status_code=409, detail="Não podes convidar a tua própria conta.")
-    linked = db.scalar(
-        select(TripParticipant.id).where(
-            TripParticipant.trip_id == trip.id,
-            TripParticipant.user_id == db.scalar(select(User.id).where(User.email == email)),
+    invited_user_id = db.scalar(select(User.id).where(User.email == email))
+    linked = None
+    if invited_user_id is not None:
+        linked = db.scalar(
+            select(TripParticipant.id).where(
+                TripParticipant.trip_id == trip.id,
+                TripParticipant.user_id == invited_user_id,
+            )
         )
-    ) if db.scalar(select(User.id).where(User.email == email)) is not None else None
     if linked is not None:
         raise HTTPException(status_code=409, detail="Esta pessoa já participa na viagem.")
     pending = db.scalar(
@@ -145,6 +148,15 @@ def accept_invitation(
             status_code=403,
             detail="Inicia sessão com o endereço de email para o qual o convite foi enviado.",
         )
+
+    already_linked = db.scalar(
+        select(TripParticipant.id).where(
+            TripParticipant.trip_id == invitation.trip_id,
+            TripParticipant.user_id == user.id,
+        )
+    )
+    if already_linked is not None:
+        raise HTTPException(status_code=409, detail="A tua conta já está associada a esta viagem.")
 
     existing = db.scalar(
         select(TripParticipant).where(
