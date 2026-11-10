@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from decimal import Decimal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -10,6 +11,8 @@ class TripCreate(BaseModel):
     start_date: date | None = None
     end_date: date | None = None
     notes: str | None = Field(default=None, max_length=10000)
+    budget_amount: Decimal | None = Field(default=None, ge=0, max_digits=12, decimal_places=2)
+    budget_currency: str = Field(default="EUR", min_length=3, max_length=3)
 
     @field_validator("name", "destination")
     @classmethod
@@ -17,6 +20,14 @@ class TripCreate(BaseModel):
         normalized = value.strip()
         if len(normalized) < 2:
             raise ValueError("O campo tem de ter pelo menos 2 caracteres.")
+        return normalized
+
+    @field_validator("budget_currency")
+    @classmethod
+    def normalize_currency(cls, value: str) -> str:
+        normalized = value.strip().upper()
+        if len(normalized) != 3 or not normalized.isalpha():
+            raise ValueError("A moeda deve ser um código de três letras, por exemplo EUR.")
         return normalized
 
     @model_validator(mode="after")
@@ -27,12 +38,13 @@ class TripCreate(BaseModel):
 
 
 class TripUpdate(BaseModel):
-    # Defaults allow omitted fields; non-optional types reject explicit null values.
     name: str = Field(default=None, min_length=2, max_length=160)
     destination: str = Field(default=None, min_length=2, max_length=160)
     start_date: date | None = None
     end_date: date | None = None
     notes: str | None = Field(default=None, max_length=10000)
+    budget_amount: Decimal | None = Field(default=None, ge=0, max_digits=12, decimal_places=2)
+    budget_currency: str = Field(default=None, min_length=3, max_length=3)
 
     @field_validator("name", "destination")
     @classmethod
@@ -40,6 +52,16 @@ class TripUpdate(BaseModel):
         normalized = value.strip()
         if len(normalized) < 2:
             raise ValueError("O campo tem de ter pelo menos 2 caracteres.")
+        return normalized
+
+    @field_validator("budget_currency")
+    @classmethod
+    def normalize_currency(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        normalized = value.strip().upper()
+        if len(normalized) != 3 or not normalized.isalpha():
+            raise ValueError("A moeda deve ser um código de três letras, por exemplo EUR.")
         return normalized
 
     @model_validator(mode="after")
@@ -60,4 +82,6 @@ class TripResponse(BaseModel):
     start_date: date | None
     end_date: date | None
     notes: str | None
+    budget_amount: Decimal | None
+    budget_currency: str
     created_at: datetime
