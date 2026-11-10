@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.api.deps import get_current_user, get_db
 from app.api.routes.expenses import get_trip_expense
-from app.api.routes.trips import get_user_trip
+from app.api.routes.trips import get_accessible_trip, get_user_trip, require_trip_editor
 from app.models.expense_share import ExpenseShare
 from app.models.participant import TripParticipant
 from app.models.user import User
@@ -23,7 +23,7 @@ def list_expense_shares(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> list[ExpenseShare]:
-    trip = get_user_trip(db, trip_id, user.id)
+    trip = get_accessible_trip(db, trip_id, user.id)
     get_trip_expense(db, trip.id, expense_id)
     statement = (
         select(ExpenseShare)
@@ -43,7 +43,7 @@ def replace_expense_shares(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> list[ExpenseShare]:
-    trip = get_user_trip(db, trip_id, user.id)
+    trip = require_trip_editor(db, trip_id, user.id)
     expense = get_trip_expense(db, trip.id, expense_id)
 
     participant_ids = [item.participant_id for item in payload]
