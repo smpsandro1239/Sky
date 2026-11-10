@@ -37,7 +37,7 @@ type Accommodation = {
 };
 type Expense = { id: string; category: string; description: string; expense_date: string; amount: string; currency: string; paid_by_participant_id: string | null; notes: string | null; };
 type TripBalances = { currencies: { currency: string; participants: { participant_id: string; name: string; paid: string; owed: string; net: string }[]; suggested_transfers: { from_participant_id: string; from_name: string; to_participant_id: string; to_name: string; amount: string }[] }[] };
-type Participant = { id: string; trip_id: string; name: string; email: string | null; created_at: string };
+type Participant = { id: string; trip_id: string; name: string; email: string | null; role: "editor" | "viewer"; created_at: string };
 type Invitation = { id: string; trip_id: string; email: string; status: string; expires_at: string; accepted_at: string | null; created_at: string };
 type CreatedInvitation = Invitation & { invitation_token: string };
 type ExpenseShare = { id: string; expense_id: string; participant_id: string; amount: string };
