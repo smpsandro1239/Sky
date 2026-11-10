@@ -17,9 +17,11 @@ A visão de longo prazo é uma plataforma integral de viagens. O princípio cent
 | Docker Compose, PostgreSQL e Redis | Base publicada; validação local ainda necessária |
 | API FastAPI e autenticação | Registo, login, perfil e JWT implementados |
 | Gestão de viagens | CRUD implementado e testado na API |
-| Voos e alojamentos | CRUD completo associado a viagens; testes API aprovados na CI |\n| Orçamento por viagem | Limite configurável, moeda, custos de voos/alojamentos e saldo calculado |\n| Despesas por viagem | Registo, edição, eliminação, categorias e integração dos valores no resumo financeiro; testes API e migrações aprovados |
+| Voos e alojamentos | CRUD completo associado a viagens; testes API aprovados na CI |
+| Orçamento por viagem | Limite configurável, moeda, custos de voos/alojamentos e saldo calculado |
+| Despesas por viagem | Registo, edição, eliminação, categorias e integração dos valores no resumo financeiro; testes API e migrações aprovados |
 | Participantes por viagem | Gestão de participantes por viagem, com isolamento por proprietário |
-| Divisão de despesas e acerto de contas | Registo do pagador, partilhas por participante, cálculo de saldos por moeda e sugestões de transferências para liquidar dívidas |
+| Divisão de despesas e acerto de contas | Registo do pagador, partilhas por participante, cálculo de saldos por moeda e sugestões de transferências para liquidar dívidas |\n| Convites para viagens | Convites com token aleatório, hash persistido, expiração de 7 dias, aceitação associada ao email autenticado e revogação; envio de email automático ainda não configurado |\n| Frontend — convites | Criação, cópia de link, revogação e página de aceitação autenticada |
 | Frontend — landing page | Publicada |
 | Frontend — registo e login | Implementados com sessão em cookie HttpOnly |
 | Frontend — dashboard | Perfil, listagem, criação, edição e eliminação de viagens integrados com a API |
@@ -108,7 +110,7 @@ Requisitos: Docker Desktop com Docker Compose e Git.
 
 Parar: `docker compose down`. Para remover também os dados da base de dados: `docker compose down -v` (ação destrutiva).
 
-**Nota:** o dashboard permite gerir viagens e a página de detalhe permite registar, editar e eliminar voos e alojamentos associados. Estas operações usam a API através do BFF autenticado. A validação funcional ponta a ponta em Docker/browser ainda não está confirmada. A CI da versão anterior à implementação da divisão de despesas concluiu com sucesso; consultar [GitHub Actions](https://github.com/smpsandro1239/Sky/actions) para o resultado das alterações mais recentes. A pesquisa de inventário real e as reservas não estão implementadas.
+**Nota:** o dashboard permite gerir viagens e a página de detalhe permite registar, editar e eliminar voos e alojamentos associados. Estas operações usam a API através do BFF autenticado. A validação funcional ponta a ponta em Docker/browser ainda não está confirmada. A CI da versão anterior à implementação da divisão de despesas concluiu com sucesso; consultar [GitHub Actions](https://github.com/smpsandro1239/Sky/actions) para o resultado das alterações mais recentes. A pesquisa de inventário real e as reservas não estão implementadas. Os convites para participantes já podem ser criados e aceites através de links; o envio automático por email ainda não está configurado.
 
 ## Documentação
 
