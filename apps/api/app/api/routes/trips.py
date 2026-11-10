@@ -1,11 +1,12 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
 from app.models.trip import Trip
+from app.models.participant import TripParticipant
 from app.models.user import User
 from app.schemas.trip import TripCreate, TripResponse, TripUpdate
 
@@ -16,6 +17,41 @@ def get_user_trip(db: Session, trip_id: UUID, user_id: UUID) -> Trip:
     trip = db.scalar(select(Trip).where(Trip.id == trip_id, Trip.user_id == user_id))
     if trip is None:
         raise HTTPException(status_code=404, detail="Viagem não encontrada.")
+    return trip
+
+
+def get_accessible_trip(db: Session, trip_id: UUID, user_id: UUID) -> Trip:
+    trip = db.scalar(
+        select(Trip)
+        .outerjoin(TripParticipant, TripParticipant.trip_id == Trip.id)
+        .where(
+            Trip.id == trip_id,
+            or_(Trip.user_id == user_id, TripParticipant.user_id == user_id),
+        )
+    )
+    if trip is None:
+        raise HTTPException(status_code=404, detail="Viagem não encontrada.")
+    return trip
+
+
+def get_trip_role(db: Session, trip: Trip, user_id: UUID) -> str:
+    if trip.user_id == user_id:
+        return "owner"
+    participant = db.scalar(
+        select(TripParticipant).where(
+            TripParticipant.trip_id == trip.id,
+            TripParticipant.user_id == user_id,
+        )
+    )
+    if participant is None:
+        raise HTTPException(status_code=404, detail="Viagem não encontrada.")
+    return participant.role
+
+
+def require_trip_editor(db: Session, trip_id: UUID, user_id: UUID) -> Trip:
+    trip = get_accessible_trip(db, trip_id, user_id)
+    if get_trip_role(db, trip, user_id) not in {"owner", "editor"}:
+        raise HTTPException(status_code=403, detail="Tens acesso de leitura, mas não podes alterar esta viagem.")
     return trip
 
 
@@ -37,7 +73,13 @@ def list_trips(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> list[Trip]:
-    statement = select(Trip).where(Trip.user_id == user.id).order_by(Trip.created_at.desc())
+    statement = (
+        select(Trip)
+        .outerjoin(TripParticipant, TripParticipant.trip_id == Trip.id)
+        .where(or_(Trip.user_id == user.id, TripParticipant.user_id == user.id))
+        .distinct()
+        .order_by(Trip.created_at.desc())
+    )
     return list(db.scalars(statement).all())
 
 
@@ -47,7 +89,17 @@ def read_trip(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> Trip:
-    return get_user_trip(db, trip_id, user.id)
+    return get_accessible_trip(db, trip_id, user.id)
+
+
+@router.get("/{trip_id}/access")
+def read_trip_access(
+    trip_id: UUID,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict[str, str]:
+    trip = get_accessible_trip(db, trip_id, user.id)
+    return {"role": get_trip_role(db, trip, user.id)}
 
 
 @router.patch("/{trip_id}", response_model=TripResponse)
