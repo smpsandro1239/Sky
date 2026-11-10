@@ -8,17 +8,18 @@ A visão de longo prazo é uma plataforma integral de viagens, incluindo descobe
 
 ## Estado do projeto
 
-**Fases 1 e 2 concluídas. Fase 3 em implementação.** A fundação inicial inclui Docker Compose, PostgreSQL, Redis, API FastAPI, autenticação por token, migrações Alembic e uma interface Next.js inicial. A API já inclui endpoints de gestão de viagens associados ao utilizador autenticado. A execução local e a integração contínua ainda precisam de ser validadas.
+**Fases 1 e 2 concluídas. Fase 3 em implementação.** A fundação inclui Docker Compose, PostgreSQL, Redis, API FastAPI, autenticação JWT, migrações Alembic e uma interface Next.js inicial. A API disponibiliza CRUD de viagens e endpoints para associar/listar voos e alojamentos por viagem. Os testes estão publicados, mas a execução local, CI e integração frontend ainda precisam de validação.
 
 | Área | Estado |
 |---|---|
 | Fase 1 — visão e âmbito do produto | Concluída |
 | Fase 2 — arquitetura, documentação e SKY Design System | Concluída |
 | Docker Compose, PostgreSQL e Redis | Implementação inicial publicada; API aplica migrações Alembic no arranque |
-| API FastAPI, autenticação e gestão de viagens | Endpoints de registo, login, perfil e CRUD de viagens; testes adicionados; execução CI por confirmar |
-| Frontend Next.js | Estrutura e landing page iniciais publicadas |
-| CI GitHub Actions | Configuração inicial publicada |
-| Modelos de viagem, voos e alojamentos | Modelos iniciais publicados; CRUD de viagens implementado; associação/gestão de voos e alojamentos por implementar |
+| API FastAPI e autenticação | Registo, login, perfil e JWT publicados |
+| Gestão de viagens | CRUD publicado; isolamento por utilizador e validações cobertos por testes |
+| Voos e alojamentos nas viagens | Criação e listagem associadas a uma viagem; pesquisa externa ainda não implementada |
+| Frontend Next.js | Estrutura e landing page iniciais publicadas; integração com a API pendente |
+| CI GitHub Actions | Configuração inicial publicada; execução bem-sucedida por confirmar |
 | Integrações externas | Por selecionar |
 | Reservas e pagamentos | Fase futura |
 
@@ -48,7 +49,7 @@ A arquitetura deve acomodar a evolução para reservas e pagamentos desde o iní
 | Web | Next.js, React, TypeScript |
 | UI e estilos | Tailwind CSS, shadcn/ui (integração planeada) |
 | API | Python, FastAPI, Pydantic |
-| Persistência | PostgreSQL, SQLAlchemy e migrações Alembic (esquema inicial publicado) |
+| Persistência | PostgreSQL, SQLAlchemy e migrações Alembic |
 | Cache | Redis (infraestrutura inicial) |
 | Ambiente | Docker, Docker Compose |
 | Testes | Pytest, HTTPX; testes frontend e E2E em fases posteriores |
@@ -97,7 +98,7 @@ Requisitos: Docker Desktop com Docker Compose e Git.
 
 Parar os serviços: `docker compose down`. Para remover também os dados locais da base de dados: `docker compose down -v` (ação destrutiva).
 
- > Nota: os campos da página inicial ainda são demonstrativos e estão desativados. A API disponibiliza autenticação e gestão básica de viagens; ainda não existe pesquisa real, ligação a fornecedores ou fluxo de reserva.
+> Nota: os campos da página inicial ainda são demonstrativos e estão desativados. A API disponibiliza autenticação, gestão de viagens e registo/listagem de voos e alojamentos associados; ainda não existe pesquisa real, ligação a fornecedores ou fluxo de reserva.
 
 ## Documentação
 
@@ -123,7 +124,7 @@ Parar os serviços: `docker compose down`. Para remover também os dados locais 
 
 - [x] **Fase 1 — descoberta e definição do produto.**
 - [x] **Fase 2 — arquitetura e documentação.**
-- [ ] **Fase 3 — fundações do projeto:** estrutura inicial, Docker, API, autenticação e CRUD de viagens; falta validação local, CI e estabilização.
+- [ ] **Fase 3 — fundações do projeto:** Docker, API, autenticação, CRUD de viagens e associação inicial de voos/alojamentos publicados; falta validação local, CI e integração frontend.
 - [ ] **Fase 4 — pesquisa e fornecedores:** APIs e adaptadores para voos e alojamentos.
 - [ ] **Fase 5 — inteligência:** Recommendation Engine e Price Intelligence.
 - [ ] **Fase 6 — experiência de utilização:** interface web e planeador inicial.
