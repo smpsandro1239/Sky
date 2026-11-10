@@ -15,7 +15,7 @@ A visão de longo prazo é uma plataforma integral de viagens, incluindo descobe
 | Fase 1 — visão e âmbito do produto | Concluída |
 | Fase 2 — arquitetura, documentação e SKY Design System | Concluída |
 | Docker Compose, PostgreSQL e Redis | Implementação inicial publicada |
-| API FastAPI e endpoint de saúde | Implementação inicial publicada; testes por executar |
+| API FastAPI e endpoint de saúde | Implementação inicial publicada; testes de autenticação adicionados, execução CI por confirmar |
 | Frontend Next.js | Estrutura e landing page iniciais publicadas |
 | CI GitHub Actions | Configuração inicial publicada |
 | Pesquisa real de voos e alojamentos | Por implementar |
