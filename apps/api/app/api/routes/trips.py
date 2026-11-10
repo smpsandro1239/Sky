@@ -80,7 +80,11 @@ def list_trips(
         .distinct()
         .order_by(Trip.created_at.desc())
     )
-    return list(db.scalars(statement).all())
+    trips = list(db.scalars(statement).all())
+    return [
+        TripResponse.model_validate(trip).model_copy(update={"role": get_trip_role(db, trip, user.id)})
+        for trip in trips
+    ]
 
 
 @router.get("/{trip_id}", response_model=TripResponse)
@@ -89,7 +93,8 @@ def read_trip(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> Trip:
-    return get_accessible_trip(db, trip_id, user.id)
+    trip = get_accessible_trip(db, trip_id, user.id)
+    return TripResponse.model_validate(trip).model_copy(update={"role": get_trip_role(db, trip, user.id)})
 
 
 @router.get("/{trip_id}/access")
