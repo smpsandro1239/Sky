@@ -36,6 +36,31 @@ class FlightCreate(BaseModel):
         return self
 
 
+class FlightUpdate(BaseModel):
+    provider: str | None = Field(default=None, max_length=80)
+    origin: str | None = Field(default=None, min_length=3, max_length=3)
+    destination: str | None = Field(default=None, min_length=3, max_length=3)
+    departure_at: datetime | None = None
+    arrival_at: datetime | None = None
+    price_amount: Decimal | None = Field(default=None, gt=0, max_digits=12, decimal_places=2)
+    price_currency: str | None = Field(default=None, min_length=3, max_length=3)
+
+    @field_validator("origin", "destination", "price_currency")
+    @classmethod
+    def normalize_codes(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip().upper()
+        if len(normalized) != 3 or not normalized.isalpha():
+            raise ValueError("O código tem de conter exatamente três letras.")
+        return normalized
+
+    @field_validator("provider")
+    @classmethod
+    def normalize_provider(cls, value: str | None) -> str | None:
+        return value.strip() or None if value is not None else None
+
+
 class FlightResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
