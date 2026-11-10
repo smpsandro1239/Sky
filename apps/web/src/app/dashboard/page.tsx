@@ -200,6 +200,7 @@ export default function DashboardPage() {
                 <div className="trip-card-actions">
                   <span>{trip.start_date ?? "Data por definir"}{trip.end_date ? ` — ${trip.end_date}` : ""}</span>
                   <div className="trip-action-buttons">
+                    <Link className="edit-button" href={`/dashboard/${trip.id}`}>Gerir viagem</Link>
                     <button className="edit-button" type="button" onClick={() => editTrip(trip)}>Editar</button>
                     <button className="delete-button" type="button" onClick={() => deleteTrip(trip.id)}>Eliminar</button>
                   </div>
