@@ -22,6 +22,8 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
+      - name: Validate database migrations
+        run: DATABASE_URL=sqlite+pysqlite:///./migration-test.db alembic upgrade head
       - run: python -m pytest
 
   web-checks:
