@@ -74,3 +74,24 @@ def test_access_token_rejects_missing_subject() -> None:
     )
 
     assert decode_access_token(token) is None
+
+
+def test_production_rejects_development_secret_even_when_long(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "environment", "production")
+    monkeypatch.setattr(
+        settings,
+        "secret_key",
+        "dev-only-change-this-secret-key-rotate-before-production",
+    )
+    try:
+        settings.validate_security()
+    except RuntimeError as exc:
+        assert "SKY_SECRET_KEY" in str(exc)
+    else:
+        raise AssertionError("A development secret must never be accepted in production")
+
+
+def test_production_accepts_unique_secret_of_at_least_32_characters(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "environment", "production")
+    monkeypatch.setattr(settings, "secret_key", "production-secret-key-with-more-than-32-characters")
+    settings.validate_security()
