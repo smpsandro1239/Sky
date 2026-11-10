@@ -163,3 +163,17 @@ footer { border-top: 1px solid #1c3043; padding: 25px 28px; text-align: center; 
   .budget-summary { grid-template-columns: 1fr; padding: 20px; }
   .budget-total { align-items: flex-start; flex-direction: column; }
 }
+
+
+/* Editable trip budget and balance */
+.budget-editor { display: grid; grid-template-columns: minmax(0, 1fr) 110px; gap: 12px; align-items: end; }
+.budget-editor label { display: grid; gap: 8px; color: #dbe5f0; font-size: 12px; }
+.budget-editor input { width: 100%; min-width: 0; padding: 13px 14px; border: 1px solid #30465b; border-radius: 9px; background: #091625; color: var(--text); font: inherit; }
+.budget-editor input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(97,213,196,.12); }
+.budget-editor .trip-submit { grid-column: 1 / -1; margin-top: 0; }
+.budget-balance { grid-column: 1 / -1; margin: 4px 0 0; color: var(--accent); font-size: 14px; font-weight: 700; }
+.budget-balance.budget-over { color: #ffb8bf; }
+@media (max-width: 700px) {
+  .budget-editor { grid-template-columns: 1fr; }
+  .budget-editor .trip-submit, .budget-balance { grid-column: auto; }
+}
