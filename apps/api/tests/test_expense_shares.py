@@ -247,6 +247,14 @@ def test_balances_calculate_net_positions_per_currency(client: TestClient) -> No
     assert positions[other]["paid"] == "0.00"
     assert positions[other]["owed"] == "20.00"
     assert positions[other]["net"] == "-20.00"
+    transfers = eur["suggested_transfers"]
+    assert transfers == [{
+        "from_participant_id": other,
+        "from_name": "Rui",
+        "to_participant_id": payer,
+        "to_name": "Ana",
+        "amount": "20.00",
+    }]
 
 
 def test_expense_payer_must_belong_to_trip_and_cannot_be_removed(client: TestClient) -> None:
