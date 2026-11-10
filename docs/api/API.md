@@ -37,7 +37,11 @@ Formato: JSON. A aplicação disponibiliza documentação OpenAPI em `/docs` e R
 | DELETE | `/trips/{trip_id}/expenses/{expense_id}` | Bearer | Eliminar despesa e respetivas partilhas |
 | GET | `/trips/{trip_id}/participants` | Bearer | Listar participantes |
 | POST | `/trips/{trip_id}/participants` | Bearer | Adicionar participante |
-| DELETE | `/trips/{trip_id}/participants/{participant_id}` | Bearer | Remover participante sem partilhas ativas |
+| DELETE | `/trips/{trip_id}/participants/{participant_id}` | Bearer | Remover participante sem partilhas ou despesas pagas associadas |
+| POST | `/trips/{trip_id}/invitations` | Bearer | Criar convite para um endereço de email |
+| GET | `/trips/{trip_id}/invitations` | Bearer | Listar convites da viagem (sem expor tokens) |
+| DELETE | `/trips/{trip_id}/invitations/{invitation_id}` | Bearer | Revogar convite pendente |
+| POST | `/invitations/accept` | Bearer | Aceitar convite com token e conta de email correspondente |
 | GET | `/trips/{trip_id}/expenses/{expense_id}/shares` | Bearer | Consultar divisão da despesa |
 | GET | `/trips/{trip_id}/balances` | Bearer | Calcular saldos e transferências sugeridas por moeda |
 | PATCH | `/trips/{trip_id}/expenses/{expense_id}/shares` | Bearer | Substituir a divisão da despesa (lista de partes); lista vazia limpa a divisão |
@@ -51,6 +55,26 @@ Authorization: Bearer <access_token>
 ```
 
 A API valida o token e confirma que a conta existe e está ativa. Cada operação sobre voos, alojamentos, despesas, participantes e partilhas valida primeiro a propriedade da viagem e depois a associação do recurso à própria viagem. Recursos de outra conta ou pertencentes a outra viagem não são expostos (404).
+
+### Convites para participantes
+
+O proprietário da viagem pode criar um convite através de `POST /trips/{trip_id}/invitations`:
+
+```json
+{ "email": "pessoa@example.com" }
+```
+
+A resposta inclui `invitation_token` uma única vez. O token é gerado aleatoriamente, só o respetivo hash SHA-256 é guardado na base de dados e o convite expira ao fim de 7 dias. A listagem nunca devolve o token. O link de aceitação deve ser partilhado apenas com o destinatário.
+
+A pessoa convidada tem de iniciar sessão com o mesmo endereço de email e enviar `POST /invitations/accept`:
+
+```json
+{ "token": "TOKEN_RECEBIDO_NO_LINK" }
+```
+
+A aceitação associa a conta ao participante existente com o mesmo email ou cria um participante novo. Os tokens são de utilização única. Convites pendentes podem ser revogados pelo proprietário. Convites expirados, revogados ou já aceites não podem ser reutilizados.
+
+**Limitação atual:** o SKY ainda não envia emails automaticamente. O frontend permite copiar o link para o proprietário o partilhar por um canal externo. A associação à viagem não concede acesso de leitura/escrita aos dados da viagem através da API: a autorização de recursos continua reservada ao proprietário até ser implementado um modelo de permissões por membro.
 
 ### Criar uma viagem
 
