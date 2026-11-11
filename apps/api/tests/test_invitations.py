@@ -452,3 +452,71 @@ def test_create_invitation_sends_email_and_reports_delivery(client: TestClient, 
     assert captured["to_email"] == "guest-email-send@example.com"
     assert captured["role"] == "editor"
     assert response.json()["invitation_token"] in captured["accept_url"]
+
+
+def test_trip_lifecycle_notifications_reach_only_the_relevant_members(client: TestClient) -> None:
+    owner = register_and_login(client, "owner-trip-notifications@example.com")
+    guest = register_and_login(client, "guest-trip-notifications@example.com")
+    trip_id = create_trip(client, owner)
+
+    invitation = create_invitation(
+        client, owner, trip_id, "guest-trip-notifications@example.com"
+    )
+    guest_headers = auth(guest)
+    owner_headers = auth(owner)
+
+    invited = client.get("/api/v1/notifications", headers=guest_headers)
+    assert invited.status_code == 200
+    assert [item["notification_type"] for item in invited.json()["items"]] == [
+        "trip_invitation"
+    ]
+    assert client.get(
+        "/api/v1/notifications", headers=owner_headers
+    ).json()["items"] == []
+
+    accepted = client.post(
+        "/api/v1/invitations/accept",
+        headers=guest_headers,
+        json={"token": invitation["invitation_token"]},
+    )
+    assert accepted.status_code == 200
+    owner_notifications = client.get(
+        "/api/v1/notifications", headers=owner_headers
+    ).json()["items"]
+    assert [item["notification_type"] for item in owner_notifications] == [
+        "trip_invitation_accepted"
+    ]
+
+    participant = client.get(
+        f"/api/v1/trips/{trip_id}/participants", headers=owner_headers
+    ).json()[0]
+    changed_role = client.patch(
+        f"/api/v1/trips/{trip_id}/participants/{participant['id']}",
+        headers=owner_headers,
+        json={"role": "editor"},
+    )
+    assert changed_role.status_code == 200
+    guest_types = {
+        item["notification_type"]
+        for item in client.get("/api/v1/notifications", headers=guest_headers).json()["items"]
+    }
+    assert "trip_role_changed" in guest_types
+
+    updated_trip = client.patch(
+        f"/api/v1/trips/{trip_id}",
+        headers=owner_headers,
+        json={"destination": "Funchal"},
+    )
+    assert updated_trip.status_code == 200
+    guest_types = {
+        item["notification_type"]
+        for item in client.get("/api/v1/notifications", headers=guest_headers).json()["items"]
+    }
+    assert "trip_updated" in guest_types
+
+    # The owner is not notified about changes made by the owner.
+    owner_types = {
+        item["notification_type"]
+        for item in client.get("/api/v1/notifications", headers=owner_headers).json()["items"]
+    }
+    assert owner_types == {"trip_invitation_accepted"}
