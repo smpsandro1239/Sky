@@ -79,7 +79,7 @@ export default function NotificationsBell() {
         aria-controls="sky-notifications-panel"
         onClick={() => { setOpen((value) => !value); if (!open) void loadNotifications(); }}
       >
-        <span aria-hidden="true">♧</span> Notificações
+        <span aria-hidden="true">🔔</span> Notificações
         {unreadCount > 0 && <span className="notifications-count">{unreadCount > 99 ? "99+" : unreadCount}</span>}
       </button>
       {open && (
