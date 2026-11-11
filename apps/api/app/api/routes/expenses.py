@@ -13,6 +13,7 @@ from app.api.routes.trips import get_accessible_trip, get_user_trip, require_tri
 from app.models.expense import Expense
 from app.models.expense_share import ExpenseShare
 from app.models.participant import TripParticipant
+from app.models.settlement import TripSettlement
 from app.models.user import User
 from app.schemas.expense import ExpenseCreate, ExpenseResponse, ExpenseUpdate
 
@@ -97,6 +98,25 @@ def update_expense(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     validate_payer(db, trip.id, validated.paid_by_participant_id)
+
+    financial_fields = {"amount", "currency", "paid_by_participant_id"}
+    changed_financial_fields = financial_fields.intersection(changes)
+    if changed_financial_fields:
+        has_settlements = db.scalar(
+            select(TripSettlement.id)
+            .where(TripSettlement.trip_id == trip.id)
+            .limit(1)
+        )
+        if has_settlements is not None:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    "Não é possível alterar o valor, a moeda ou o pagador de uma despesa "
+                    "depois de existirem acertos financeiros na viagem. "
+                    "Revê primeiro os acertos registados."
+                ),
+            )
+
     existing_share_total = db.scalar(
         select(func.coalesce(func.sum(ExpenseShare.amount), 0)).where(
             ExpenseShare.expense_id == expense.id
