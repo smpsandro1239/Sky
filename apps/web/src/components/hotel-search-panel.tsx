@@ -47,6 +47,22 @@ type HotelFavorite = {
   created_at: string;
 };
 
+async function fetchHotelFavorites(): Promise<HotelFavorite[]> {
+  const response = await fetch("/api/backend/hotels/favorites", { cache: "no-store" });
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    const detail = payload && typeof payload.detail === "string" ? payload.detail : "Não foi possível carregar os hotéis favoritos.";
+    throw new Error(detail);
+  }
+  if (!Array.isArray(payload) || !payload.every((item) =>
+    item && typeof item.id === "string" && typeof item.hotel_id === "string"
+    && typeof item.hotel_name === "string" && typeof item.location === "string"
+  )) {
+    throw new Error("A resposta dos favoritos tem um formato inválido.");
+  }
+  return payload as HotelFavorite[];
+}
+
 function formatPrice(amount: string, currency: string) {
   const value = Number(amount);
   if (!Number.isFinite(value)) return amount + " " + currency;
@@ -76,21 +92,10 @@ export default function HotelSearchPanel({ tripId, canEdit, onAccommodationSaved
   const [favoriteActionId, setFavoriteActionId] = useState<string | null>(null);
 
   async function loadFavorites() {
+    setFavoritesLoading(true);
+    setFavoritesError("");
     try {
-      const response = await fetch("/api/backend/hotels/favorites", { cache: "no-store" });
-      setFavoritesError("");
-      const payload = await response.json().catch(() => null);
-      if (!response.ok) {
-        const detail = payload && typeof payload.detail === "string" ? payload.detail : "Não foi possível carregar os hotéis favoritos.";
-        throw new Error(detail);
-      }
-      if (!Array.isArray(payload) || !payload.every((item) =>
-        item && typeof item.id === "string" && typeof item.hotel_id === "string"
-        && typeof item.hotel_name === "string" && typeof item.location === "string"
-      )) {
-        throw new Error("A resposta dos favoritos tem um formato inválido.");
-      }
-      setFavorites(payload as HotelFavorite[]);
+      setFavorites(await fetchHotelFavorites());
     } catch (cause) {
       setFavoritesError(cause instanceof Error ? cause.message : "Ocorreu um erro ao carregar os favoritos.");
     } finally {
@@ -99,7 +104,21 @@ export default function HotelSearchPanel({ tripId, canEdit, onAccommodationSaved
   }
 
   useEffect(() => {
-    void loadFavorites();
+    let active = true;
+    fetchHotelFavorites()
+      .then((items) => {
+        if (active) {
+          setFavorites(items);
+          setFavoritesError("");
+        }
+      })
+      .catch((cause: unknown) => {
+        if (active) setFavoritesError(cause instanceof Error ? cause.message : "Ocorreu um erro ao carregar os favoritos.");
+      })
+      .finally(() => {
+        if (active) setFavoritesLoading(false);
+      });
+    return () => { active = false; };
   }, []);
 
   async function search(event: FormEvent<HTMLFormElement>) {
