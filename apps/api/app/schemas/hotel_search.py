@@ -34,6 +34,7 @@ class HotelSearchRequest(BaseModel):
 
 class HotelSearchOffer(BaseModel):
     id: str
+    price_tracking_key: str
     provider: Literal["amadeus"]
     hotel_name: str
     hotel_id: str
