@@ -273,6 +273,14 @@ def test_settlements_reduce_outstanding_balances_and_reject_overpayment(client: 
         },
     )
     assert unallocated.status_code == 201
+    late_allocation = client.patch(
+        f"/api/v1/trips/{trip_id}/expenses/{unallocated.json()['id']}/shares",
+        headers=headers,
+        json=[{"participant_id": ana, "amount": "5.00"}],
+    )
+    assert late_allocation.status_code == 409
+    assert "acertos financeiros" in late_allocation.json()["detail"]
+
     audited_balances = client.get(f"/api/v1/trips/{trip_id}/balances", headers=headers)
     assert audited_balances.status_code == 200
     audited_eur = audited_balances.json()["currencies"][0]
