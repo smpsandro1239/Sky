@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from fastapi.encoders import jsonable_encoder
 from pydantic import ValidationError
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
@@ -170,7 +171,19 @@ def create_hotel_favorite(
 
     favorite = HotelFavorite(user_id=user.id, **payload.model_dump())
     db.add(favorite)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        existing = db.scalar(
+            select(HotelFavorite).where(
+                HotelFavorite.user_id == user.id,
+                HotelFavorite.hotel_id == payload.hotel_id,
+            )
+        )
+        if existing is not None:
+            return existing
+        raise
     db.refresh(favorite)
     return favorite
 
