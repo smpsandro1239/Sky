@@ -37,6 +37,16 @@ Pendências antes de produção:
 - Testes E2E de CSRF no browser e validação da política de origem em todos os domínios/proxies de produção.
 - Política de recuperação de conta e verificação de email.
 
+## Papéis globais da plataforma
+
+- `traveler` é o papel atribuído por defeito a todas as novas contas.
+- `support` permite apenas consulta limitada de contas através do endpoint administrativo.
+- `admin` permite consultar contas e gerir papéis globais.
+- A atribuição inicial de administrador depende de uma allowlist operacional `SKY_ADMIN_EMAILS`; não existe autoatribuição pública.
+- Os papéis por viagem (`owner`, `editor`, `viewer`) são independentes dos papéis globais.
+- A API aplica RBAC no servidor e a base de dados restringe os valores de papel aceites.
+- O último administrador ativo não pode ser despromovido e um administrador não pode remover o próprio papel.
+
 ## Dados pessoais
 
 - Recolher apenas os dados necessários.
