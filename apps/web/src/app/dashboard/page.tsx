@@ -87,14 +87,22 @@ export default function DashboardPage() {
       setFinancialError("");
       const results = await Promise.all(trips.map(async (trip) => {
         try {
-          const [flightResponse, accommodationResponse, expenseResponse, planResponse] = await Promise.all([
+          const [flightResponse, accommodationResponse, expenseResponse] = await Promise.all([
             fetch(`/api/backend/trips/${trip.id}/flights`, { cache: "no-store" }),
             fetch(`/api/backend/trips/${trip.id}/accommodations`, { cache: "no-store" }),
             fetch(`/api/backend/trips/${trip.id}/expenses`, { cache: "no-store" }),
-            fetch(`/api/backend/trips/${trip.id}/budget-plans`, { cache: "no-store" }),
           ]);
-          if (![flightResponse, accommodationResponse, expenseResponse, planResponse].every((response) => response.ok)) throw new Error("Falha ao obter custos e planeamento");
-          const [flights, accommodations, expenses, plans] = await Promise.all([flightResponse.json(), accommodationResponse.json(), expenseResponse.json(), planResponse.json()]);
+          if (![flightResponse, accommodationResponse, expenseResponse].every((response) => response.ok)) throw new Error("Falha ao obter custos da viagem");
+          const [flights, accommodations, expenses] = await Promise.all([flightResponse.json(), accommodationResponse.json(), expenseResponse.json()]);
+          let plans: { month: string; category: string; amount: string; currency: string }[] = [];
+          let planLoadFailed = false;
+          try {
+            const planResponse = await fetch(`/api/backend/trips/${trip.id}/budget-plans`, { cache: "no-store" });
+            if (!planResponse.ok) throw new Error("Falha ao obter o planeamento");
+            plans = await planResponse.json();
+          } catch {
+            planLoadFailed = true;
+          }
           const totals: Record<string, number> = {};
           [...flights.map((item: { price_amount: string | null; price_currency: string }) => ({ amount: item.price_amount, currency: item.price_currency })), ...accommodations.map((item: { price_amount: string | null; price_currency: string }) => ({ amount: item.price_amount, currency: item.price_currency })), ...expenses.map((item: { amount: string; currency: string }) => ({ amount: item.amount, currency: item.currency }))].forEach((item) => {
             if (item.amount === null) return;
@@ -117,13 +125,14 @@ export default function DashboardPage() {
             plannedTotals[plan.currency] = summary;
           });
           const budget = trip.budget_amount === null || trip.budget_amount === undefined ? null : Number(trip.budget_amount);
-          return { id: trip.id, name: trip.name, destination: trip.destination, budgetAmount: budget !== null && Number.isFinite(budget) && budget >= 0 ? Math.round(budget * 100) : null, budgetCurrency: trip.budget_currency ?? "EUR", totals, plannedTotals };
+          return { id: trip.id, name: trip.name, destination: trip.destination, budgetAmount: budget !== null && Number.isFinite(budget) && budget >= 0 ? Math.round(budget * 100) : null, budgetCurrency: trip.budget_currency ?? "EUR", totals, plannedTotals, planLoadFailed };
         } catch { return null; }
       }));
       if (active) {
         const valid = results.filter((item): item is FinancialTrip => item !== null);
         setFinancialTrips(valid);
         if (valid.length < trips.length) setFinancialError("Alguns custos não puderam ser carregados. Os totais apresentados são parciais.");
+        else if (valid.some((trip) => trip.planLoadFailed)) setFinancialError("Os custos foram carregados, mas o planeamento orçamental de uma ou mais viagens não está disponível.");
         setFinancialLoading(false);
       }
     }
