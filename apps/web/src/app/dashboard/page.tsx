@@ -5,7 +5,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import NotificationsBell from "@/components/notifications-bell";
 
-type User = { id: string; email: string; display_name: string | null };
+type User = { id: string; email: string; display_name: string | null; role: "traveler" | "support" | "admin" };
 type Trip = {
   id: string;
   name: string;
@@ -225,6 +225,7 @@ export default function DashboardPage() {
         <nav aria-label="Navegação da conta">
           <NotificationsBell />
           <Link className="text-button" href="/dashboard/favorites">Hotéis favoritos</Link>
+          {(user?.role === "admin" || user?.role === "support") && <Link className="text-button" href="/dashboard/admin">Administração</Link>}
           <button className="text-button" onClick={logout}>Terminar sessão</button>
         </nav>
       </header>
