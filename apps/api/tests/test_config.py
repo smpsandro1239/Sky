@@ -154,3 +154,54 @@ def test_non_postgres_database_url_is_preserved() -> None:
 
     source = "sqlite+pysqlite:///./migration-test.db"
     assert normalize_database_url(source) == source
+
+
+def test_production_accepts_explicit_https_cors_origin() -> None:
+    settings = Settings()
+    settings.environment = "production"
+    settings.secret_key = "production-secret-key-with-more-than-32-characters"
+    settings.cors_origins = ["https://sky-eight-mocha.vercel.app"]
+
+    settings.validate_security()
+
+
+def test_production_rejects_http_cors_origin() -> None:
+    settings = Settings()
+    settings.environment = "production"
+    settings.secret_key = "production-secret-key-with-more-than-32-characters"
+    settings.cors_origins = ["http://localhost:3000"]
+
+    try:
+        settings.validate_security()
+    except RuntimeError as exc:
+        assert "HTTPS" in str(exc)
+    else:
+        raise AssertionError("Uma origem HTTP não pode ser aceite em produção.")
+
+
+def test_production_rejects_wildcard_cors_origin() -> None:
+    settings = Settings()
+    settings.environment = "production"
+    settings.secret_key = "production-secret-key-with-more-than-32-characters"
+    settings.cors_origins = ["*"]
+
+    try:
+        settings.validate_security()
+    except RuntimeError as exc:
+        assert "HTTPS" in str(exc)
+    else:
+        raise AssertionError("Uma origem wildcard não pode ser aceite em produção.")
+
+
+def test_production_rejects_cors_origin_with_path() -> None:
+    settings = Settings()
+    settings.environment = "production"
+    settings.secret_key = "production-secret-key-with-more-than-32-characters"
+    settings.cors_origins = ["https://sky.example.com/app"]
+
+    try:
+        settings.validate_security()
+    except RuntimeError as exc:
+        assert "sem caminhos" in str(exc)
+    else:
+        raise AssertionError("Uma origem CORS não pode conter caminhos.")
