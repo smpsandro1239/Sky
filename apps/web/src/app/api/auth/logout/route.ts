@@ -1,4 +1,13 @@
-export async function POST() {
+import { isSameOriginMutation } from "../../../../lib/security/csrf";
+
+export async function POST(request: Request) {
+  if (!isSameOriginMutation(request)) {
+    return Response.json(
+      { detail: "Pedido rejeitado: origem não autorizada." },
+      { status: 403, headers: { "Cache-Control": "no-store" } },
+    );
+  }
+
   const response = Response.json(
     { message: "Sessão terminada." },
     { headers: { "Cache-Control": "no-store" } },
