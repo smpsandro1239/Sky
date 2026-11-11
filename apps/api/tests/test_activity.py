@@ -204,3 +204,127 @@ def test_shared_members_can_read_activity_and_viewers_cannot_write(client: TestC
     )
     assert denied.status_code == 403
 
+
+def test_activity_covers_expenses_accommodation_shares_and_invitations(client: TestClient) -> None:
+    owner = register_and_login(client, "activity-full-owner@example.com")
+    guest = register_and_login(client, "activity-full-guest@example.com")
+    headers = {"Authorization": f"Bearer {owner}"}
+    trip = client.post(
+        "/api/v1/trips",
+        headers=headers,
+        json={"name": "Viagem com atividade completa", "destination": "Madeira"},
+    )
+    assert trip.status_code == 201
+    trip_id = trip.json()["id"]
+
+    participant = client.post(
+        f"/api/v1/trips/{trip_id}/participants",
+        headers=headers,
+        json={"name": "Ana", "email": "activity-full-guest@example.com"},
+    )
+    assert participant.status_code == 201
+    participant_id = participant.json()["id"]
+
+    expense_url = f"/api/v1/trips/{trip_id}/expenses"
+    expense = client.post(
+        expense_url,
+        headers=headers,
+        json={
+            "category": "alimentacao",
+            "description": "Jantar",
+            "expense_date": "2027-08-02",
+            "amount": "30.00",
+            "currency": "EUR",
+            "paid_by_participant_id": participant_id,
+        },
+    )
+    assert expense.status_code == 201
+    expense_id = expense.json()["id"]
+    expense_item_url = f"{expense_url}/{expense_id}"
+    assert client.patch(
+        expense_item_url, headers=headers, json={"description": "Jantar atualizado"}
+    ).status_code == 200
+
+    shares_url = f"{expense_item_url}/shares"
+    assert client.patch(
+        shares_url,
+        headers=headers,
+        json=[{"participant_id": participant_id, "amount": "30.00"}],
+    ).status_code == 200
+    assert client.patch(shares_url, headers=headers, json=[]).status_code == 200
+
+    accommodation_url = f"/api/v1/trips/{trip_id}/accommodations"
+    accommodation = client.post(
+        accommodation_url,
+        headers=headers,
+        json={
+            "name": "Hotel de teste",
+            "location": "Funchal",
+            "check_in": "2027-08-01",
+            "check_out": "2027-08-05",
+            "price_amount": "300.00",
+            "price_currency": "EUR",
+        },
+    )
+    assert accommodation.status_code == 201
+    accommodation_id = accommodation.json()["id"]
+    accommodation_item_url = f"{accommodation_url}/{accommodation_id}"
+    assert client.patch(
+        accommodation_item_url, headers=headers, json={"name": "Hotel atualizado"}
+    ).status_code == 200
+    assert client.delete(accommodation_item_url, headers=headers).status_code == 204
+
+    accepted_invitation = client.post(
+        f"/api/v1/trips/{trip_id}/invitations",
+        headers=headers,
+        json={"email": "activity-full-guest@example.com", "role": "viewer"},
+    )
+    assert accepted_invitation.status_code == 201
+    accepted = client.post(
+        "/api/v1/invitations/accept",
+        headers={"Authorization": f"Bearer {guest}"},
+        json={"token": accepted_invitation.json()["invitation_token"]},
+    )
+    assert accepted.status_code == 200
+
+    revoked_invitation = client.post(
+        f"/api/v1/trips/{trip_id}/invitations",
+        headers=headers,
+        json={"email": "activity-full-revoked@example.com"},
+    )
+    assert revoked_invitation.status_code == 201
+    revoked_id = revoked_invitation.json()["id"]
+    assert client.delete(
+        f"/api/v1/trips/{trip_id}/invitations/{revoked_id}", headers=headers
+    ).status_code == 204
+
+    assert client.delete(expense_item_url, headers=headers).status_code == 204
+
+    history = client.get(
+        f"/api/v1/trips/{trip_id}/activity?limit=100",
+        headers=headers,
+    )
+    assert history.status_code == 200
+    events = history.json()["items"]
+    event_keys = {(item["entity_type"], item["action"]) for item in events}
+
+    for expected in (
+        ("expense", "created"),
+        ("expense", "updated"),
+        ("expense", "deleted"),
+        ("expense_share", "updated"),
+        ("accommodation", "created"),
+        ("accommodation", "updated"),
+        ("accommodation", "deleted"),
+        ("invitation", "created"),
+        ("invitation", "accepted"),
+        ("invitation", "revoked"),
+    ):
+        assert expected in event_keys, f"Falta o evento {expected}"
+
+    assert all(
+        "activity-full-guest@example.com" not in item["summary"]
+        and "activity-full-revoked@example.com" not in item["summary"]
+        for item in events
+    )
+
