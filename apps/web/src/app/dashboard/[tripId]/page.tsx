@@ -1330,6 +1330,25 @@ export default function TripDetailPage() {
                   <div className="balance-currency" key={group.currency}>
                     <h3>{group.currency}</h3>
                     <p className="budget-description">Análise da contribuição e da quota individual. As percentagens são calculadas dentro desta moeda.</p>
+                    <div className="participant-comparison" aria-label={`Comparação de valores pagos e quotas em ${group.currency}`}>
+                      {group.participants.map((entry) => {
+                        const paid = Math.max(0, Number(entry.paid) || 0);
+                        const owed = Math.max(0, Number(entry.owed) || 0);
+                        const scale = Math.max(1, ...group.participants.flatMap((item) => [Math.max(0, Number(item.paid) || 0), Math.max(0, Number(item.owed) || 0)]));
+                        return (
+                          <div className="participant-comparison-row" key={entry.participant_id}>
+                            <strong>{entry.name}</strong>
+                            <div className="participant-comparison-values">
+                              <span>Pago <b>{paid.toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {group.currency}</b></span>
+                              <div className="participant-comparison-track" role="img" aria-label={`Pagou ${paid.toFixed(2)} ${group.currency}`}><span style={{ width: `${Math.min(100, paid / scale * 100)}%` }} /></div>
+                              <span>Quota <b>{owed.toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {group.currency}</b></span>
+                              <div className="participant-comparison-track participant-quota-track" role="img" aria-label={`Quota de ${owed.toFixed(2)} ${group.currency}`}><span style={{ width: `${Math.min(100, owed / scale * 100)}%` }} /></div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="participant-comparison-legend"><span><i className="participant-paid-key" /> Valor pago</span><span><i className="participant-quota-key" /> Quota atribuída</span></div>
                     <div className="balance-list">
                       {group.participants.map((entry) => {
                         const paid = Number(entry.paid) || 0;
