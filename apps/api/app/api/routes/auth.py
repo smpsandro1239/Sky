@@ -1,11 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from datetime import datetime, timedelta, timezone
+from hashlib import sha256
+from uuid import uuid4
+
+from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user, get_db
+from app.api.deps import bearer_scheme, get_current_user, get_db
 from app.core.config import settings
-from app.core.security import create_access_token, hash_password, verify_password
+from app.core.security import create_access_token, hash_password, verify_password, decode_access_token
+from app.models.auth_session import AuthSession
 from app.models.user import User
 from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse, UserResponse
 
@@ -42,8 +48,43 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse
         or not verify_password(payload.password, user.password_hash)
     ):
         raise HTTPException(status_code=401, detail="Email ou palavra-passe inválidos.")
-    token = create_access_token(str(user.id))
+
+    now = datetime.now(timezone.utc)
+    session_id = uuid4()
+    expires_at = now + timedelta(minutes=settings.access_token_minutes)
+    token = create_access_token(str(user.id), str(session_id))
+    db.add(
+        AuthSession(
+            id=session_id,
+            user_id=user.id,
+            token_hash=sha256(token.encode("utf-8")).hexdigest(),
+            expires_at=expires_at,
+        )
+    )
+    db.commit()
     return TokenResponse(access_token=token, expires_in=settings.access_token_minutes * 60)
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Response:
+    payload = decode_access_token(credentials.credentials) if credentials else None
+    if payload is None:
+        raise HTTPException(status_code=401, detail="Autenticação inválida ou expirada.")
+    try:
+        session_id = uuid4().__class__(payload["sid"])
+    except (KeyError, ValueError, TypeError):
+        raise HTTPException(status_code=401, detail="Autenticação inválida ou expirada.")
+    auth_session = db.scalar(
+        select(AuthSession).where(AuthSession.id == session_id, AuthSession.user_id == user.id)
+    )
+    if auth_session is not None and auth_session.revoked_at is None:
+        auth_session.revoked_at = datetime.now(timezone.utc)
+        db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/me", response_model=UserResponse)
