@@ -118,6 +118,7 @@ export default function TripDetailPage() {
   const [activityOffset, setActivityOffset] = useState(0);
   const [activityLoading, setActivityLoading] = useState(false);
   const [activityError, setActivityError] = useState("");
+  const [activityExporting, setActivityExporting] = useState(false);
   const [participantName, setParticipantName] = useState("");
   const [participantEmail, setParticipantEmail] = useState("");
   const [invitations, setInvitations] = useState<Invitation[]>([]);
@@ -403,6 +404,54 @@ export default function TripDetailPage() {
       setActivityError(cause instanceof Error ? cause.message : "Ocorreu um erro ao atualizar o histórico.");
     } finally {
       setActivityLoading(false);
+    }
+  }
+
+  function csvCell(value: string) {
+    const safeValue = /^[\s]*[=+\-@\t\r]/.test(value) ? "'" + value : value;
+    return '"' + safeValue.replace(/"/g, '""') + '"';
+  }
+
+  async function exportActivity() {
+    if (activityExporting) return;
+    setActivityExporting(true);
+    setActivityError("");
+    try {
+      const allItems: TripActivity[] = [];
+      const pageSize = 100;
+      let offset = 0;
+      let hasMore = true;
+      while (hasMore) {
+        const response = await fetch(\`/api/backend/trips/\${tripId}/activity?limit=\${pageSize}&offset=\${offset}\`, { cache: "no-store" });
+        if (!response.ok) throw new Error("Não foi possível exportar o histórico completo.");
+        const page = await response.json() as TripActivityPage;
+        allItems.push(...page.items);
+        offset += page.items.length;
+        hasMore = page.has_more && page.items.length > 0;
+      }
+      const headers = ["Data", "Autor", "Ação", "Tipo de registo", "ID do registo", "Descrição"];
+      const rows = allItems.map((item) => [
+        new Date(item.created_at).toISOString(),
+        item.actor_name,
+        item.action,
+        item.entity_type,
+        item.entity_id ?? "",
+        item.summary,
+      ]);
+      const csv = "\uFEFF" + [headers, ...rows].map((row) => row.map((value) => csvCell(String(value))).join(";")).join("\r\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = \`sky-historico-\${tripId}.csv\`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (cause) {
+      setActivityError(cause instanceof Error ? cause.message : "Não foi possível exportar o histórico.");
+    } finally {
+      setActivityExporting(false);
     }
   }
 
@@ -1213,9 +1262,14 @@ export default function TripDetailPage() {
             <section className="activity-panel" aria-labelledby="activity-title">
               <div className="activity-heading">
                 <div><p className="eyebrow">REGISTO DA VIAGEM</p><h2 id="activity-title">Histórico de atividade</h2><p className="budget-description">Alterações registadas nesta viagem, visíveis a todos os participantes com acesso.</p></div>
-                <button className="secondary-button" type="button" onClick={() => void refreshActivity()} disabled={activityLoading}>
-                  {activityLoading ? "A atualizar..." : "Atualizar"}
-                </button>
+                <div className="activity-actions">
+                  <button className="secondary-button" type="button" onClick={() => void exportActivity()} disabled={activityExporting || activityLoading}>
+                    {activityExporting ? "A exportar..." : "Exportar CSV"}
+                  </button>
+                  <button className="secondary-button" type="button" onClick={() => void refreshActivity()} disabled={activityLoading || activityExporting}>
+                    {activityLoading ? "A atualizar..." : "Atualizar"}
+                  </button>
+                </div>
               </div>
               {activityError && <p className="notice" role="alert">{activityError}</p>}
               {activity.length === 0 ? <p className="notice" aria-live="polite">{activityLoading ? "A carregar histórico..." : "Ainda não existem atividades registadas."}</p> : <ol className="activity-list" aria-live="polite">
