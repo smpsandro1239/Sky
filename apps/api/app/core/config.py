@@ -20,6 +20,10 @@ class Settings:
         "postgresql+psycopg://sky:change-me-local-only@localhost:5432/sky",
     )
     database_url: str = normalize_database_url(_raw_database_url)
+    redis_url: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    price_monitor_interval_seconds: int = int(os.getenv("PRICE_MONITOR_INTERVAL_SECONDS", "21600"))
+    price_monitor_poll_seconds: int = int(os.getenv("PRICE_MONITOR_POLL_SECONDS", "60"))
+    price_monitor_retry_seconds: int = int(os.getenv("PRICE_MONITOR_RETRY_SECONDS", "600"))
     secret_key: str = os.getenv("SKY_SECRET_KEY", "dev-only-change-this-secret-key-rotate-before-production")
     access_token_minutes: int = int(os.getenv("ACCESS_TOKEN_MINUTES", "20"))
     frontend_url: str = os.getenv("FRONTEND_URL", "http://localhost:3000")
@@ -64,6 +68,12 @@ class Settings:
             raise RuntimeError("SMTP_USERNAME e SMTP_PASSWORD têm de ser configurados em conjunto.")
         if self.access_token_minutes < 1:
             raise RuntimeError("ACCESS_TOKEN_MINUTES tem de ser superior a zero.")
+        if self.price_monitor_interval_seconds < 60:
+            raise RuntimeError("PRICE_MONITOR_INTERVAL_SECONDS tem de ser pelo menos 60.")
+        if self.price_monitor_poll_seconds < 5:
+            raise RuntimeError("PRICE_MONITOR_POLL_SECONDS tem de ser pelo menos 5.")
+        if self.price_monitor_retry_seconds < 30:
+            raise RuntimeError("PRICE_MONITOR_RETRY_SECONDS tem de ser pelo menos 30.")
 
 
 settings = Settings()
