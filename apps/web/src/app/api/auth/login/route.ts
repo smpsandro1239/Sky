@@ -7,7 +7,10 @@ type LoginResponse = {
 };
 
 function jsonResponse(body: unknown, status = 200) {
-  return Response.json(body, { status });
+  return Response.json(body, {
+    status,
+    headers: { "Cache-Control": "no-store" },
+  });
 }
 
 export async function POST(request: Request) {
@@ -50,7 +53,7 @@ export async function POST(request: Request) {
     typeof loginData?.access_token !== "string" ||
     loginData.access_token.trim().length === 0 ||
     typeof loginData.expires_in !== "number" ||
-    !Number.isFinite(loginData.expires_in) ||
+    !Number.isSafeInteger(loginData.expires_in) ||
     loginData.expires_in <= 0
   ) {
     return jsonResponse(
@@ -93,7 +96,7 @@ export async function POST(request: Request) {
     "HttpOnly",
     "SameSite=Lax",
     "Path=/",
-    `Max-Age=${Math.floor(loginData.expires_in)}`,
+    `Max-Age=${loginData.expires_in}`,
   ];
 
   if (process.env.NODE_ENV === "production") {
