@@ -13,12 +13,26 @@ _FREE_CANCELLATION_PHRASES = (
     "cancellazione gratuita",
 )
 
+_NON_REFUNDABLE_PHRASES = (
+    "non-refundable",
+    "non refundable",
+    "non rimborsabile",
+    "não reembolsável",
+    "nao reembolsavel",
+    "non remboursable",
+    "nicht erstattungsfähig",
+)
+
 
 def _has_explicit_free_cancellation(offer: HotelSearchOffer) -> bool | None:
     description = (offer.cancellation_description or "").casefold()
     if not description.strip():
         return None
-    return any(phrase in description for phrase in _FREE_CANCELLATION_PHRASES)
+    if any(phrase in description for phrase in _FREE_CANCELLATION_PHRASES):
+        return True
+    if any(phrase in description for phrase in _NON_REFUNDABLE_PHRASES):
+        return False
+    return None
 
 
 def _normalise_lower_is_better(values: list[Decimal | None]) -> list[float | None]:
@@ -38,8 +52,8 @@ def rank_hotel_offers(offers: list[HotelSearchOffer]) -> list[HotelSearchOffer]:
     """Rank hotel offers by comparable stay price and explicitly stated free cancellation.
 
     Scores are relative to this result set. Cancellation contributes only when
-    the provider supplied a description; missing terms are never treated as
-    refundable or non-refundable.
+    the provider supplied an explicit free-cancellation or non-refundable term;
+    ambiguous or missing terms are excluded from the score.
     """
     if not offers:
         return []
