@@ -36,7 +36,8 @@ Formato: JSON. A aplicação disponibiliza documentação OpenAPI em `/docs` e R
 | POST | `/trips/{trip_id}/expenses` | Bearer | Registar despesa |
 | PATCH | `/trips/{trip_id}/expenses/{expense_id}` | Bearer | Atualizar despesa; rejeita alterações que invalidem partilhas existentes |
 | DELETE | `/trips/{trip_id}/expenses/{expense_id}` | Bearer | Eliminar despesa e respetivas partilhas |
-| GET | `/trips/{trip_id}/participants` | Bearer | Listar participantes da viagem |\n| PATCH | `/trips/{trip_id}/participants/{participant_id}` | Bearer (proprietário) | Alterar papel entre `editor` e `viewer` e atualizar convite pendente correspondente |
+| GET | `/trips/{trip_id}/participants` | Bearer | Listar participantes da viagem |
+| PATCH | `/trips/{trip_id}/participants/{participant_id}` | Bearer (proprietário) | Alterar papel entre `editor` e `viewer` e atualizar convite pendente correspondente |
 | POST | `/trips/{trip_id}/participants` | Bearer | Adicionar participante |
 | DELETE | `/trips/{trip_id}/participants/{participant_id}` | Bearer | Remover participante sem partilhas ou despesas pagas associadas |
 | POST | `/trips/{trip_id}/invitations` | Bearer | Criar convite para um endereço de email |
