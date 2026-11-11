@@ -5,7 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
-from app.api.routes.trips import get_accessible_trip, get_user_trip, require_trip_editor
+from app.api.routes.trips import get_accessible_trip, get_user_trip
 from app.models.expense import Expense
 from app.models.expense_share import ExpenseShare
 from app.models.invitation import TripInvitation
@@ -22,7 +22,7 @@ def create_participant(
     payload: ParticipantCreate,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
-) -> TripParticipant:
+) -> ParticipantResponse:
     trip = get_user_trip(db, trip_id, user.id)
     if payload.email and db.scalar(
         select(TripParticipant.id).where(
@@ -45,7 +45,7 @@ def list_participants(
     trip_id: UUID,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
- ) -> list[ParticipantResponse]:
+) -> list[ParticipantResponse]:
     trip = get_accessible_trip(db, trip_id, user.id)
     statement = select(TripParticipant).where(
         TripParticipant.trip_id == trip.id
@@ -66,7 +66,7 @@ def update_participant(
     payload: ParticipantUpdate,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
-) -> TripParticipant:
+) -> ParticipantResponse:
     trip = get_user_trip(db, trip_id, user.id)
     participant = db.scalar(
         select(TripParticipant).where(
