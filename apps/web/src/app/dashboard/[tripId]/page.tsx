@@ -283,6 +283,7 @@ export default function TripDetailPage() {
       setTrip(data);
       setBudgetAmount(data.budget_amount ?? "");
       setBudgetCurrency(data.budget_currency ?? "EUR");
+      void refreshActivity();
     } catch {
       setError("Não foi possível contactar a API. Tenta novamente.");
     } finally {
@@ -310,6 +311,7 @@ export default function TripDetailPage() {
       setParticipantEmail("");
       const balanceResponse = await fetch(`/api/backend/trips/${tripId}/balances`, { cache: "no-store" });
       if (balanceResponse.ok) setBalances(await balanceResponse.json());
+      void refreshActivity();
     } catch {
       setError("Não foi possível contactar a API. Tenta novamente.");
     } finally {
@@ -338,6 +340,7 @@ export default function TripDetailPage() {
       setInvitationLink(`${window.location.origin}/invitations/accept?token=${encodeURIComponent(created.invitation_token)}`);
       setInvitationEmailSent(created.email_sent);
       setInvitationEmail("");
+      void refreshActivity();
     } catch {
       setError("Não foi possível contactar a API. Tenta novamente.");
     } finally {
@@ -357,6 +360,7 @@ export default function TripDetailPage() {
       }
       setInvitations((current) => current.map((item) => item.id === id ? { ...item, status: "revoked" } : item));
       setInvitationLink("");
+      void refreshActivity();
     } catch {
       setError("Não foi possível contactar a API. Tenta novamente.");
     }
@@ -376,6 +380,7 @@ export default function TripDetailPage() {
         return;
       }
       setParticipants((current) => current.map((participant) => participant.id === id ? data : participant));
+      void refreshActivity();
     } catch {
       setError("Não foi possível contactar a API. Tenta novamente.");
     }
@@ -394,6 +399,7 @@ export default function TripDetailPage() {
       setParticipants((current) => current.filter((participant) => participant.id !== id));
       const balanceResponse = await fetch(`/api/backend/trips/${tripId}/balances`, { cache: "no-store" });
       if (balanceResponse.ok) setBalances(await balanceResponse.json());
+      void refreshActivity();
     } catch {
       setError("Não foi possível contactar a API. Tenta novamente.");
     }
@@ -459,6 +465,7 @@ export default function TripDetailPage() {
       setShareDraft({});
       const balanceResponse = await fetch(`/api/backend/trips/${tripId}/balances`, { cache: "no-store" });
       if (balanceResponse.ok) setBalances(await balanceResponse.json());
+      void refreshActivity();
     } catch {
       setError("Não foi possível contactar a API. Tenta novamente.");
     } finally {
@@ -501,6 +508,7 @@ export default function TripDetailPage() {
       setEditingExpenseId(null);
       const balanceResponse = await fetch(`/api/backend/trips/${tripId}/balances`, { cache: "no-store" });
       if (balanceResponse.ok) setBalances(await balanceResponse.json());
+      void refreshActivity();
     } catch {
       setError("Não foi possível contactar a API. Tenta novamente.");
     } finally {
@@ -538,6 +546,7 @@ export default function TripDetailPage() {
         setEditingExpenseId(null);
         setExpenseForm(emptyExpense);
       }
+      void refreshActivity();
     } catch {
       setError("Não foi possível contactar a API. Tenta novamente.");
     }
@@ -585,6 +594,7 @@ export default function TripDetailPage() {
         ? current.map((flight) => flight.id === editingFlightId ? data : flight)
         : [...current, data].sort((a, b) => a.departure_at.localeCompare(b.departure_at)));
       resetFlight();
+      void refreshActivity();
     } catch {
       setError("Não foi possível contactar a API. Verifica a ligação e tenta novamente.");
     } finally {
@@ -625,6 +635,7 @@ export default function TripDetailPage() {
         ? current.map((item) => item.id === editingAccommodationId ? data : item)
         : [...current, data].sort((a, b) => a.check_in.localeCompare(b.check_in)));
       resetAccommodation();
+      void refreshActivity();
     } catch {
       setError("Não foi possível contactar a API. Verifica a ligação e tenta novamente.");
     } finally {
@@ -676,6 +687,7 @@ export default function TripDetailPage() {
         setAccommodations((current) => current.filter((item) => item.id !== id));
         if (editingAccommodationId === id) resetAccommodation();
       }
+      void refreshActivity();
     } catch {
       setError("Não foi possível contactar a API. Tenta novamente.");
     }
