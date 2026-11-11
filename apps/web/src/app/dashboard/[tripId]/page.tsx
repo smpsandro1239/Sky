@@ -45,6 +45,7 @@ type Invitation = { id: string; trip_id: string; email: string; status: string; 
 type CreatedInvitation = Invitation & { invitation_token: string; email_sent: boolean };
 type ExpenseShare = { id: string; expense_id: string; participant_id: string; amount: string };
 type ParticipantBudget = { id: string; trip_id: string; participant_id: string; amount: string; currency: string; created_at: string; updated_at: string };
+type TripBudgetPlan = { id: string; trip_id: string; month: string; category: string; amount: string; currency: string; created_at: string; updated_at: string };
 type FinancialMovement = { id: string; date: string; participant_id: string; participant_name: string; currency: string; kind: "paid" | "owed" | "sent" | "received"; amount: number; description: string };
 type TripActivity = { id: string; entity_id: string | null; actor_name: string; action: string; entity_type: string; summary: string; created_at: string };
 type TripActivityPage = { items: TripActivity[]; limit: number; offset: number; has_more: boolean };
@@ -138,6 +139,13 @@ export default function TripDetailPage() {
   const [participantBudgetCurrency, setParticipantBudgetCurrency] = useState("EUR");
   const [participantBudgetSaving, setParticipantBudgetSaving] = useState(false);
   const [participantBudgetError, setParticipantBudgetError] = useState("");
+  const [budgetPlans, setBudgetPlans] = useState<TripBudgetPlan[]>([]);
+  const [budgetPlanMonth, setBudgetPlanMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [budgetPlanCategory, setBudgetPlanCategory] = useState("alimentacao");
+  const [budgetPlanAmount, setBudgetPlanAmount] = useState("");
+  const [budgetPlanCurrency, setBudgetPlanCurrency] = useState("EUR");
+  const [budgetPlanSaving, setBudgetPlanSaving] = useState(false);
+  const [budgetPlanError, setBudgetPlanError] = useState("");
   const [expenseForm, setExpenseForm] = useState<ExpenseForm>(emptyExpense);
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -365,6 +373,9 @@ export default function TripDetailPage() {
           if (!response.ok) throw new Error("Não foi possível carregar os orçamentos individuais.");
           return await response.json() as ParticipantBudget[];
         }));
+        const budgetPlanResponse = await fetch("/api/backend/trips/" + tripId + "/budget-plans", { cache: "no-store" });
+        if (!budgetPlanResponse.ok) throw new Error("Não foi possível carregar o planeamento mensal.");
+        const budgetPlanData = await budgetPlanResponse.json() as TripBudgetPlan[];
         const shareResults = await Promise.all((expenseData as Expense[]).map(async (expense) => {
           const response = await fetch("/api/backend/trips/" + tripId + "/expenses/" + expense.id + "/shares", { cache: "no-store" });
           if (!response.ok) throw new Error("Não foi possível carregar as divisões das despesas para o histórico financeiro.");
@@ -381,6 +392,7 @@ export default function TripDetailPage() {
         setExpenseShares(shareResults.flat());
         setParticipants(participantData);
         setParticipantBudgets(participantBudgetResults.flat());
+        setBudgetPlans(budgetPlanData);
         setBalances(balanceData);
         setSettlements(settlementData);
         setSettlementCurrency(balanceData.currencies?.[0]?.currency ?? "EUR");
@@ -489,6 +501,12 @@ export default function TripDetailPage() {
       if (!expense || !participant || !Number.isFinite(amount)) return;
       rows.push(["Despesa por participante e categoria", expense.currency, expenseCategoryLabels[expense.category] ?? expense.category, participant.name, amount.toFixed(2), expense.description]);
     });
+    budgetPlans.forEach((plan) => {
+      const actual = expenses.filter((expense) => expense.expense_date.slice(0, 7) === plan.month && expense.category === plan.category && expense.currency === plan.currency).reduce((sum, expense) => sum + Math.round(Number(expense.amount) * 100), 0);
+      rows.push(["Planeamento mensal", plan.currency, plan.month + " · " + (expenseCategoryLabels[plan.category] ?? plan.category), "", Number(plan.amount).toFixed(2), "Valor previsto"]);
+      rows.push(["Execução mensal", plan.currency, plan.month + " · " + (expenseCategoryLabels[plan.category] ?? plan.category), "", (actual / 100).toFixed(2), "Despesa efetiva registada"]);
+      rows.push(["Desvio mensal", plan.currency, plan.month + " · " + (expenseCategoryLabels[plan.category] ?? plan.category), "", (Number(plan.amount) - actual / 100).toFixed(2), "Previsto menos efetivo"]);
+    });
     participantBudgets.forEach((budget) => {
       const participant = participants.find((item) => item.id === budget.participant_id);
       if (!participant) return;
@@ -565,6 +583,50 @@ export default function TripDetailPage() {
       setParticipantBudgetError(cause instanceof Error ? cause.message : "Ocorreu um erro ao remover o orçamento.");
     } finally {
       setParticipantBudgetSaving(false);
+    }
+  }
+
+  async function saveTripBudgetPlan(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (budgetPlanSaving) return;
+    const amount = Number(budgetPlanAmount);
+    if (!/^\\d{4}-(0[1-9]|1[0-2])$/.test(budgetPlanMonth) || !Number.isFinite(amount) || amount < 0) {
+      setBudgetPlanError("Confirma o mês e indica um valor válido, igual ou superior a zero.");
+      return;
+    }
+    setBudgetPlanSaving(true);
+    setBudgetPlanError("");
+    try {
+      const response = await fetch("/api/backend/trips/" + tripId + "/budget-plans", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ month: budgetPlanMonth, category: budgetPlanCategory, amount: amount.toFixed(2), currency: budgetPlanCurrency }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(typeof data.detail === "string" ? data.detail : "Não foi possível guardar a previsão.");
+      setBudgetPlans((current) => [...current.filter((item) => !(item.month === data.month && item.category === data.category && item.currency === data.currency)), data as TripBudgetPlan]);
+      setBudgetPlanAmount("");
+      void refreshActivity();
+    } catch (cause) {
+      setBudgetPlanError(cause instanceof Error ? cause.message : "Ocorreu um erro ao guardar a previsão.");
+    } finally {
+      setBudgetPlanSaving(false);
+    }
+  }
+
+  async function deleteTripBudgetPlan(plan: TripBudgetPlan) {
+    if (budgetPlanSaving) return;
+    setBudgetPlanSaving(true);
+    setBudgetPlanError("");
+    try {
+      const response = await fetch("/api/backend/trips/" + tripId + "/budget-plans/" + plan.month + "/" + plan.category + "/" + plan.currency, { method: "DELETE" });
+      if (!response.ok) throw new Error("Não foi possível remover a previsão.");
+      setBudgetPlans((current) => current.filter((item) => item.id !== plan.id));
+      void refreshActivity();
+    } catch (cause) {
+      setBudgetPlanError(cause instanceof Error ? cause.message : "Ocorreu um erro ao remover a previsão.");
+    } finally {
+      setBudgetPlanSaving(false);
     }
   }
 
@@ -1536,6 +1598,33 @@ export default function TripDetailPage() {
                   <button className="secondary-button" type="button" onClick={exportParticipantReport} disabled={participantReportId === "all" || !movementsWithBalance.some((item) => item.participant_id === participantReportId)}>Exportar relatório individual CSV</button>
                 </div>
               </div>
+            </section>
+            <section className="activity-panel trip-budget-plans-panel" aria-labelledby="trip-budget-plans-title">
+              <div className="activity-heading">
+                <div><p className="eyebrow">PREVISÃO E EXECUÇÃO</p><h2 id="trip-budget-plans-title">Planeamento mensal por categoria</h2><p className="budget-description">Define o valor que esperas gastar em cada categoria e mês. O SKY compara-o com as despesas registadas na mesma categoria, mês e moeda.</p></div>
+              </div>
+              {accessRole !== "viewer" && <form className="participant-budget-form" onSubmit={saveTripBudgetPlan}>
+                <label>Mês<input required type="month" value={budgetPlanMonth} onChange={(event) => setBudgetPlanMonth(event.target.value)} /></label>
+                <label>Categoria<select value={budgetPlanCategory} onChange={(event) => setBudgetPlanCategory(event.target.value)}>{Object.entries(expenseCategoryLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+                <label>Valor previsto<input required type="number" min="0" step="0.01" value={budgetPlanAmount} onChange={(event) => setBudgetPlanAmount(event.target.value)} placeholder="Ex.: 300,00" /></label>
+                <label>Moeda<select value={budgetPlanCurrency} onChange={(event) => setBudgetPlanCurrency(event.target.value)}>{[...new Set(["EUR", "USD", "GBP", ...expenses.map((item) => item.currency), ...budgetPlans.map((item) => item.currency)])].sort().map((currency) => <option key={currency} value={currency}>{currency}</option>)}</select></label>
+                <button className="primary-button" type="submit" disabled={budgetPlanSaving || budgetPlanAmount.trim() === ""}>{budgetPlanSaving ? "A guardar..." : "Guardar previsão"}</button>
+              </form>}
+              {budgetPlanError && <p className="notice" role="alert">{budgetPlanError}</p>}
+              {budgetPlans.length === 0 ? <p className="notice">Ainda não existem previsões mensais por categoria.</p> : <div className="participant-budget-list">
+                {budgetPlans.map((plan) => {
+                  const actual = expenses.filter((expense) => expense.expense_date.slice(0, 7) === plan.month && expense.category === plan.category && expense.currency === plan.currency).reduce((sum, expense) => sum + Number(expense.amount), 0);
+                  const planned = Number(plan.amount);
+                  const variance = planned - actual;
+                  const percentage = planned > 0 ? actual / planned * 100 : actual > 0 ? 100 : 0;
+                  return <article className="participant-budget-card" key={plan.id}>
+                    <div className="participant-budget-heading"><div><strong>{expenseCategoryLabels[plan.category] ?? plan.category}</strong><span>{plan.month} · {plan.currency}</span></div>{accessRole !== "viewer" && <button className="text-button" type="button" onClick={() => void deleteTripBudgetPlan(plan)} disabled={budgetPlanSaving}>Remover</button>}</div>
+                    <div className="participant-budget-metrics"><span>Previsto <b>{planned.toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {plan.currency}</b></span><span>Efetivo <b>{actual.toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {plan.currency}</b></span><span className={variance < 0 ? "participant-budget-over" : ""}>{variance >= 0 ? "Disponível" : "Excedido"} <b>{Math.abs(variance).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {plan.currency}</b></span></div>
+                    <div className="participant-budget-track" role="img" aria-label={`Execução: ${Math.round(percentage)} por cento do previsto`}><span className={percentage > 100 ? "is-over" : ""} style={{ width: `${Math.min(100, Math.max(0, percentage))}%` }} /></div>
+                    <small>{planned > 0 ? `${percentage.toLocaleString("pt-PT", { maximumFractionDigits: 1 })}% do valor previsto executado` : actual > 0 ? "Despesa registada sem previsão positiva" : "Sem despesas registadas"}</small>
+                  </article>;
+                })}
+              </div>}
             </section>
             <section className="activity-panel participant-budgets-panel" aria-labelledby="participant-budgets-title">
               <div className="activity-heading">
