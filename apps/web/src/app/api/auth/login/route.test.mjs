@@ -67,6 +67,7 @@ describe("POST /api/auth/login", () => {
     const response = await POST(
       new Request("http://localhost/api/auth/login", {
         method: "POST",
+        headers: { Origin: "http://localhost" },
         body: "{",
       }),
     );
