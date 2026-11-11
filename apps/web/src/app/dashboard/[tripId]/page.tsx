@@ -297,6 +297,8 @@ export default function TripDetailPage() {
       }
       setSettlementAmount("");
       setSettlementNotes("");
+      setSettlementFrom("");
+      setSettlementTo("");
       const [balanceResponse, settlementResponse] = await Promise.all([
         fetch("/api/backend/trips/" + tripId + "/balances", { cache: "no-store" }),
         fetch("/api/backend/trips/" + tripId + "/settlements", { cache: "no-store" }),
@@ -921,7 +923,7 @@ export default function TripDetailPage() {
                 <div><p className="eyebrow">PAGAMENTOS REGISTADOS</p><h2 id="settlements-title">Acertos efetuados</h2><p className="budget-description">Regista transferências reais entre participantes. O saldo em aberto é recalculado automaticamente.</p></div>
                 {accessRole !== "viewer" && (
                   <form className="expense-form" onSubmit={(event) => void saveSettlement(event)}>
-                    <label>Moeda<select value={settlementCurrency} onChange={(event) => setSettlementCurrency(event.target.value)}>{balances.currencies.map((group) => <option key={group.currency} value={group.currency}>{group.currency}</option>)}</select></label>
+                    <label>Moeda<select value={settlementCurrency} onChange={(event) => { setSettlementCurrency(event.target.value); setSettlementFrom(""); setSettlementTo(""); }}>{balances.currencies.map((group) => <option key={group.currency} value={group.currency}>{group.currency}</option>)}</select></label>
                     <label>Quem paga<select required value={settlementFrom} onChange={(event) => setSettlementFrom(event.target.value)}><option value="">Selecionar devedor</option>{selectedSettlementBalance?.participants.filter((entry) => Number(entry.net) < 0).map((entry) => <option key={entry.participant_id} value={entry.participant_id}>{entry.name}</option>)}</select></label>
                     <label>Quem recebe<select required value={settlementTo} onChange={(event) => setSettlementTo(event.target.value)}><option value="">Selecionar credor</option>{selectedSettlementBalance?.participants.filter((entry) => Number(entry.net) > 0).map((entry) => <option key={entry.participant_id} value={entry.participant_id}>{entry.name}</option>)}</select></label>
                     <label>Valor<input required type="number" min="0.01" step="0.01" value={settlementAmount} onChange={(event) => setSettlementAmount(event.target.value)} placeholder="0,00" /></label>
