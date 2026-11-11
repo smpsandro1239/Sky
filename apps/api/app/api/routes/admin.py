@@ -29,7 +29,20 @@ def change_platform_role(
     actor: User = Depends(require_roles("admin")),
     db: Session = Depends(get_db),
 ) -> User:
-    target = db.scalar(select(User).where(User.id == user_id).with_for_update())
+    # Serialize role demotions against the complete active-admin set. Locking
+    # only the target row would allow two administrators to demote each other
+    # concurrently, with both transactions observing the same admin count.
+    if payload.role != "admin":
+        db.scalars(
+            select(User)
+            .where(User.role == "admin", User.is_active.is_(True))
+            .order_by(User.id)
+            .with_for_update()
+        ).all()
+
+    target = db.scalar(
+        select(User).where(User.id == user_id).with_for_update().execution_options(populate_existing=True)
+    )
     if target is None:
         raise HTTPException(status_code=404, detail="Utilizador não encontrado.")
 
