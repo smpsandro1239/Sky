@@ -35,6 +35,9 @@ services:
       SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-}
       SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
       SMTP_USE_SSL: ${SMTP_USE_SSL:-false}
+      AMADEUS_CLIENT_ID: ${AMADEUS_CLIENT_ID:-}
+      AMADEUS_CLIENT_SECRET: ${AMADEUS_CLIENT_SECRET:-}
+      AMADEUS_BASE_URL: ${AMADEUS_BASE_URL:-https://test.api.amadeus.com}
       DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://sky:change-me-local-only@db:5432/sky}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
     ports: ["${API_PORT:-8000}:8000"]
