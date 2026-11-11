@@ -18,7 +18,7 @@ def verify_password(password: str, hashed: str) -> bool:
     return password_hash.verify(password, hashed)
 
 
-def create_access_token(subject: str) -> str:
+def create_access_token(subject: str, session_id: str | None = None) -> str:
     now = datetime.now(timezone.utc)
     payload: dict[str, Any] = {
         "sub": subject,
@@ -26,6 +26,8 @@ def create_access_token(subject: str) -> str:
         "iat": now,
         "exp": now + timedelta(minutes=settings.access_token_minutes),
     }
+    if session_id is not None:
+        payload["sid"] = session_id
     return jwt.encode(payload, settings.secret_key, algorithm=ALGORITHM)
 
 
