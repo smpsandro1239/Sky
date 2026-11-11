@@ -37,11 +37,14 @@ async function proxyRequest(
   const isPriceHistory = resource === "prices/history";
   const isPriceAlerts = resource === "prices/alerts";
   const isPriceAlertItem = new RegExp("^prices/alerts/" + UUID_PATTERN + "$").test(resource);
+  const isNotifications = resource === "notifications";
+  const isNotificationRead = new RegExp("^notifications/" + UUID_PATTERN + "/read$").test(resource);
+  const isNotificationReadAll = resource === "notifications/read-all";
 
   const allowed =
-    (method === "GET" && (isFlightSearch || isHotelSearch || isHotelFavorites || isPriceHistory || isPriceAlerts || isProfile || isCollection || isTripItem || isTripAccess || isTripBalances || isTripSettlements || isTripActivity || isFlightCollection || isAccommodationCollection || isExpenseCollection || isExpenseSharesCollection || isParticipantCollection || isInvitationCollection)) ||
-    (method === "POST" && (isCollection || isHotelFavorites || isPriceAlerts || isFlightCollection || isAccommodationCollection || isExpenseCollection || isTripSettlements || isParticipantCollection || isInvitationCollection || isInvitationAccept)) ||
-    (method === "PATCH" && (isTripItem || isParticipantItem || isPriceAlertItem || isFlightItem || isAccommodationItem || isExpenseItem || isExpenseSharesCollection)) ||
+    (method === "GET" && (isFlightSearch || isHotelSearch || isHotelFavorites || isPriceHistory || isPriceAlerts || isNotifications || isProfile || isCollection || isTripItem || isTripAccess || isTripBalances || isTripSettlements || isTripActivity || isFlightCollection || isAccommodationCollection || isExpenseCollection || isExpenseSharesCollection || isParticipantCollection || isInvitationCollection)) ||
+    (method === "POST" && (isCollection || isHotelFavorites || isPriceAlerts || isNotificationReadAll || isFlightCollection || isAccommodationCollection || isExpenseCollection || isTripSettlements || isParticipantCollection || isInvitationCollection || isInvitationAccept)) ||
+    (method === "PATCH" && (isTripItem || isParticipantItem || isPriceAlertItem || isNotificationRead || isFlightItem || isAccommodationItem || isExpenseItem || isExpenseSharesCollection)) ||
     (method === "DELETE" && (isTripItem || isHotelFavoriteItem || isPriceAlertItem || isFlightItem || isAccommodationItem || isExpenseItem || isParticipantItem || isInvitationItem));
 
   if (!allowed) {
