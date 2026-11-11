@@ -1,7 +1,5 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Callable
-
 from app.schemas.flight_search import FlightSearchOffer
 
 
