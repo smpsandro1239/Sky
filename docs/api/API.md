@@ -206,7 +206,7 @@ Parâmetros de pesquisa de alojamentos:
 | `max_hotels` | Não | 20 | Máximo de hotéis consultados, entre 1 e 40 |
 | `currency` | Não | EUR | Código de moeda de três letras |
 
-A resposta contém ofertas normalizadas e ordenadas por preço total. A aplicação permite escolher adultos, quartos, raio e moeda. O botão de gravação cria um alojamento na viagem; não cria uma reserva no fornecedor. O identificador de oferta não é persistido como reserva e os preços podem deixar de estar disponíveis após a pesquisa.
+A resposta contém ofertas normalizadas e ordenadas por preço total. A aplicação permite escolher adultos, quartos, raio e moeda. O botão de gravação cria um alojamento na viagem; não cria uma reserva no fornecedor. O identificador de oferta não é persistido como reserva e os preços podem deixar de estar disponíveis após a pesquisa. Quando devolvidos pelo Amadeus, os resultados também incluem tipo de pagamento, prazo e descrição da política de cancelamento. Estes campos são opcionais: a ausência significa que o fornecedor não os disponibilizou na resposta, não que exista cancelamento gratuito ou pagamento flexível. A comparação na interface permite selecionar até três ofertas e apresenta preço total, média por noite e os detalhes de quarto, regime e políticas efetivamente recebidos.
 
 ## Segurança e operação
 
