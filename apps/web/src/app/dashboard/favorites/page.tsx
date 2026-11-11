@@ -13,6 +13,13 @@ type HotelFavorite = {
   created_at: string;
 };
 
+type TripOption = {
+  id: string;
+  name: string;
+  destination: string;
+  role: "owner" | "editor" | "viewer";
+};
+
 async function fetchHotelFavorites(): Promise<HotelFavorite[]> {
   const response = await fetch("/api/backend/hotels/favorites", { cache: "no-store" });
   const payload = await response.json().catch(() => null);
@@ -38,6 +45,12 @@ export default function HotelFavoritesPage() {
   const [error, setError] = useState("");
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
+  const [trips, setTrips] = useState<TripOption[]>([]);
+  const [tripsLoading, setTripsLoading] = useState(true);
+  const [selectedTripId, setSelectedTripId] = useState("");
+  const [stayCheckIn, setStayCheckIn] = useState("");
+  const [stayCheckOut, setStayCheckOut] = useState("");
+  const [addingToTripId, setAddingToTripId] = useState<string | null>(null);
 
   async function loadFavorites() {
     setLoading(true);
@@ -78,6 +91,37 @@ export default function HotelFavoritesPage() {
     return () => { active = false; };
   }, [router]);
 
+  useEffect(() => {
+    let active = true;
+    fetch("/api/backend/trips", { cache: "no-store" })
+      .then(async (response) => {
+        const payload = await response.json().catch(() => null);
+        if (response.status === 401) throw new Error("SESSION_EXPIRED");
+        if (!response.ok || !Array.isArray(payload)) {
+          throw new Error("Não foi possível carregar as viagens.");
+        }
+        return payload as TripOption[];
+      })
+      .then((items) => {
+        if (!active) return;
+        const editableTrips = items.filter((trip) => trip.role === "owner" || trip.role === "editor");
+        setTrips(editableTrips);
+        setSelectedTripId((current) => current || editableTrips[0]?.id || "");
+      })
+      .catch((cause: unknown) => {
+        if (!active) return;
+        if (cause instanceof Error && cause.message === "SESSION_EXPIRED") {
+          router.replace("/login");
+          return;
+        }
+        setError(cause instanceof Error ? cause.message : "Não foi possível carregar as viagens.");
+      })
+      .finally(() => {
+        if (active) setTripsLoading(false);
+      });
+    return () => { active = false; };
+  }, [router]);
+
   const visibleFavorites = useMemo(() => {
     const normalizeSearchText = (value: string) => value
       .normalize("NFD")
@@ -93,6 +137,43 @@ export default function HotelFavoritesPage() {
         ? first.hotel_name.localeCompare(second.hotel_name, "pt-PT")
         : second.created_at.localeCompare(first.created_at));
   }, [favorites, search, sort]);
+
+  async function addFavoriteToTrip(favorite: HotelFavorite) {
+    if (!selectedTripId || !stayCheckIn || !stayCheckOut || stayCheckOut <= stayCheckIn) {
+      setError("Seleciona uma viagem e datas válidas para o alojamento.");
+      return;
+    }
+    setAddingToTripId(favorite.id);
+    setError("");
+    setNotice("");
+    try {
+      const response = await fetch("/api/backend/trips/" + selectedTripId + "/accommodations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          provider: favorite.provider,
+          name: favorite.hotel_name,
+          location: favorite.location,
+          check_in: stayCheckIn,
+          check_out: stayCheckOut,
+        }),
+      });
+      if (response.status === 401) {
+        router.replace("/login");
+        return;
+      }
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(typeof payload.detail === "string" ? payload.detail : "Não foi possível adicionar o hotel à viagem.");
+      }
+      const selectedTrip = trips.find((trip) => trip.id === selectedTripId);
+      setNotice(favorite.hotel_name + " foi adicionado à viagem " + (selectedTrip?.name ?? "") + ". O preço não foi definido.");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Ocorreu um erro ao adicionar o hotel à viagem.");
+    } finally {
+      setAddingToTripId(null);
+    }
+  }
 
   async function removeFavorite(favorite: HotelFavorite) {
     setRemovingId(favorite.id);
@@ -140,6 +221,22 @@ export default function HotelFavoritesPage() {
           <Link className="edit-button" href="/dashboard">Voltar ao dashboard</Link>
         </div>
 
+        <section className="trip-create-form" aria-label="Adicionar favoritos a uma viagem">
+          <h3>Reutilizar um hotel numa viagem</h3>
+          <p className="budget-description">Escolhe uma viagem e as datas da estadia. O hotel será adicionado como alojamento manual, sem preço, porque o favorito não guarda tarifas nem disponibilidade atualizadas.</p>
+          <div className="trip-form-grid">
+            <label>Viagem
+              <select value={selectedTripId} onChange={(event) => setSelectedTripId(event.target.value)} disabled={tripsLoading || trips.length === 0}>
+                {trips.length === 0 && <option value="">{tripsLoading ? "A carregar viagens..." : "Não tens viagens editáveis"}</option>}
+                {trips.map((trip) => <option key={trip.id} value={trip.id}>{trip.name} — {trip.destination}</option>)}
+              </select>
+            </label>
+            <label>Check-in<input type="date" value={stayCheckIn} onChange={(event) => setStayCheckIn(event.target.value)} /></label>
+            <label>Check-out<input type="date" min={stayCheckIn || undefined} value={stayCheckOut} onChange={(event) => setStayCheckOut(event.target.value)} /></label>
+          </div>
+          <p className="budget-description">{tripsLoading ? "A carregar viagens..." : trips.length === 0 ? "Não existem viagens em que tenhas permissões para adicionar alojamentos." : "As viagens em que tens permissões de proprietário ou editor estão disponíveis."}</p>
+        </section>
+
         <section className="trip-create-form" aria-label="Pesquisar e ordenar favoritos">
           <div className="trip-form-grid">
             <label>Pesquisar por hotel ou localização
@@ -181,9 +278,14 @@ export default function HotelFavoritesPage() {
                   <p className="budget-description">Guardado em {new Intl.DateTimeFormat("pt-PT", { dateStyle: "medium" }).format(new Date(favorite.created_at))}</p>
                 </div>
                 <div className="trip-card-actions">
-                  <button className="delete-button" type="button" disabled={removingId !== null} onClick={() => void removeFavorite(favorite)}>
-                    {removingId === favorite.id ? "A remover..." : "Retirar dos favoritos"}
-                  </button>
+                  <div className="trip-action-buttons">
+                    <button className="edit-button" type="button" disabled={!selectedTripId || !stayCheckIn || !stayCheckOut || stayCheckOut <= stayCheckIn || addingToTripId !== null || tripsLoading} onClick={() => void addFavoriteToTrip(favorite)}>
+                      {addingToTripId === favorite.id ? "A adicionar..." : "Adicionar à viagem"}
+                    </button>
+                    <button className="delete-button" type="button" disabled={removingId !== null || addingToTripId !== null} onClick={() => void removeFavorite(favorite)}>
+                      {removingId === favorite.id ? "A remover..." : "Retirar dos favoritos"}
+                    </button>
+                  </div>
                 </div>
               </article>
             ))}
