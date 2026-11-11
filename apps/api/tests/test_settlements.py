@@ -191,6 +191,24 @@ def test_settlements_reduce_outstanding_balances_and_reject_overpayment(client: 
     assert expense_description_change.json()["currency"] == "EUR"
     assert expense_description_change.json()["amount"] == "30.00"
 
+    changed_shares = client.patch(
+        f"/api/v1/trips/{trip_id}/expenses/{expense_id}/shares",
+        headers=headers,
+        json=[
+            {"participant_id": ana, "amount": "9.00"},
+            {"participant_id": rui, "amount": "21.00"},
+        ],
+    )
+    assert changed_shares.status_code == 409
+    assert "acertos financeiros" in changed_shares.json()["detail"]
+
+    deleted_settled_expense = client.delete(
+        f"/api/v1/trips/{trip_id}/expenses/{expense_id}",
+        headers=headers,
+    )
+    assert deleted_settled_expense.status_code == 409
+    assert "acertos financeiros" in deleted_settled_expense.json()["detail"]
+
     overpayment_after_partial = client.post(
         settlements_url,
         headers=headers,
