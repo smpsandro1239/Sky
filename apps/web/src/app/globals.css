@@ -557,3 +557,11 @@ footer { border-top: 1px solid #1c3043; padding: 25px 28px; text-align: center; 
 .participant-quota-key { background: #d69a54; }
 @media (max-width: 600px) { .participant-comparison-row { grid-template-columns: 1fr; gap: 7px; } }
 @media print { .participant-comparison-track { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
+
+
+/* Individual participant financial report export */
+.participant-report-actions { display: flex; align-items: end; flex-wrap: wrap; gap: 10px; }
+.participant-report-actions label { display: grid; gap: 7px; color: var(--muted); font-size: 12px; }
+.participant-report-actions select { min-width: 190px; padding: 10px 12px; border: 1px solid #30465b; border-radius: 8px; background: #091625; color: var(--text); font: inherit; }
+.participant-report-actions select:focus { outline: none; border-color: var(--accent); }
+@media (max-width: 700px) { .participant-report-actions { width: 100%; align-items: stretch; flex-direction: column; } .participant-report-actions select, .participant-report-actions button { width: 100%; } }
