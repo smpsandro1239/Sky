@@ -83,3 +83,44 @@ def test_production_rejects_documentation_placeholder_secret() -> None:
         assert "SKY_SECRET_KEY" in str(exc)
     else:
         raise AssertionError("A chave de exemplo não pode ser aceite em produção.")
+
+
+def test_smtp_requires_sender_when_host_is_configured() -> None:
+    settings = Settings()
+    settings.environment = "development"
+    settings.smtp_host = "smtp.example.com"
+    settings.smtp_from_email = None
+    try:
+        settings.validate_security()
+    except RuntimeError as exc:
+        assert "SMTP_HOST" in str(exc)
+    else:
+        raise AssertionError("SMTP_HOST sem SMTP_FROM_EMAIL deve ser rejeitado.")
+
+
+def test_smtp_rejects_unencrypted_transport() -> None:
+    settings = Settings()
+    settings.environment = "development"
+    settings.smtp_host = "smtp.example.com"
+    settings.smtp_from_email = "sky@example.com"
+    settings.smtp_starttls = False
+    settings.smtp_use_ssl = False
+    try:
+        settings.validate_security()
+    except RuntimeError as exc:
+        assert "STARTTLS ou SSL" in str(exc)
+    else:
+        raise AssertionError("SMTP sem encriptação deve ser rejeitado.")
+
+
+def test_smtp_credentials_must_be_configured_as_a_pair() -> None:
+    settings = Settings()
+    settings.environment = "development"
+    settings.smtp_username = "sky-user"
+    settings.smtp_password = None
+    try:
+        settings.validate_security()
+    except RuntimeError as exc:
+        assert "SMTP_USERNAME" in str(exc)
+    else:
+        raise AssertionError("Credenciais SMTP incompletas devem ser rejeitadas.")
