@@ -159,6 +159,23 @@ export default function HotelSearchPanel({ tripId, canEdit, onAccommodationSaved
     }
   }
 
+
+  async function removeFavorite(favorite: HotelFavorite) {
+    setFavoriteActionId(favorite.hotel_id);
+    setError("");
+    setMessage("");
+    try {
+      const response = await fetch("/api/backend/hotels/favorites/" + favorite.id, { method: "DELETE" });
+      if (!response.ok) throw new Error("Não foi possível remover este favorito.");
+      setFavorites((current) => current.filter((item) => item.id !== favorite.id));
+      setMessage(favorite.hotel_name + " foi retirado dos favoritos.");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Ocorreu um erro ao remover o favorito.");
+    } finally {
+      setFavoriteActionId(null);
+    }
+  }
+
   function toggleComparison(offerId: string) {
     setComparisonIds((current) => {
       if (current.includes(offerId)) return current.filter((id) => id !== offerId);
@@ -234,6 +251,24 @@ export default function HotelSearchPanel({ tripId, canEdit, onAccommodationSaved
           <button className="primary-button trip-submit" type="submit" disabled={loading}>{loading ? "A pesquisar..." : "Pesquisar alojamentos"}</button>
         </div>
       </form>
+      {favorites.length > 0 && (
+        <section className="trip-list" aria-labelledby="hotel-favorites-title">
+          <h4 id="hotel-favorites-title">Os meus hotéis favoritos ({favorites.length})</h4>
+          {favorites.map((favorite) => (
+            <article className="trip-card" key={favorite.id}>
+              <div>
+                <h4>{favorite.hotel_name}</h4>
+                <p>{favorite.location}</p>
+              </div>
+              <div className="trip-card-actions">
+                <button className="secondary-button" type="button" disabled={favoriteActionId !== null} onClick={() => void removeFavorite(favorite)}>
+                  {favoriteActionId === favorite.hotel_id ? "A remover..." : "Retirar dos favoritos"}
+                </button>
+              </div>
+            </article>
+          ))}
+        </section>
+      )}
       {error && <p className="notice" role="alert">{error}</p>}
       {message && <p className="notice" role="status">{message}</p>}
       {results && (
