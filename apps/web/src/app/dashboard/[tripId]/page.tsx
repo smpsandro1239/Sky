@@ -212,6 +212,33 @@ export default function TripDetailPage() {
       return { currency, fixed, variable, projectedVariable, projectedTotal: fixed + projectedVariable, hasDailyData: variable > 0 };
     }) };
   })();
+  const monthlyPlanSummary = (() => {
+    if (!trip?.start_date || !trip?.end_date || trip.end_date < trip.start_date) return [];
+    const firstMonth = trip.start_date.slice(0, 7);
+    const lastMonth = trip.end_date.slice(0, 7);
+    const plansInTrip = budgetPlans.filter((plan) => plan.month >= firstMonth && plan.month <= lastMonth);
+    const rows = new Map<string, { currency: string; planned: number; actual: number; categories: Set<string> }>();
+    plansInTrip.forEach((plan) => {
+      const amount = Number(plan.amount);
+      if (!Number.isFinite(amount) || amount < 0) return;
+      const row = rows.get(plan.currency) ?? { currency: plan.currency, planned: 0, actual: 0, categories: new Set<string>() };
+      row.planned += Math.round(amount * 100);
+      row.categories.add(plan.category);
+      row.actual += expenses
+        .filter((expense) => expense.expense_date >= trip.start_date! && expense.expense_date <= trip.end_date! &&
+          expense.expense_date.slice(0, 7) === plan.month && expense.category === plan.category && expense.currency === plan.currency)
+        .reduce((sum, expense) => {
+          const expenseAmount = Number(expense.amount);
+          return Number.isFinite(expenseAmount) && expenseAmount >= 0 ? sum + Math.round(expenseAmount * 100) : sum;
+        }, 0);
+      rows.set(plan.currency, row);
+    });
+    return [...rows.values()].sort((a, b) => a.currency.localeCompare(b.currency)).map((row) => ({
+      ...row,
+      difference: row.planned - row.actual,
+      percentage: row.planned > 0 ? row.actual / row.planned * 100 : row.actual > 0 ? 100 : 0,
+    }));
+  })();
   const budgetComparison = trip?.budget_amount !== null && trip?.budget_amount !== undefined
     ? (() => {
         const budget = Number(trip.budget_amount);
@@ -1253,6 +1280,25 @@ export default function TripDetailPage() {
                   <div className="budget-usage-track" role="progressbar" aria-label="Percentagem do orçamento utilizada" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.min(100, Math.max(0, budgetComparison.percentage))}><span className={budgetComparison.percentage > 100 ? "budget-usage-over" : ""} style={{ width: Math.min(100, Math.max(0, budgetComparison.percentage)) + "%" }} /></div>
                 </div>
                 {budgetComparison.otherCurrencies.length > 0 && <p className="notice">Existem também custos noutras moedas ({budgetComparison.otherCurrencies.join(", ")}), que não são incluídos nesta comparação.</p>}
+              </section>
+            )}
+            {monthlyPlanSummary.length > 0 && (
+              <section className="budget-summary" aria-labelledby="monthly-plan-summary-title">
+                <div><p className="eyebrow">PREVISÃO VS. EXECUÇÃO</p><h2 id="monthly-plan-summary-title">Planeamento mensal consolidado</h2><p className="budget-description">Compara os limites mensais por categoria com as despesas reais correspondentes, apenas nos meses abrangidos pela viagem. Os valores planeados são limites de referência, não custos confirmados, e não são adicionados à estimativa de despesas.</p></div>
+                <div className="budget-total-list">
+                  {monthlyPlanSummary.map((row) => (
+                    <div className="budget-total" key={row.currency}>
+                      <span>Planeado · {row.categories.size} {row.categories.size === 1 ? "categoria" : "categorias"} · {row.currency}</span>
+                      <strong>{(row.planned / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {row.currency}</strong>
+                      <small className="budget-description">Despesas correspondentes: {(row.actual / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {row.currency} · {row.difference >= 0 ? "Por executar" : "Acima do planeado"}: {(Math.abs(row.difference) / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {row.currency}</small>
+                      <div className="budget-usage">
+                        <div className="budget-usage-heading"><strong>{row.percentage.toLocaleString("pt-PT", { maximumFractionDigits: 1 })}% executado</strong><span>{row.percentage >= 100 ? "Planeamento atingido ou excedido" : row.percentage >= 80 ? "Aproxima-se do limite" : "Dentro do limite"}</span></div>
+                        <div className="budget-usage-track" role="progressbar" aria-label={"Execução do planeamento mensal em " + row.currency} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.min(100, Math.max(0, row.percentage))}><span className={row.percentage >= 100 ? "budget-usage-over" : ""} style={{ width: Math.min(100, Math.max(0, row.percentage)) + "%" }} /></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="notice">Só são comparadas despesas da mesma moeda, categoria e mês. Categorias sem previsão mensal não entram nesta comparação. Os orçamentos individuais são sub-limites e não são somados a este total.</p>
               </section>
             )}
             {costForecast && costForecast.rows.length > 0 && (
