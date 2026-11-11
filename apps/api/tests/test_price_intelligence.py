@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from app.services.price_intelligence import build_search_fingerprint, record_price_observations
+from app.services.price_intelligence import (\n    build_search_fingerprint,\n    record_price_observations,\n)
 
 
 class FakeSession:
