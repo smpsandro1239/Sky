@@ -138,8 +138,8 @@ Parar: `docker compose down`. Para remover também os dados da base de dados: `d
 
 - [x] **Fase 1 — descoberta e definição do produto.**
 - [x] **Fase 2 — arquitetura e documentação.**
-- [ ] **Fase 3 — fundações:** Docker, API, autenticação e CRUD de viagens, voos e alojamentos; base funcional publicada. Falta validação funcional Docker/E2E.
-- [x] **Fase 4 — gestão frontend (primeira entrega):** gestão de viagens, voos e alojamentos integrada no dashboard/planeador através do BFF. Falta validação E2E e refinamento de UX.
+- [x] **Fase 3 — fundações:** Docker, API, autenticação, CRUD de viagens/voos/alojamentos/despesas, orçamento, participantes, convites e permissões colaborativas. Falta validação funcional Docker/E2E.
+- [x] **Fase 4 — gestão frontend (primeira entrega):** gestão de viagens, voos, alojamentos, despesas, orçamento, participantes, convites e balanços integrada no dashboard/planeador através do BFF. Falta validação E2E e refinamento de UX.
 - [ ] **Fase 5 — pesquisa e fornecedores:** APIs oficiais e adaptadores para voos e alojamentos.
 - [ ] **Fase 6 — inteligência:** Recommendation Engine e Price Intelligence.
 - [ ] **Fase 7 — qualidade e operação:** testes E2E, CI/CD, observabilidade e preparação para produção.
