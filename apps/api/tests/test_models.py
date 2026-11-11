@@ -14,6 +14,7 @@ def test_initial_models_are_registered() -> None:
         "expense_shares",
         "trip_invitations",
         "trip_activity",
+        "trip_settlements",
     }
 
 
