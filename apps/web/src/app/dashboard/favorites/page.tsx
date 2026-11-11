@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type HotelFavorite = {
@@ -13,6 +13,22 @@ type HotelFavorite = {
   created_at: string;
 };
 
+async function fetchHotelFavorites(): Promise<HotelFavorite[]> {
+  const response = await fetch("/api/backend/hotels/favorites", { cache: "no-store" });
+  const payload = await response.json().catch(() => null);
+  if (response.status === 401) throw new Error("SESSION_EXPIRED");
+  if (!response.ok) {
+    throw new Error(payload && typeof payload.detail === "string" ? payload.detail : "Não foi possível carregar os hotéis favoritos.");
+  }
+  if (!Array.isArray(payload) || !payload.every((item) =>
+    item && typeof item.id === "string" && typeof item.hotel_id === "string"
+    && typeof item.hotel_name === "string" && typeof item.location === "string"
+  )) {
+    throw new Error("A resposta dos favoritos tem um formato inválido.");
+  }
+  return payload as HotelFavorite[];
+}
+
 export default function HotelFavoritesPage() {
   const router = useRouter();
   const [favorites, setFavorites] = useState<HotelFavorite[]>([]);
@@ -23,35 +39,44 @@ export default function HotelFavoritesPage() {
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
 
-  const loadFavorites = useCallback(async () => {
+  async function loadFavorites() {
+    setLoading(true);
+    setError("");
     try {
-      const response = await fetch("/api/backend/hotels/favorites", { cache: "no-store" });
-      const payload = await response.json().catch(() => null);
-      if (response.status === 401) {
+      setFavorites(await fetchHotelFavorites());
+    } catch (cause) {
+      if (cause instanceof Error && cause.message === "SESSION_EXPIRED") {
         router.replace("/login");
         return;
       }
-      if (!response.ok) {
-        throw new Error(payload && typeof payload.detail === "string" ? payload.detail : "Não foi possível carregar os hotéis favoritos.");
-      }
-      if (!Array.isArray(payload) || !payload.every((item) =>
-        item && typeof item.id === "string" && typeof item.hotel_id === "string"
-        && typeof item.hotel_name === "string" && typeof item.location === "string"
-      )) {
-        throw new Error("A resposta dos favoritos tem um formato inválido.");
-      }
-      setFavorites(payload as HotelFavorite[]);
-      setError("");
-    } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Ocorreu um erro ao carregar os favoritos.");
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }
 
   useEffect(() => {
-    void loadFavorites();
-  }, [loadFavorites]);
+    let active = true;
+    fetchHotelFavorites()
+      .then((items) => {
+        if (active) {
+          setFavorites(items);
+          setError("");
+        }
+      })
+      .catch((cause: unknown) => {
+        if (!active) return;
+        if (cause instanceof Error && cause.message === "SESSION_EXPIRED") {
+          router.replace("/login");
+          return;
+        }
+        setError(cause instanceof Error ? cause.message : "Ocorreu um erro ao carregar os favoritos.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => { active = false; };
+  }, [router]);
 
   const visibleFavorites = useMemo(() => {
     const term = search.trim().toLocaleLowerCase("pt-PT");
