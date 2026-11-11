@@ -94,4 +94,5 @@ def test_production_rejects_development_secret_even_when_long(monkeypatch) -> No
 def test_production_accepts_unique_secret_of_at_least_32_characters(monkeypatch) -> None:
     monkeypatch.setattr(settings, "environment", "production")
     monkeypatch.setattr(settings, "secret_key", "production-secret-key-with-more-than-32-characters")
+    monkeypatch.setattr(settings, "cors_origins", ["https://sky-eight-mocha.vercel.app"])
     settings.validate_security()
