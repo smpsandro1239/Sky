@@ -21,23 +21,45 @@ router = APIRouter(prefix="/hotels", tags=["hotel-search"])
 def _map_offers(hotel_results: list[dict[str, Any]], criteria: HotelSearchRequest) -> list[HotelSearchOffer]:
     offers: list[HotelSearchOffer] = []
     for result in hotel_results:
-        hotel = result.get("hotel") or {}
-        hotel_id = str(hotel.get("hotelId", ""))
+        if not isinstance(result, dict):
+            continue
+        hotel = result.get("hotel")
+        if not isinstance(hotel, dict):
+            continue
+        hotel_id = str(hotel.get("hotelId", "")).strip()
         hotel_name = str(hotel.get("name", "")).strip()
-        address = hotel.get("address") or {}
-        city = str(address.get("cityName") or criteria.city_code)
-        country = str(address.get("countryCode") or "")
+        address = hotel.get("address")
+        address = address if isinstance(address, dict) else {}
+        city = str(address.get("cityName") or criteria.city_code).strip()
+        country = str(address.get("countryCode") or "").strip().upper()
         location = ", ".join(part for part in (city, country) if part)
-        for offer in result.get("offers", []):
-            price = offer.get("price") or {}
+        raw_offers = result.get("offers")
+        if not isinstance(raw_offers, list):
+            continue
+        for offer in raw_offers:
+            if not isinstance(offer, dict):
+                continue
+            price = offer.get("price")
+            if not isinstance(price, dict):
+                continue
             try:
                 total = Decimal(str(price.get("total", "")))
-                currency = str(price.get("currency", criteria.currency)).upper()
-                offer_id = str(offer.get("id", ""))
-                if not hotel_id or not hotel_name or not offer_id or total <= 0:
+                currency = str(price.get("currency", criteria.currency)).strip().upper()
+                offer_id = str(offer.get("id", "")).strip()
+                if (
+                    not hotel_id
+                    or not hotel_name
+                    or not offer_id
+                    or not total.is_finite()
+                    or total <= 0
+                    or len(currency) != 3
+                    or not currency.isalpha()
+                ):
                     continue
-                room = offer.get("room") or {}
-                description = room.get("description") or {}
+                room = offer.get("room")
+                room = room if isinstance(room, dict) else {}
+                description = room.get("description")
+                description = description if isinstance(description, dict) else {}
                 board = offer.get("boardType")
                 offers.append(
                     HotelSearchOffer(
@@ -51,12 +73,12 @@ def _map_offers(hotel_results: list[dict[str, Any]], criteria: HotelSearchReques
                         price_total=total,
                         currency=currency,
                         room_description=description.get("text"),
-                        board_type=board,
+                        board_type=str(board) if board else None,
                     )
                 )
             except (InvalidOperation, ValueError, TypeError):
                 continue
-    offers.sort(key=lambda item: item.price_total)
+    offers.sort(key=lambda item: (item.price_total, item.hotel_name.casefold(), item.id))
     return offers
 
 
