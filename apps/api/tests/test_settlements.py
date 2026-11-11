@@ -194,6 +194,12 @@ def test_settlements_reduce_outstanding_balances_and_reject_overpayment(client: 
     assert positions[rui]["net"] == "-12.50"
     assert positions[ana]["net"] == "12.50"
     assert eur["suggested_transfers"][0]["amount"] == "12.50"
+    assert eur["reconciliation"]["total_paid"] == "30.00"
+    assert eur["reconciliation"]["total_allocated"] == "30.00"
+    assert eur["reconciliation"]["expense_difference"] == "0.00"
+    assert eur["reconciliation"]["settlement_difference"] == "0.00"
+    assert eur["reconciliation"]["net_total"] == "0.00"
+    assert eur["reconciliation"]["is_balanced"] is True
 
     listed = client.get(settlements_url, headers=headers)
     assert listed.status_code == 200
@@ -217,3 +223,28 @@ def test_settlements_reduce_outstanding_balances_and_reject_overpayment(client: 
     )
     assert protected_participant.status_code == 409
     assert "acertos financeiros" in protected_participant.json()["detail"]
+
+    unallocated = client.post(
+        f"/api/v1/trips/{trip_id}/expenses",
+        headers=headers,
+        json={
+            "category": "outros",
+            "description": "Despesa por atribuir",
+            "expense_date": "2027-08-03",
+            "amount": "5.00",
+            "currency": "EUR",
+        },
+    )
+    assert unallocated.status_code == 201
+    audited_balances = client.get(f"/api/v1/trips/{trip_id}/balances", headers=headers)
+    assert audited_balances.status_code == 200
+    audited_eur = audited_balances.json()["currencies"][0]
+    assert audited_eur["reconciliation"]["is_balanced"] is False
+    assert audited_eur["reconciliation"]["unallocated_expenses"] == [
+        {
+            "expense_id": unallocated.json()["id"],
+            "description": "Despesa por atribuir",
+            "amount": "5.00",
+            "reason": "missing_payer",
+        }
+    ]
