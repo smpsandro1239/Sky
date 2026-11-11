@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.api.deps import get_current_user, get_db
 from app.core.activity import record_trip_activity
+from app.core.notifications import notify_trip_members
 from app.api.routes.expenses import get_trip_expense
 from app.api.routes.trips import get_accessible_trip, get_user_trip, require_trip_editor
 from app.models.expense_share import ExpenseShare
@@ -58,6 +59,13 @@ def replace_expense_shares(
             entity_type="expense_share", entity_id=expense.id,
             summary="removeu a divisão de uma despesa",
         )
+        notify_trip_members(
+            db, trip=trip, actor_user_id=user.id,
+            notification_type="trip_expense_share_updated",
+            title="Divisão de despesa actualizada",
+            message=f"Foi removida a divisão da despesa {expense.description}.",
+            metadata={"expense_id": str(expense.id), "description": expense.description},
+        )
         db.commit()
         return []
 
@@ -85,6 +93,13 @@ def replace_expense_shares(
     ]
     db.add_all(shares)
     record_trip_activity(db, trip_id=trip.id, actor=user, action="updated", entity_type="expense_share", entity_id=expense.id, summary="atualizou a divisão de uma despesa")
+    notify_trip_members(
+        db, trip=trip, actor_user_id=user.id,
+        notification_type="trip_expense_share_updated",
+        title="Divisão de despesa actualizada",
+        message=f"A divisão da despesa {expense.description} foi actualizada.",
+        metadata={"expense_id": str(expense.id), "description": expense.description},
+    )
     db.commit()
     for share in shares:
         db.refresh(share)
