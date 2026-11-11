@@ -18,6 +18,10 @@ from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse, UserR
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
 
+def _is_bootstrap_admin(email: str) -> bool:
+    return email.strip().lower() in settings.admin_emails
+
+
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def register(payload: RegisterRequest, db: Session = Depends(get_db)) -> User:
     email = str(payload.email).strip().lower()
@@ -25,6 +29,7 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)) -> User:
         email=email,
         display_name=payload.display_name.strip(),
         password_hash=hash_password(payload.password),
+        role="admin" if _is_bootstrap_admin(email) else "traveler",
         is_active=True,
         is_verified=False,
     )
@@ -48,6 +53,9 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse
         or not verify_password(payload.password, user.password_hash)
     ):
         raise HTTPException(status_code=401, detail="Email ou palavra-passe inválidos.")
+
+    if _is_bootstrap_admin(user.email) and user.role != "admin":
+        user.role = "admin"
 
     now = datetime.now(timezone.utc)
     session_id = uuid4()
