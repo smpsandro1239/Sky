@@ -18,6 +18,13 @@ class Settings:
         for origin in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
         if origin.strip()
     ]
+    smtp_host: str | None = os.getenv("SMTP_HOST")
+    smtp_port: int = int(os.getenv("SMTP_PORT", "587"))
+    smtp_username: str | None = os.getenv("SMTP_USERNAME")
+    smtp_password: str | None = os.getenv("SMTP_PASSWORD")
+    smtp_from_email: str | None = os.getenv("SMTP_FROM_EMAIL")
+    smtp_starttls: bool = os.getenv("SMTP_STARTTLS", "true").strip().lower() in {"1", "true", "yes"}
+    smtp_use_ssl: bool = os.getenv("SMTP_USE_SSL", "false").strip().lower() in {"1", "true", "yes"}
     google_client_id: str | None = os.getenv("GOOGLE_CLIENT_ID")
     google_client_secret: str | None = os.getenv("GOOGLE_CLIENT_SECRET")
     google_redirect_uri: str = os.getenv(
@@ -28,6 +35,10 @@ class Settings:
         if self.environment == "production":
             if self.secret_key.startswith("dev-only-") or len(self.secret_key) < 32:
                 raise RuntimeError("Em produção, SKY_SECRET_KEY tem de ter pelo menos 32 caracteres e ser única.")
+        if self.smtp_port < 1 or self.smtp_port > 65535:
+            raise RuntimeError("SMTP_PORT tem de estar entre 1 e 65535.")
+        if self.smtp_starttls and self.smtp_use_ssl:
+            raise RuntimeError("SMTP_STARTTLS e SMTP_USE_SSL não podem estar ativos em simultâneo.")
         if self.access_token_minutes < 1:
             raise RuntimeError("ACCESS_TOKEN_MINUTES tem de ser superior a zero.")
 
