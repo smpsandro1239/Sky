@@ -15,7 +15,7 @@ Definir a linha de base de segurança e documentar os controlos já implementado
 ## Autenticação e autorização — estado atual
 
 - A API emite JWT após autenticação bem-sucedida.
-- Os endpoints privados validam o token e confirmam que o utilizador existe e está ativo.
+- Os endpoints privados validam o JWT, confirmam que o utilizador existe e está ativo e verificam a sessão persistida na base de dados.
 - As operações de viagens, voos, alojamentos, despesas e partilhas validam o papel do utilizador (proprietário, editor ou leitor) no servidor.
 - Só o proprietário pode gerir participantes, convites, papéis, metadados e orçamento da viagem.
 - Os tokens de convite são aleatórios, armazenados como hash SHA-256, têm validade de 7 dias e são de utilização única.
@@ -23,6 +23,8 @@ Definir a linha de base de segurança e documentar os controlos já implementado
 - A API devolve `email_sent` para distinguir o envio concluído de um convite criado apenas para partilha manual. Falhas de SMTP não invalidam o convite nem expõem credenciais.
 - O frontend usa Route Handlers Next.js como BFF.
 - O JWT é guardado num cookie `HttpOnly`, `SameSite=Lax`, com `Secure` em produção e expiração limitada ao tempo de vida do token.
+- Cada sessão tem um identificador próprio (`sid`); a API guarda apenas o hash SHA-256 do JWT, a validade e o estado de revogação. Cada pedido autenticado confirma a sessão persistida, permitindo invalidar um token individual sem terminar as restantes sessões do utilizador.
+- O endpoint de logout revoga a sessão actual na API; o BFF encaminha o token do cookie para esse endpoint antes de o eliminar.
 - O token não é exposto ao JavaScript do browser nem guardado em localStorage.
 - O BFF tem uma allowlist explícita de recursos e métodos autorizados.
 - As operações mutáveis encaminhadas pelo BFF, incluindo login e logout, exigem um cabeçalho `Origin` igual à origem do pedido; quando `Sec-Fetch-Site` existe, tem de ser `same-origin`.
@@ -30,7 +32,7 @@ Definir a linha de base de segurança e documentar os controlos já implementado
 
 Pendências antes de produção:
 - Testes de integração e E2E do ciclo completo de autenticação e do envio SMTP num ambiente de teste controlado.
-- Estratégia de revogação/rotação de sessões e refresh tokens.
+- Listagem e revogação remota de sessões por dispositivo, rotação de tokens e eventual introdução de refresh tokens.
 - Rate limiting e proteção contra tentativas automatizadas de login.
 - Testes E2E de CSRF no browser e validação da política de origem em todos os domínios/proxies de produção.
 - Política de recuperação de conta e verificação de email.
@@ -88,4 +90,4 @@ Documentar deteção, contenção, análise, recuperação, comunicação e liç
 
 ## Estado
 
-Existem controlos iniciais de autenticação, autorização e gestão de sessão via cookie HttpOnly. A solução ainda não foi auditada nem está pronta para produção.
+Existem controlos iniciais de autenticação, autorização, sessões persistidas com revogação individual e gestão de sessão via cookie HttpOnly. A solução ainda não foi auditada nem está pronta para produção.
