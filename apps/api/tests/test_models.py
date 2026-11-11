@@ -13,6 +13,7 @@ def test_initial_models_are_registered() -> None:
         "trip_participants",
         "expense_shares",
         "trip_invitations",
+        "trip_activity",
     }
 
 
@@ -32,6 +33,10 @@ def test_trip_relationships_are_defined() -> None:
     assert "uq_trip_invitations_token_hash" in {
         constraint.name for constraint in Base.metadata.tables["trip_invitations"].constraints
     }
+    activity = Base.metadata.tables["trip_activity"]
+    assert activity.c.trip_id.foreign_keys
+    assert activity.c.actor_user_id.foreign_keys
+    assert {"actor_name", "action", "entity_type", "summary", "created_at"} <= set(activity.c.keys())
     shares = Base.metadata.tables["expense_shares"]
     assert shares.c.expense_id.foreign_keys
     assert shares.c.participant_id.foreign_keys
