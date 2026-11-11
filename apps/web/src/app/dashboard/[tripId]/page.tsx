@@ -1001,7 +1001,14 @@ export default function TripDetailPage() {
               ))}
             </div>
 
-            <FlightSearchPanel />
+            <FlightSearchPanel
+              tripId={tripId}
+              canEdit={accessRole !== "viewer"}
+              onFlightsSaved={(saved) => {
+                setFlights((current) => [...current, ...saved].sort((a, b) => a.departure_at.localeCompare(b.departure_at)));
+                void refreshActivity();
+              }}
+            />
 
             <div className="section-heading"><div><p className="eyebrow">TRANSPORTE</p><h2>Voos</h2></div></div>
             {accessRole !== "viewer" && <form className="trip-create-form" onSubmit={saveFlight}>
