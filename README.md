@@ -22,7 +22,7 @@ A visão de longo prazo é uma plataforma integral de viagens. O princípio cent
 | Despesas por viagem | Registo, edição, eliminação, categorias e integração dos valores no resumo financeiro; testes API e migrações aprovados |
 | Participantes por viagem | Gestão de participantes por viagem, com isolamento por proprietário |
 | Divisão de despesas e acerto de contas | Registo do pagador, partilhas por participante, cálculo de saldos por moeda e sugestões de transferências para liquidar dívidas |
-| Convites e permissões de viagem | Convites com token aleatório, hash persistido e expiração de 7 dias; papéis de proprietário, editor e leitor aplicados na API; envio de email automático ainda não configurado |
+| Convites e permissões de viagem | Convites com token aleatório, hash persistido e expiração de 7 dias; papéis de proprietário, editor e leitor aplicados na API; proprietário pode alterar permissões de membros; envio de email automático ainda não configurado |
 | Frontend — convites e partilha | Escolha de papel no convite, cópia de link, revogação, aceitação autenticada, dashboard com viagens partilhadas e modo de leitura |
 | Frontend — landing page | Publicada |
 | Frontend — registo e login | Implementados com sessão em cookie HttpOnly |
