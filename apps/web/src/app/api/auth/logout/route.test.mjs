@@ -56,7 +56,10 @@ describe("POST /api/auth/logout", () => {
   it("keeps the Secure attribute when running in production", async () => {
     process.env.NODE_ENV = "production";
 
-    const response = await POST();
+    const response = await POST(new Request("http://localhost/api/auth/logout", {
+      method: "POST",
+      headers: { Origin: "http://localhost" },
+    }));
     const cookie = response.headers.get("set-cookie") ?? "";
 
     assert.match(cookie, /Secure/i);
