@@ -49,6 +49,9 @@ class FlightSearchOffer(BaseModel):
     number_of_stops: int
     itineraries: list[list[FlightSearchSegment]]
     booking_url: str | None = None
+    duration_minutes: int | None = None
+    recommendation_score: float | None = None
+    recommendation_reasons: list[str] = Field(default_factory=list)
 
 
 class FlightSearchResponse(BaseModel):
