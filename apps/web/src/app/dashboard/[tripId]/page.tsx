@@ -37,7 +37,7 @@ type Accommodation = {
 };
 type Expense = { id: string; category: string; description: string; expense_date: string; amount: string; currency: string; paid_by_participant_id: string | null; notes: string | null; };
 type TripBalances = { currencies: { currency: string; participants: { participant_id: string; name: string; paid: string; owed: string; net: string }[]; suggested_transfers: { from_participant_id: string; from_name: string; to_participant_id: string; to_name: string; amount: string }[] }[] };
-type Participant = { id: string; trip_id: string; name: string; email: string | null; role: "editor" | "viewer"; created_at: string };
+type Participant = { id: string; trip_id: string; name: string; email: string | null; role: "editor" | "viewer"; is_linked: boolean; created_at: string };
 type Invitation = { id: string; trip_id: string; email: string; status: string; expires_at: string; accepted_at: string | null; created_at: string };
 type CreatedInvitation = Invitation & { invitation_token: string };
 type ExpenseShare = { id: string; expense_id: string; participant_id: string; amount: string };
@@ -770,7 +770,7 @@ export default function TripDetailPage() {
                 {participants.length === 0 ? <p className="notice">Ainda não foram adicionados participantes.</p> : participants.map((participant) => (
                   <article className="participant-item" key={participant.id}>
                     <div><strong>{participant.name}</strong>{participant.email && <span>{participant.email}</span>}<span>{participant.role === "editor" ? "Editor" : "Leitor"}</span></div>
-                    {accessRole === "owner" && <div className="trip-action-buttons"><label className="participant-role-control">Permissão<select value={participant.role} onChange={(event) => void updateParticipantRole(participant.id, event.target.value as "editor" | "viewer")}><option value="viewer">Leitor</option><option value="editor">Editor</option></select></label><button className="delete-button" type="button" onClick={() => void removeParticipant(participant.id)}>Remover</button></div>}
+                    {accessRole === "owner" && <div className="trip-action-buttons">{(participant.is_linked || invitations.some((invitation) => invitation.email.toLowerCase() === participant.email?.toLowerCase() && invitation.status === "pending")) && <label className="participant-role-control">Permissão<select value={participant.role} onChange={(event) => void updateParticipantRole(participant.id, event.target.value as "editor" | "viewer")}><option value="viewer">Leitor</option><option value="editor">Editor</option></select></label>}<button className="delete-button" type="button" onClick={() => void removeParticipant(participant.id)}>Remover</button></div>}
                   </article>
                 ))}
               </div>
