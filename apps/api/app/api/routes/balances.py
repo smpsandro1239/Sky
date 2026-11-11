@@ -36,15 +36,21 @@ def get_trip_balances(
         })
     )
 
-    expenses = list(db.scalars(select(Expense).where(
-        Expense.trip_id == trip.id,
-        Expense.paid_by_participant_id.is_not(None),
-    )).all())
+    expenses = list(db.scalars(
+        select(Expense).where(Expense.trip_id == trip.id).order_by(Expense.expense_date, Expense.id)
+    ).all())
+    unallocated_expenses: dict[str, list[dict[str, str]]] = defaultdict(list)
     for expense in expenses:
         shares = list(db.scalars(
             select(ExpenseShare).where(ExpenseShare.expense_id == expense.id)
         ).all())
-        if not shares:
+        if expense.paid_by_participant_id is None or not shares:
+            unallocated_expenses[expense.currency].append({
+                "expense_id": str(expense.id),
+                "description": expense.description,
+                "amount": str(expense.amount.quantize(Decimal("0.01"))),
+                "reason": "missing_payer" if expense.paid_by_participant_id is None else "missing_shares",
+            })
             continue
         ledger[expense.currency][expense.paid_by_participant_id]["paid"] += expense.amount
         for share in shares:
@@ -100,5 +106,21 @@ def get_trip_balances(
                 creditor_index += 1
             if debtor["cents"] == 0:
                 debtor_index += 1
-        result.append({"currency": currency, "participants": rows, "suggested_transfers": transfers})
+        total_paid = sum((values["paid"] for values in ledger[currency].values()), Decimal("0.00"))
+        total_allocated = sum((values["owed"] for values in ledger[currency].values()), Decimal("0.00"))
+        total_sent = sum((values["settled_sent"] for values in ledger[currency].values()), Decimal("0.00"))
+        total_received = sum((values["settled_received"] for values in ledger[currency].values()), Decimal("0.00"))
+        net_total = sum((Decimal(row["net"]) for row in rows), Decimal("0.00"))
+        reconciliation = {
+            "total_paid": str(total_paid.quantize(Decimal("0.01"))),
+            "total_allocated": str(total_allocated.quantize(Decimal("0.01"))),
+            "expense_difference": str((total_paid - total_allocated).quantize(Decimal("0.01"))),
+            "settlements_sent": str(total_sent.quantize(Decimal("0.01"))),
+            "settlements_received": str(total_received.quantize(Decimal("0.01"))),
+            "settlement_difference": str((total_sent - total_received).quantize(Decimal("0.01"))),
+            "net_total": str(net_total.quantize(Decimal("0.01"))),
+            "unallocated_expenses": unallocated_expenses.get(currency, []),
+            "is_balanced": total_paid == total_allocated and total_sent == total_received and net_total == 0 and not unallocated_expenses.get(currency),
+        }
+        result.append({"currency": currency, "participants": rows, "suggested_transfers": transfers, "reconciliation": reconciliation})
     return {"currencies": result}
