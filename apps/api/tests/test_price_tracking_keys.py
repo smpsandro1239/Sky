@@ -56,7 +56,7 @@ def test_hotel_tracking_key_survives_provider_id_and_price_changes():
         check_out=date(2027, 8, 15),
     )
 
-    def result(offer_id: str, price: str) -> list[dict]:
+    def result(offer_id: str, price: str, room_type: str = "STANDARD") -> list[dict]:
         return [
             {
                 "hotel": {
@@ -68,7 +68,11 @@ def test_hotel_tracking_key_survives_provider_id_and_price_changes():
                     {
                         "id": offer_id,
                         "price": {"total": price, "currency": "EUR"},
-                        "room": {"description": {"text": "Double room"}},
+                        "room": {
+                            "type": room_type,
+                            "description": {"text": "Double room"},
+                            "typeEstimated": {"category": "STANDARD", "beds": "DOUBLE", "bedsQuantity": 1},
+                        },
                         "boardType": "BREAKFAST",
                         "policies": {
                             "paymentType": "guarantee",
@@ -88,3 +92,48 @@ def test_hotel_tracking_key_survives_provider_id_and_price_changes():
     assert first.id != second.id
     assert first.price_total != second.price_total
     assert first.price_tracking_key == second.price_tracking_key
+
+
+
+def test_hotel_tracking_key_changes_when_room_type_changes():
+    criteria = HotelSearchRequest(
+        city_code="LIS",
+        check_in=date(2027, 8, 10),
+        check_out=date(2027, 8, 15),
+    )
+    standard = _map_offers(
+        [{
+            "hotel": {"hotelId": "HOTEL-123", "name": "Hotel Example"},
+            "offers": [{
+                "id": "offer-1",
+                "price": {"total": "500.00", "currency": "EUR"},
+                "room": {
+                    "type": "STANDARD",
+                    "description": {"text": "Double room"},
+                    "typeEstimated": {"category": "STANDARD", "beds": "DOUBLE", "bedsQuantity": 1},
+                },
+                "boardType": "BREAKFAST",
+                "policies": {"paymentType": "guarantee"},
+            }],
+        }],
+        criteria,
+    )[0]
+    superior = _map_offers(
+        [{
+            "hotel": {"hotelId": "HOTEL-123", "name": "Hotel Example"},
+            "offers": [{
+                "id": "offer-2",
+                "price": {"total": "550.00", "currency": "EUR"},
+                "room": {
+                    "type": "SUPERIOR",
+                    "description": {"text": "Double room"},
+                    "typeEstimated": {"category": "SUPERIOR", "beds": "DOUBLE", "bedsQuantity": 1},
+                },
+                "boardType": "BREAKFAST",
+                "policies": {"paymentType": "guarantee"},
+            }],
+        }],
+        criteria,
+    )[0]
+
+    assert standard.price_tracking_key != superior.price_tracking_key
