@@ -159,6 +159,38 @@ export default function TripDetailPage() {
     currencyA.localeCompare(currencyB),
   );
 
+  const costForecast = (() => {
+    if (!trip?.start_date || !trip?.end_date) return null;
+    const start = Date.parse(`${trip.start_date}T00:00:00Z`);
+    const end = Date.parse(`${trip.end_date}T00:00:00Z`);
+    if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) return null;
+    const now = new Date();
+    const todayString = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    if (todayString < trip.start_date) return null;
+    const today = Date.parse(`${todayString}T00:00:00Z`);
+    const dayMs = 86_400_000;
+    const totalDays = Math.floor((end - start) / dayMs) + 1;
+    const elapsedDays = Math.min(totalDays, Math.floor((today - start) / dayMs) + 1);
+    const fixedCosts: Record<string, number> = {};
+    [...flights, ...accommodations].forEach((item) => {
+      if (item.price_amount === null) return;
+      const amount = Number(item.price_amount);
+      if (Number.isFinite(amount) && amount >= 0) fixedCosts[item.price_currency] = (fixedCosts[item.price_currency] ?? 0) + Math.round(amount * 100);
+    });
+    const variableCosts: Record<string, number> = {};
+    expenses.forEach((expense) => {
+      if (expense.expense_date < trip.start_date! || expense.expense_date > trip.end_date! || expense.expense_date > todayString) return;
+      const amount = Number(expense.amount);
+      if (Number.isFinite(amount) && amount >= 0) variableCosts[expense.currency] = (variableCosts[expense.currency] ?? 0) + Math.round(amount * 100);
+    });
+    const currencies = new Set([...Object.keys(fixedCosts), ...Object.keys(variableCosts)]);
+    return { totalDays, elapsedDays, rows: [...currencies].sort().map((currency) => {
+      const fixed = fixedCosts[currency] ?? 0;
+      const variable = variableCosts[currency] ?? 0;
+      const projectedVariable = Math.round((variable / elapsedDays) * totalDays);
+      return { currency, fixed, variable, projectedVariable, projectedTotal: fixed + projectedVariable, hasDailyData: variable > 0 };
+    }) };
+  })();
   const budgetComparison = trip?.budget_amount !== null && trip?.budget_amount !== undefined
     ? (() => {
         const budget = Number(trip.budget_amount);
@@ -877,6 +909,21 @@ export default function TripDetailPage() {
                   <div className="budget-usage-track" role="progressbar" aria-label="Percentagem do orçamento utilizada" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.min(100, Math.max(0, budgetComparison.percentage))}><span className={budgetComparison.percentage > 100 ? "budget-usage-over" : ""} style={{ width: Math.min(100, Math.max(0, budgetComparison.percentage)) + "%" }} /></div>
                 </div>
                 {budgetComparison.otherCurrencies.length > 0 && <p className="notice">Existem também custos noutras moedas ({budgetComparison.otherCurrencies.join(", ")}), que não são incluídos nesta comparação.</p>}
+              </section>
+            )}
+            {costForecast && costForecast.rows.length > 0 && (
+              <section className="budget-summary" aria-labelledby="cost-forecast-title">
+                <div><p className="eyebrow">PREVISÃO FINANCEIRA</p><h2 id="cost-forecast-title">Estimativa até ao fim da viagem</h2><p className="budget-description">Projeção dos custos conhecidos de voos e alojamentos, acrescidos da estimativa de despesas diárias. Baseia-se em {costForecast.elapsedDays} de {costForecast.totalDays} dias de viagem e nos registos até hoje. Não é uma reserva nem um custo confirmado.</p></div>
+                <div className="budget-total-list">
+                  {costForecast.rows.map((row) => (
+                    <div className="budget-total" key={row.currency}>
+                      <span>{row.currency} · {row.hasDailyData ? "estimativa total" : "custos conhecidos"}</span>
+                      <strong>{(row.projectedTotal / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {row.currency}</strong>
+                      <small className="budget-description">Voos e alojamentos: {(row.fixed / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {row.currency} · Despesas registadas: {(row.variable / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {row.currency} · Despesas projetadas: {(row.projectedVariable / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {row.currency}</small>
+                    </div>
+                  ))}
+                </div>
+                <p className="notice">A projeção assume que a média diária de despesas observada se mantém até ao final. Despesas fora das datas da viagem não entram no cálculo. Cada moeda é calculada separadamente.</p>
               </section>
             )}
             {(flights.length > 0 || accommodations.length > 0 || expenses.length > 0) && (
