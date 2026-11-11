@@ -1,7 +1,7 @@
 import hashlib
 import json
 from datetime import datetime, timezone
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -105,7 +105,7 @@ def record_price_observations(
             item_key = str(item["item_key"]).strip()
             item_name = str(item["item_name"]).strip()
             provider = str(item["provider"]).strip().lower()
-        except (KeyError, TypeError, ValueError):
+        except (InvalidOperation, KeyError, TypeError, ValueError):
             continue
         if (
             not amount.is_finite()
