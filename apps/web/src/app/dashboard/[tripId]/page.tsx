@@ -590,7 +590,7 @@ export default function TripDetailPage() {
     event.preventDefault();
     if (budgetPlanSaving) return;
     const amount = Number(budgetPlanAmount);
-    if (!/^\\d{4}-(0[1-9]|1[0-2])$/.test(budgetPlanMonth) || !Number.isFinite(amount) || amount < 0) {
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(budgetPlanMonth) || !Number.isFinite(amount) || amount < 0) {
       setBudgetPlanError("Confirma o mês e indica um valor válido, igual ou superior a zero.");
       return;
     }
