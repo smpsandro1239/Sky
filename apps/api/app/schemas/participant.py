@@ -36,6 +36,7 @@ class ParticipantResponse(BaseModel):
     name: str
     email: str | None
     role: str
+    is_linked: bool = False
     created_at: datetime
 
 
