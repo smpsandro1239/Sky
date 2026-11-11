@@ -1,4 +1,5 @@
 import pytest
+from decimal import Decimal
 from uuid import UUID
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -275,3 +276,81 @@ def test_settlements_reduce_outstanding_balances_and_reject_overpayment(client: 
     assert audited_balances.json()["currencies"][0]["reconciliation"]["total_paid"] == "36.00"
     assert audited_balances.json()["currencies"][0]["reconciliation"]["total_allocated"] == "30.00"
     assert audited_balances.json()["currencies"][0]["reconciliation"]["expense_difference"] == "6.00"
+
+
+
+def test_balances_reconcile_each_currency_independently(client: TestClient) -> None:
+    token = register_and_login(client, "multi-currency@example.com")
+    headers = {"Authorization": f"Bearer {token}"}
+    trip = client.post(
+        "/api/v1/trips",
+        headers=headers,
+        json={"name": "Viagem multi-moeda", "destination": "Europa"},
+    )
+    assert trip.status_code == 201
+    trip_id = trip.json()["id"]
+
+    participant_ids = []
+    for name in ("Ana", "Rui"):
+        response = client.post(
+            f"/api/v1/trips/{trip_id}/participants",
+            headers=headers,
+            json={"name": name},
+        )
+        assert response.status_code == 201
+        participant_ids.append(response.json()["id"])
+    ana, rui = participant_ids
+
+    for description, amount, currency, payer in (
+        ("Hotel", "20.00", "EUR", ana),
+        ("Comboio", "12.00", "USD", rui),
+    ):
+        created = client.post(
+            f"/api/v1/trips/{trip_id}/expenses",
+            headers=headers,
+            json={
+                "category": "transportes",
+                "description": description,
+                "expense_date": "2027-08-05",
+                "amount": amount,
+                "currency": currency,
+                "paid_by_participant_id": payer,
+            },
+        )
+        assert created.status_code == 201
+        divided = client.patch(
+            f"/api/v1/trips/{trip_id}/expenses/{created.json()['id']}/shares",
+            headers=headers,
+            json=[
+                {"participant_id": ana, "amount": str(Decimal(amount) / 2)},
+                {"participant_id": rui, "amount": str(Decimal(amount) / 2)},
+            ],
+        )
+        assert divided.status_code == 200
+
+    response = client.get(f"/api/v1/trips/{trip_id}/balances", headers=headers)
+    assert response.status_code == 200
+    currencies = {item["currency"]: item for item in response.json()["currencies"]}
+
+    assert set(currencies) == {"EUR", "USD"}
+    eur = currencies["EUR"]
+    usd = currencies["USD"]
+
+    assert eur["reconciliation"]["total_expenses"] == "20.00"
+    assert eur["reconciliation"]["total_paid"] == "20.00"
+    assert eur["reconciliation"]["total_allocated"] == "20.00"
+    assert eur["reconciliation"]["is_balanced"] is True
+    assert eur["suggested_transfers"] == []
+
+    assert usd["reconciliation"]["total_expenses"] == "12.00"
+    assert usd["reconciliation"]["total_paid"] == "12.00"
+    assert usd["reconciliation"]["total_allocated"] == "12.00"
+    assert usd["reconciliation"]["is_balanced"] is True
+    assert usd["suggested_transfers"] == []
+
+    eur_positions = {row["participant_id"]: row for row in eur["participants"]}
+    usd_positions = {row["participant_id"]: row for row in usd["participants"]}
+    assert eur_positions[ana]["paid"] == "20.00"
+    assert eur_positions[rui]["paid"] == "0.00"
+    assert usd_positions[ana]["paid"] == "0.00"
+    assert usd_positions[rui]["paid"] == "12.00"
