@@ -27,6 +27,7 @@ Formato: JSON. A aplicação disponibiliza documentação OpenAPI em `/docs` e R
 | GET | `/flights/search` | Bearer | Pesquisar ofertas externas Amadeus por rota, data, passageiros e moeda (requer credenciais) |
 | GET | `/hotels/search` | Bearer | Pesquisar alojamentos e ofertas Amadeus por cidade IATA, datas, ocupação, raio e moeda (requer credenciais) |
 | GET | `/hotels/favorites` | Bearer | Listar favoritos de hotéis do utilizador autenticado |
+| GET | `/prices/history` | Bearer | Consultar histórico de preços observados em pesquisas de voos e alojamentos |
 | POST | `/hotels/favorites` | Bearer | Guardar um hotel nos favoritos (operação idempotente por utilizador e hotel) |
 | DELETE | `/hotels/favorites/{favorite_id}` | Bearer | Remover um favorito próprio |
 | GET | `/trips/{trip_id}/flights` | Bearer | Listar voos associados à viagem |
