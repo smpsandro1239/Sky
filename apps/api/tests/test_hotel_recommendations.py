@@ -14,6 +14,7 @@ def _hotel(
 ) -> HotelSearchOffer:
     return HotelSearchOffer(
         id=offer_id,
+        price_tracking_key="hotel:test-" + offer_id,
         provider="amadeus",
         hotel_name="Hotel " + offer_id,
         hotel_id="HOTEL-" + offer_id,
