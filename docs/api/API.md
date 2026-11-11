@@ -49,7 +49,7 @@ Formato: JSON. A aplicação disponibiliza documentação OpenAPI em `/docs` e R
 | GET | `/trips/{trip_id}/participants` | Bearer | Listar participantes da viagem |
 | PATCH | `/trips/{trip_id}/participants/{participant_id}` | Bearer (proprietário) | Alterar papel entre `editor` e `viewer` e atualizar convite pendente correspondente |
 | POST | `/trips/{trip_id}/participants` | Bearer | Adicionar participante |
-| DELETE | `/trips/{trip_id}/participants/{participant_id}` | Bearer | Remover participante sem partilhas ou despesas pagas associadas |
+| DELETE | `/trips/{trip_id}/participants/{participant_id}` | Bearer | Remover participante sem partilhas, despesas pagas ou acertos financeiros associados; devolve 409 quando existem referências financeiras |
 | POST | `/trips/{trip_id}/invitations` | Bearer | Criar convite para um endereço de email |
 | GET | `/trips/{trip_id}/invitations` | Bearer | Listar convites da viagem (sem expor tokens) |
 | DELETE | `/trips/{trip_id}/invitations/{invitation_id}` | Bearer | Revogar convite pendente |
