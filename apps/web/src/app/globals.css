@@ -620,3 +620,20 @@ footer { border-top: 1px solid #1c3043; padding: 25px 28px; text-align: center; 
 .notification-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .notification-actions button, .notification-actions a { font-size: 11px; padding: 6px 9px; }
 @media (max-width: 700px) { .notifications-panel { position: fixed; top: 72px; right: 12px; } }
+
+
+/* Platform administration */
+.admin-user-list { display: grid; gap: 12px; }
+.admin-user-card { display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 20px 22px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+.admin-user-details, .admin-user-role { display: grid; gap: 7px; min-width: 0; }
+.admin-user-details strong { font-size: 15px; }
+.admin-user-details span, .admin-user-details small, .admin-user-role small { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.admin-user-role { min-width: 190px; }
+.admin-user-role label { color: var(--muted); font-size: 11px; }
+.admin-user-role select { width: 100%; padding: 10px 12px; border: 1px solid #38536b; border-radius: 8px; background: #091625; color: var(--text); }
+.admin-user-role select:focus { outline: none; border-color: var(--accent); }
+.admin-user-role select:disabled { opacity: .6; cursor: not-allowed; }
+@media (max-width: 700px) {
+  .admin-user-card { align-items: stretch; flex-direction: column; }
+  .admin-user-role { min-width: 0; }
+}
