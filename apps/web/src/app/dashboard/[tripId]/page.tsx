@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import FlightSearchPanel from "@/components/flight-search-panel";
 
 type Trip = {
   id: string;
@@ -999,6 +1000,8 @@ export default function TripDetailPage() {
                 </article>
               ))}
             </div>
+
+            <FlightSearchPanel />
 
             <div className="section-heading"><div><p className="eyebrow">TRANSPORTE</p><h2>Voos</h2></div></div>
             {accessRole !== "viewer" && <form className="trip-create-form" onSubmit={saveFlight}>
