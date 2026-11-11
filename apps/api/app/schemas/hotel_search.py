@@ -47,6 +47,10 @@ class HotelSearchOffer(BaseModel):
     payment_type: str | None = None
     cancellation_deadline: str | None = None
     cancellation_description: str | None = None
+    nights: int | None = None
+    price_per_night: Decimal | None = None
+    recommendation_score: float | None = None
+    recommendation_reasons: list[str] = Field(default_factory=list)
 
 
 class HotelSearchResponse(BaseModel):
