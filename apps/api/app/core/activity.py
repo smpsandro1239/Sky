@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -27,5 +28,6 @@ def record_trip_activity(
             entity_type=entity_type,
             entity_id=str(entity_id) if entity_id is not None else None,
             summary=summary[:240],
+            created_at=datetime.now(timezone.utc),
         )
     )
