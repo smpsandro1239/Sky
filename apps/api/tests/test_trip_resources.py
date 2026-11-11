@@ -418,6 +418,7 @@ def test_shared_resource_creation_notifies_only_other_trip_members(client: TestC
         "trip_accommodation_created",
     }
     assert member_notifications.json()["unread_count"] == 3
+    assert all(item["link"] == f"/dashboard/{trip_id}" for item in member_notifications.json()["items"])
 
     # The actor and accounts outside this trip receive no notifications.
     assert client.get(
