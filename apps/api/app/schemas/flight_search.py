@@ -43,6 +43,7 @@ class FlightSearchSegment(BaseModel):
 
 class FlightSearchOffer(BaseModel):
     id: str
+    price_tracking_key: str
     provider: Literal["amadeus"]
     price_total: Decimal
     currency: str
