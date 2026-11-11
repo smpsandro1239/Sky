@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
 from app.core.activity import record_trip_activity
+from app.core.notifications import notify_trip_members
 from app.api.routes.trips import get_accessible_trip, get_user_trip, require_trip_editor
 from app.models.expense import Expense
 from app.models.expense_share import ExpenseShare
@@ -55,6 +56,7 @@ def create_expense(
     db.add(expense)
     db.flush()
     record_trip_activity(db, trip_id=trip.id, actor=user, action="created", entity_type="expense", entity_id=expense.id, summary="registou uma despesa")
+    notify_trip_members(db, trip=trip, actor_user_id=user.id, notification_type="trip_expense_created", title="Nova despesa na viagem", message=f"Foi registada uma despesa: {expense.description}.", metadata={"expense_id": str(expense.id), "description": expense.description})
     db.commit()
     db.refresh(expense)
     return expense
@@ -106,6 +108,7 @@ def update_expense(
     for field, value in validated.model_dump().items():
         setattr(expense, field, value)
     record_trip_activity(db, trip_id=trip.id, actor=user, action="updated", entity_type="expense", entity_id=expense.id, summary="atualizou uma despesa")
+    notify_trip_members(db, trip=trip, actor_user_id=user.id, notification_type="trip_expense_updated", title="Despesa actualizada", message=f"A despesa {expense.description} foi actualizada.", metadata={"expense_id": str(expense.id), "description": expense.description, "changed_fields": sorted(changes)})
     db.commit()
     db.refresh(expense)
     return expense
@@ -121,6 +124,7 @@ def delete_expense(
     trip = require_trip_editor(db, trip_id, user.id)
     expense = get_trip_expense(db, trip.id, expense_id)
     record_trip_activity(db, trip_id=trip.id, actor=user, action="deleted", entity_type="expense", entity_id=expense.id, summary="eliminou uma despesa")
+    notify_trip_members(db, trip=trip, actor_user_id=user.id, notification_type="trip_expense_deleted", title="Despesa eliminada", message=f"A despesa {expense.description} foi eliminada.", metadata={"expense_id": str(expense.id), "description": expense.description})
     db.delete(expense)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
