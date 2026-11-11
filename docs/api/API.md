@@ -318,4 +318,6 @@ Na interface, o painel Price Intelligence permite selecionar uma oferta e visual
 - `POST /api/v1/notifications/read-all`: marca todas as notificações próprias como lidas e devolve o número actualizado.
 - As notificações são privadas, persistentes e eliminadas em cascata quando a conta é eliminada.
 - Quando um alerta de preço é atingido, é criada uma notificação na mesma transacção que actualiza o alerta. Se o preço já estiver no alvo no momento da criação, a notificação é criada imediatamente.
+- Eventos de viagens também geram notificações internas: convite enviado a uma conta registada (`trip_invitation`), convite aceite (`trip_invitation_accepted`), alteração de permissão (`trip_role_changed`) e actualização dos dados da viagem (`trip_updated`).
+- Os eventos são persistidos na mesma transacção da alteração, sempre que aplicável. Só são notificados utilizadores associados à viagem; o autor da alteração é excluído e convites para endereços sem conta SKY não criam notificações.
 - A interface do dashboard apresenta o contador de notificações por ler e permite abrir, marcar uma notificação como lida ou marcar todas como lidas.
