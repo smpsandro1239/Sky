@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
+from app.core.activity import record_trip_activity
 from app.api.routes.trips import get_accessible_trip, get_user_trip, require_trip_editor
 from app.models.flight import Flight
 from app.models.user import User
@@ -33,6 +34,8 @@ def create_flight(
     trip = require_trip_editor(db, trip_id, user.id)
     flight = Flight(trip_id=trip.id, **payload.model_dump())
     db.add(flight)
+    db.flush()
+    record_trip_activity(db, trip_id=trip.id, actor=user, action="created", entity_type="flight", entity_id=flight.id, summary="adicionou um voo")
     db.commit()
     db.refresh(flight)
     return flight
@@ -72,6 +75,7 @@ def update_flight(
 
     for field, value in validated.model_dump().items():
         setattr(flight, field, value)
+    record_trip_activity(db, trip_id=trip.id, actor=user, action="updated", entity_type="flight", entity_id=flight.id, summary="atualizou um voo")
     db.commit()
     db.refresh(flight)
     return flight
@@ -86,6 +90,7 @@ def delete_flight(
 ) -> Response:
     trip = require_trip_editor(db, trip_id, user.id)
     flight = get_trip_flight(db, trip.id, flight_id)
+    record_trip_activity(db, trip_id=trip.id, actor=user, action="deleted", entity_type="flight", entity_id=flight.id, summary="eliminou um voo")
     db.delete(flight)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
