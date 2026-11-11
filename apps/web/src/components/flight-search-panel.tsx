@@ -269,6 +269,7 @@ export default function FlightSearchPanel({
           ))}
           {results.offers.length > 0 && (
             <PriceHistoryPanel
+              key={results.search_key}
               searchType="flight"
               searchKey={results.search_key}
               items={results.offers.map((offer) => ({
