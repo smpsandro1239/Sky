@@ -16,7 +16,7 @@ Definir a linha de base de segurança e documentar os controlos já implementado
 
 - A API emite JWT após autenticação bem-sucedida.
 - Os endpoints privados validam o token e confirmam que o utilizador existe e está ativo.
-- As operações de viagens, voos e alojamentos verificam a propriedade do recurso.
+- As operações de viagens, voos, alojamentos, despesas e partilhas validam o papel do utilizador (proprietário, editor ou leitor) no servidor.\n- Só o proprietário pode gerir participantes, convites, papéis, metadados e orçamento da viagem.\n- Os tokens de convite são aleatórios, armazenados como hash SHA-256, têm validade de 7 dias e são de utilização única.
 - O frontend usa Route Handlers Next.js como BFF.
 - O JWT é guardado num cookie `HttpOnly`, `SameSite=Lax`, com `Secure` em produção e expiração limitada ao tempo de vida do token.
 - O token não é exposto ao JavaScript do browser nem guardado em localStorage.
@@ -34,7 +34,7 @@ Pendências antes de produção:
 - Recolher apenas os dados necessários.
 - Definir finalidade, retenção e eliminação.
 - Limitar acesso interno por necessidade.
-- Evitar dados pessoais em logs, métricas e mensagens de erro.
+- Evitar dados pessoais em logs, métricas e mensagens de erro.\n- As credenciais SMTP são configuradas por variáveis de ambiente e não devem ser versionadas; o serviço evita registar endereços de destinatários em mensagens de falha.
 - Implementar processos para direitos dos titulares conforme obrigações legais.
 
 ## Pagamentos futuros
