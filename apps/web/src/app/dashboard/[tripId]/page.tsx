@@ -171,6 +171,20 @@ export default function TripDetailPage() {
 
   const selectedSettlementBalance = balances.currencies.find((group) => group.currency === settlementCurrency);
 
+  const [accommodationFrom, setAccommodationFrom] = useState("");
+  const [accommodationTo, setAccommodationTo] = useState("");
+  const [accommodationMaxPrice, setAccommodationMaxPrice] = useState("");
+
+  const filteredAccommodations = accommodations.filter((item) => {
+    if (accommodationFrom && item.check_in < accommodationFrom) return false;
+    if (accommodationTo && item.check_in > accommodationTo) return false;
+    if (accommodationMaxPrice !== "") {
+      if (item.price_amount === null || !Number.isFinite(Number(item.price_amount))) return false;
+      if (Number(item.price_amount) > Number(accommodationMaxPrice)) return false;
+    }
+    return true;
+  });
+
   useEffect(() => {
     let cancelled = false;
 
@@ -1069,8 +1083,22 @@ export default function TripDetailPage() {
                 {editingAccommodationId && <button className="secondary-button" type="button" onClick={resetAccommodation}>Cancelar</button>}
               </div>
             </form>}
+            {accommodations.length > 0 && (
+              <section className="trip-create-form accommodation-filters" aria-label="Filtrar alojamentos guardados">
+                <h3>Filtrar alojamentos</h3>
+                <div className="trip-form-grid">
+                  <label>Check-in a partir de<input type="date" value={accommodationFrom} max={accommodationTo || undefined} onChange={(event) => setAccommodationFrom(event.target.value)} /></label>
+                  <label>Check-in até<input type="date" value={accommodationTo} min={accommodationFrom || undefined} onChange={(event) => setAccommodationTo(event.target.value)} /></label>
+                  <label>Preço máximo total<input type="number" min="0.01" step="0.01" value={accommodationMaxPrice} onChange={(event) => setAccommodationMaxPrice(event.target.value)} placeholder="Sem limite" /></label>
+                </div>
+                <div className="trip-form-actions">
+                  <p className="budget-description" role="status">{filteredAccommodations.length} de {accommodations.length} alojamentos. O filtro de preço mostra apenas alojamentos com preço registado.</p>
+                  <button className="secondary-button" type="button" onClick={() => { setAccommodationFrom(""); setAccommodationTo(""); setAccommodationMaxPrice(""); }}>Limpar filtros</button>
+                </div>
+              </section>
+            )}
             <div className="trip-list">
-              {accommodations.length === 0 ? <div className="empty-state"><p>Ainda não existem alojamentos associados a esta viagem.</p></div> : accommodations.map((item) => (
+              {accommodations.length === 0 ? <div className="empty-state"><p>Ainda não existem alojamentos associados a esta viagem.</p></div> : filteredAccommodations.length === 0 ? <div className="empty-state"><p>Não existem alojamentos que correspondam aos filtros. Ajusta os critérios ou limpa os filtros.</p></div> : filteredAccommodations.map((item) => (
                 <article className="trip-card" key={item.id}>
                   <div>
                     <h3>{item.name}</h3>
