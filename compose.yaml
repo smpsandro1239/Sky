@@ -49,6 +49,22 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+  price-monitor:
+    build: ./apps/api
+    command: ["python", "-m", "app.price_monitor_worker"]
+    environment:
+      SKY_ENV: ${SKY_ENV:-development}
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://sky:change-me-local-only@db:5432/sky}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      AMADEUS_CLIENT_ID: ${AMADEUS_CLIENT_ID:-}
+      AMADEUS_CLIENT_SECRET: ${AMADEUS_CLIENT_SECRET:-}
+      AMADEUS_BASE_URL: ${AMADEUS_BASE_URL:-https://test.api.amadeus.com}
+      PRICE_MONITOR_INTERVAL_SECONDS: ${PRICE_MONITOR_INTERVAL_SECONDS:-21600}
+      PRICE_MONITOR_POLL_SECONDS: ${PRICE_MONITOR_POLL_SECONDS:-60}
+      PRICE_MONITOR_RETRY_SECONDS: ${PRICE_MONITOR_RETRY_SECONDS:-600}
+    depends_on:
+      api: {condition: service_healthy}
+      redis: {condition: service_healthy}
   web:
     build: ./apps/web
     environment:
