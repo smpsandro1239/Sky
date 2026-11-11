@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from hashlib import sha256
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.security import HTTPAuthorizationCredentials
@@ -75,7 +75,7 @@ def logout(
     if payload is None:
         raise HTTPException(status_code=401, detail="Autenticação inválida ou expirada.")
     try:
-        session_id = uuid4().__class__(payload["sid"])
+        session_id = UUID(payload["sid"])
     except (KeyError, ValueError, TypeError):
         raise HTTPException(status_code=401, detail="Autenticação inválida ou expirada.")
     auth_session = db.scalar(
