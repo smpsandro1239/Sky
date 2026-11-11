@@ -2,7 +2,7 @@
 
 ## Estado
 
-A API FastAPI disponibiliza saúde, autenticação, gestão de viagens, voos, alojamentos, despesas, participantes, partilhas e balanços de despesas. A pesquisa externa de voos e alojamentos tem adaptadores Amadeus em modo sandbox, condicionados à configuração de credenciais. Os favoritos de hotéis são privados por utilizador. Os endpoints de pesquisa de voos e alojamentos já aplicam ranking explicável; personalização por preferências e alertas de preço continuam por implementar. A execução da CI e dos testes deve ser consultada no GitHub Actions.
+A API FastAPI disponibiliza saúde, autenticação, gestão de viagens, voos, alojamentos, despesas, participantes, partilhas e balanços de despesas. A pesquisa externa de voos e alojamentos tem adaptadores Amadeus em modo sandbox, condicionados à configuração de credenciais. Os favoritos de hotéis são privados por utilizador. Os endpoints de pesquisa de voos e alojamentos já aplicam ranking explicável; personalização por preferências continua por implementar; os alertas de preço têm uma primeira versão funcional na API. A execução da CI e dos testes deve ser consultada no GitHub Actions.
 
 ## Base path
 
@@ -28,6 +28,10 @@ Formato: JSON. A aplicação disponibiliza documentação OpenAPI em `/docs` e R
 | GET | `/hotels/search` | Bearer | Pesquisar alojamentos e ofertas Amadeus por cidade IATA, datas, ocupação, raio e moeda (requer credenciais) |
 | GET | `/hotels/favorites` | Bearer | Listar favoritos de hotéis do utilizador autenticado |
 | GET | `/prices/history` | Bearer | Consultar histórico de preços observados em pesquisas de voos e alojamentos |
+| GET | `/prices/alerts` | Bearer | Listar alertas de preço do utilizador autenticado |
+| POST | `/prices/alerts` | Bearer | Criar alerta para uma oferta existente no histórico |
+| PATCH | `/prices/alerts/{alert_id}` | Bearer | Ativar ou desativar um alerta ainda não atingido |
+| DELETE | `/prices/alerts/{alert_id}` | Bearer | Eliminar um alerta próprio |
 | POST | `/hotels/favorites` | Bearer | Guardar um hotel nos favoritos (operação idempotente por utilizador e hotel) |
 | DELETE | `/hotels/favorites/{favorite_id}` | Bearer | Remover um favorito próprio |
 | GET | `/trips/{trip_id}/flights` | Bearer | Listar voos associados à viagem |
@@ -297,4 +301,4 @@ Parâmetros:
 
 A resposta apresenta observações por ordem cronológica, com `observations_count` e os valores de preço efetivamente recolhidos. O endpoint só devolve dados pertencentes ao utilizador autenticado. Se ainda não houver observações para a chave, responde `404`. Os preços não são previsões nem garantias de preço futuro; diferenças entre observações só são comparáveis quando a chave de pesquisa e a moeda coincidem.
 
-Na interface, o painel Price Intelligence permite selecionar uma oferta e visualizar o último preço, mínimo e máximo observados, número de recolhas e gráfico cronológico. Uma primeira pesquisa gera normalmente apenas o primeiro ponto; a evolução só fica visível após novas pesquisas com os mesmos critérios. A ausência de histórico é apresentada como estado vazio, não como erro. A interface não cria recolhas automáticas nem estima preços futuros.
+\n\n### Alertas de preço\n\nOs alertas são privados por utilizador e só podem ser criados para uma oferta disponível já observada pelo mesmo utilizador. O pedido `POST /prices/alerts` recebe `search_type`, `search_key`, `item_key`, `item_name`, `currency` e `target_price`. O preço-alvo tem de ser positivo. A API compara apenas observações da mesma pesquisa, oferta e moeda. Quando uma nova pesquisa do fornecedor regista um preço igual ou inferior ao objetivo, o alerta passa para inativo e guarda `triggered_price` e `triggered_at`. `GET /prices/alerts` devolve o estado; `PATCH` permite desativar ou reativar alertas ainda não atingidos e `DELETE` remove um alerta.\n\nEsta versão avalia alertas quando o utilizador executa uma nova pesquisa. Não existe ainda um agendador de pesquisas, nem envio de notificações por email, push ou SMS. Criar um alerta não reserva a oferta nem garante que o preço continue disponível.\n\nNa interface, o painel Price Intelligence permite selecionar uma oferta e visualizar o último preço, mínimo e máximo observados, número de recolhas e gráfico cronológico. Uma primeira pesquisa gera normalmente apenas o primeiro ponto; a evolução só fica visível após novas pesquisas com os mesmos critérios. A ausência de histórico é apresentada como estado vazio, não como erro. A interface não cria recolhas automáticas nem estima preços futuros.
