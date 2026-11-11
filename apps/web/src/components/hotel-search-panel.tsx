@@ -46,12 +46,15 @@ export default function HotelSearchPanel({ tripId, canEdit, onAccommodationSaved
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
   const [adults, setAdults] = useState("2");
+  const [roomQuantity, setRoomQuantity] = useState("1");
+  const [radius, setRadius] = useState("20");
   const [currency, setCurrency] = useState("EUR");
   const [loading, setLoading] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [results, setResults] = useState<SearchResponse | null>(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [savedOfferIds, setSavedOfferIds] = useState<string[]>([]);
 
   async function search(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -64,6 +67,8 @@ export default function HotelSearchPanel({ tripId, canEdit, onAccommodationSaved
       check_in: checkIn,
       check_out: checkOut,
       adults,
+      room_quantity: roomQuantity,
+      radius,
       currency,
     });
     try {
@@ -99,6 +104,7 @@ export default function HotelSearchPanel({ tripId, canEdit, onAccommodationSaved
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(typeof payload.detail === "string" ? payload.detail : "Não foi possível guardar o alojamento.");
       onAccommodationSaved(payload as SavedAccommodation);
+      setSavedOfferIds((current) => current.includes(offer.id) ? current : [...current, offer.id]);
       setMessage(offer.hotel_name + " foi guardado na viagem.");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Ocorreu um erro ao guardar o alojamento.");
@@ -117,6 +123,8 @@ export default function HotelSearchPanel({ tripId, canEdit, onAccommodationSaved
           <label>Check-in<input required type="date" value={checkIn} onChange={(event) => setCheckIn(event.target.value)} /></label>
           <label>Check-out<input required type="date" min={checkIn || undefined} value={checkOut} onChange={(event) => setCheckOut(event.target.value)} /></label>
           <label>Adultos<select value={adults} onChange={(event) => setAdults(event.target.value)}>{Array.from({ length: 9 }, (_, index) => index + 1).map((count) => <option key={count} value={count}>{count}</option>)}</select></label>
+          <label>Quartos<select value={roomQuantity} onChange={(event) => setRoomQuantity(event.target.value)}>{Array.from({ length: 8 }, (_, index) => index + 1).map((count) => <option key={count} value={count}>{count}</option>)}</select></label>
+          <label>Raio de pesquisa<select value={radius} onChange={(event) => setRadius(event.target.value)}><option value="5">5 km</option><option value="10">10 km</option><option value="20">20 km</option><option value="30">30 km</option><option value="50">50 km</option></select></label>
           <label>Moeda<select value={currency} onChange={(event) => setCurrency(event.target.value)}><option value="EUR">EUR</option><option value="USD">USD</option><option value="GBP">GBP</option></select></label>
         </div>
         <div className="trip-form-actions">
@@ -127,7 +135,7 @@ export default function HotelSearchPanel({ tripId, canEdit, onAccommodationSaved
       {message && <p className="notice" role="status">{message}</p>}
       {results && (
         <div className="trip-list" aria-live="polite">
-          <p className="budget-description">{results.results_count === 0 ? "Não foram encontradas ofertas disponíveis para estes critérios." : results.results_count + " ofertas disponíveis, ordenadas por preço."}</p>
+          <p className="budget-description">{results.results_count === 0 ? "Não foram encontradas ofertas disponíveis para estes critérios." : results.results_count + " ofertas disponíveis, ordenadas por preço."} Pesquisa para {adults} adulto(s), {roomQuantity} quarto(s), num raio de {radius} km.</p>
           {results.offers.map((offer) => (
             <article className="trip-card" key={offer.id}>
               <div>
@@ -137,7 +145,7 @@ export default function HotelSearchPanel({ tripId, canEdit, onAccommodationSaved
                 {offer.board_type && <p>Regime: {offer.board_type}</p>}
                 <strong>{formatPrice(offer.price_total, offer.currency)}</strong>
               </div>
-              {canEdit && <div className="trip-card-actions"><button className="secondary-button" type="button" disabled={savingId !== null} onClick={() => void saveOffer(offer)}>{savingId === offer.id ? "A guardar..." : "Guardar na viagem"}</button></div>}
+              {canEdit && <div className="trip-card-actions"><button className="secondary-button" type="button" disabled={savingId !== null || savedOfferIds.includes(offer.id)} onClick={() => void saveOffer(offer)}>{savedOfferIds.includes(offer.id) ? "Já guardado" : savingId === offer.id ? "A guardar..." : "Guardar na viagem"}</button></div>}
             </article>
           ))}
         </div>
