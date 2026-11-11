@@ -274,6 +274,13 @@ def test_hotel_favorites_are_private_idempotent_and_deletable(client: TestClient
         "location": "Lisboa, PT",
     }
 
+    unsupported_provider = client.post(
+        "/api/v1/hotels/favorites",
+        headers=headers(owner_token),
+        json={**payload, "provider": "unknown-provider"},
+    )
+    assert unsupported_provider.status_code == 422
+
     created = client.post("/api/v1/hotels/favorites", headers=headers(owner_token), json=payload)
     assert created.status_code == 200
     favorite_id = created.json()["id"]
