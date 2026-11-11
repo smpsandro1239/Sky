@@ -8,7 +8,7 @@ const UUID_PATTERN = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89aAbB]
 async function proxyRequest(
   request: Request,
   context: { params: Promise<{ path: string[] }> },
-  method: "GET" | "POST" | "PATCH" | "DELETE",
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE",
 ) {
   const { path } = await context.params;
   const resource = path.join("/");
@@ -21,6 +21,7 @@ async function proxyRequest(
   const isTripBalances = new RegExp("^trips/" + UUID_PATTERN + "/balances$").test(resource);
   const isTripSettlements = new RegExp("^trips/" + UUID_PATTERN + "/settlements$").test(resource);
   const isTripActivity = new RegExp("^trips/" + UUID_PATTERN + "/activity$").test(resource);
+  const isTripBudgetPlans = new RegExp("^trips/" + UUID_PATTERN + "/budget-plans$").test(resource);
   const isFlightCollection = new RegExp("^trips/" + UUID_PATTERN + "/flights$").test(resource);
   const isFlightItem = new RegExp("^trips/" + UUID_PATTERN + "/flights/" + UUID_PATTERN + "$").test(resource);
   const isAccommodationCollection = new RegExp("^trips/" + UUID_PATTERN + "/accommodations$").test(resource);
@@ -45,7 +46,8 @@ async function proxyRequest(
   const isNotificationReadAll = resource === "notifications/read-all";
 
   const allowed =
-    (method === "GET" && (isFlightSearch || isHotelSearch || isHotelFavorites || isPriceHistory || isPriceAlerts || isNotifications || isProfile || isAdminUsers || isCollection || isTripItem || isTripAccess || isTripBalances || isTripSettlements || isTripActivity || isFlightCollection || isAccommodationCollection || isExpenseCollection || isExpenseSharesCollection || isParticipantCollection || isInvitationCollection)) ||
+    (method === "GET" && (isFlightSearch || isHotelSearch || isHotelFavorites || isPriceHistory || isPriceAlerts || isNotifications || isProfile || isAdminUsers || isCollection || isTripItem || isTripAccess || isTripBalances || isTripSettlements || isTripActivity || isTripBudgetPlans || isFlightCollection || isAccommodationCollection || isExpenseCollection || isExpenseSharesCollection || isParticipantCollection || isInvitationCollection)) ||
+    (method === "PUT" && isTripBudgetPlans) ||
     (method === "POST" && (isCollection || isHotelFavorites || isPriceAlerts || isNotificationReadAll || isFlightCollection || isAccommodationCollection || isExpenseCollection || isTripSettlements || isParticipantCollection || isInvitationCollection || isInvitationAccept)) ||
     (method === "PATCH" && (isAdminRoleUpdate || isTripItem || isParticipantItem || isPriceAlertItem || isNotificationRead || isFlightItem || isAccommodationItem || isExpenseItem || isExpenseSharesCollection)) ||
     (method === "DELETE" && (isTripItem || isHotelFavoriteItem || isPriceAlertItem || isFlightItem || isAccommodationItem || isExpenseItem || isParticipantItem || isInvitationItem));
@@ -73,7 +75,7 @@ async function proxyRequest(
 
   const headers: Record<string, string> = { Authorization: "Bearer " + token };
   let body: string | undefined;
-  if (method === "POST" || method === "PATCH") {
+  if (method === "POST" || method === "PUT" || method === "PATCH") {
     headers["Content-Type"] = "application/json";
     body = await request.text();
   }
@@ -109,6 +111,10 @@ export async function GET(request: Request, context: RouteContext) {
 
 export async function POST(request: Request, context: RouteContext) {
   return proxyRequest(request, context, "POST");
+}
+
+export async function PUT(request: Request, context: RouteContext) {
+  return proxyRequest(request, context, "PUT");
 }
 
 export async function PATCH(request: Request, context: RouteContext) {
