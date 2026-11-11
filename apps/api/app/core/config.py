@@ -1,4 +1,5 @@
 import os
+from urllib.parse import urlsplit
 
 
 def normalize_database_url(database_url: str) -> str:
@@ -56,6 +57,27 @@ class Settings:
                 or len(self.secret_key) < 32
             ):
                 raise RuntimeError("Em produção, SKY_SECRET_KEY tem de ter pelo menos 32 caracteres e ser única.")
+            if not self.cors_origins:
+                raise RuntimeError("Em produção, CORS_ORIGINS tem de conter pelo menos uma origem HTTPS explícita.")
+            for origin in self.cors_origins:
+                try:
+                    parsed_origin = urlsplit(origin)
+                except ValueError as exc:
+                    raise RuntimeError("CORS_ORIGINS contém uma origem inválida.") from exc
+                if (
+                    parsed_origin.scheme != "https"
+                    or not parsed_origin.netloc
+                    or parsed_origin.hostname is None
+                    or parsed_origin.username is not None
+                    or parsed_origin.password is not None
+                    or parsed_origin.path
+                    or parsed_origin.query
+                    or parsed_origin.fragment
+                    or origin == "*"
+                ):
+                    raise RuntimeError(
+                        "Em produção, cada origem de CORS_ORIGINS tem de ser uma origem HTTPS válida, sem caminhos."
+                    )
         if self.smtp_port < 1 or self.smtp_port > 65535:
             raise RuntimeError("SMTP_PORT tem de estar entre 1 e 65535.")
         if self.smtp_starttls and self.smtp_use_ssl:
