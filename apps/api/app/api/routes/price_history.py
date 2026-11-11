@@ -34,7 +34,7 @@ def get_price_history(
     observations.reverse()
 
     if not observations:
-        raise HTTPException(status_code=404, detail="Ainda não existem observações para esta pesquisa.")
+        raise HTTPException(\n            status_code=404, detail="Ainda não existem observações para esta pesquisa."\n        )
 
     return PriceHistoryResponse(
         search_type=search_type,
