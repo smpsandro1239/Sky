@@ -102,6 +102,8 @@ export default function TripDetailPage() {
   const [flights, setFlights] = useState<Flight[]>([]);
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [expenseDateFrom, setExpenseDateFrom] = useState("");
+  const [expenseDateTo, setExpenseDateTo] = useState("");
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [balances, setBalances] = useState<TripBalances>({ currencies: [] });
   const [settlements, setSettlements] = useState<TripSettlement[]>([]);
@@ -184,7 +186,22 @@ export default function TripDetailPage() {
     additional: "Despesas adicionais",
   };
 
-  const expenseBreakdown = expenses.reduce<Record<string, Record<string, number>>>(
+  const filteredExpenses = expenses.filter((expense) => {
+    if (expenseDateFrom && expense.expense_date < expenseDateFrom) return false;
+    if (expenseDateTo && expense.expense_date > expenseDateTo) return false;
+    return true;
+  });
+
+  const expenseTimeline = filteredExpenses.reduce<Record<string, Record<string, number>>>((totals, expense) => {
+    const amount = Number(expense.amount);
+    if (!Number.isFinite(amount) || expense.expense_date.length < 7) return totals;
+    const month = expense.expense_date.slice(0, 7);
+    totals[expense.currency] ??= {};
+    totals[expense.currency][month] = (totals[expense.currency][month] ?? 0) + Math.round(amount * 100);
+    return totals;
+  }, {});
+
+  const expenseBreakdown = filteredExpenses.reduce<Record<string, Record<string, number>>>(
     (totals, expense) => {
       const amount = Number(expense.amount);
       if (!Number.isFinite(amount)) return totals;
@@ -1055,8 +1072,13 @@ export default function TripDetailPage() {
                 {editingExpenseId && <button className="secondary-button" type="button" onClick={() => { setEditingExpenseId(null); setExpenseForm(emptyExpense); }}>Cancelar</button>}
               </div>
             </form>}
+            <div className="expense-filters" aria-label="Filtrar despesas por data">
+              <label>Data inicial<input type="date" value={expenseDateFrom} max={expenseDateTo || undefined} onChange={(event) => setExpenseDateFrom(event.target.value)} /></label>
+              <label>Data final<input type="date" value={expenseDateTo} min={expenseDateFrom || undefined} onChange={(event) => setExpenseDateTo(event.target.value)} /></label>
+              <div><span className="notice">{filteredExpenses.length} de {expenses.length} despesas</span><button className="secondary-button" type="button" onClick={() => { setExpenseDateFrom(""); setExpenseDateTo(""); }} disabled={!expenseDateFrom && !expenseDateTo}>Limpar datas</button></div>
+            </div>
             <div className="trip-list">
-              {expenses.length === 0 ? <div className="empty-state"><p>Ainda não existem despesas registadas nesta viagem.</p></div> : expenses.map((item) => (
+              {expenses.length === 0 ? <div className="empty-state"><p>Ainda não existem despesas registadas nesta viagem.</p></div> : filteredExpenses.length === 0 ? <div className="empty-state"><p>Não existem despesas no período selecionado.</p></div> : filteredExpenses.map((item) => (
                 <article className="trip-card" key={item.id}>
                   <div><h3>{item.description}</h3><p>{expenseCategoryLabels[item.category] ?? item.category} · {new Date(item.expense_date + "T12:00:00").toLocaleDateString("pt-PT")}</p>{item.paid_by_participant_id && <p>Pago por: {participants.find((participant) => participant.id === item.paid_by_participant_id)?.name ?? "Participante"}</p>}{item.notes && <p>{item.notes}</p>}</div>
                   <div className="trip-card-actions"><strong>{Number(item.amount).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {item.currency}</strong><div className="trip-action-buttons">{accessRole !== "viewer" && <><button className="edit-button" type="button" onClick={() => editExpense(item)}>Editar</button><button className="delete-button" type="button" onClick={() => void deleteExpense(item.id)}>Eliminar</button></>}</div>{accessRole !== "viewer" && <button className="secondary-button" type="button" onClick={() => void openExpenseShares(item)}>{activeShareExpenseId === item.id ? "Fechar divisão" : "Dividir despesa"}</button>}</div>
