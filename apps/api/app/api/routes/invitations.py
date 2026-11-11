@@ -11,10 +11,12 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, get_db
 from app.core.config import settings
 from app.core.activity import record_trip_activity
+from app.core.notifications import add_notification
 from app.core.email import send_trip_invitation_email
 from app.api.routes.trips import get_user_trip
 from app.models.invitation import TripInvitation
 from app.models.participant import TripParticipant
+from app.models.trip import Trip
 from app.models.user import User
 from app.schemas.invitation import (
     InvitationAccept,
@@ -80,6 +82,15 @@ def create_invitation(
     )
     db.add(invitation)
     db.flush()
+    if invited_user_id is not None:
+        add_notification(
+            db,
+            user_id=invited_user_id,
+            notification_type="trip_invitation",
+            title="Novo convite para uma viagem",
+            message=f"{user.display_name or user.email} convidou-te para {trip.name}.",
+            metadata={"trip_id": str(trip.id), "invitation_id": str(invitation.id)},
+        )
     record_trip_activity(db, trip_id=trip.id, actor=user, action="created", entity_type="invitation", entity_id=invitation.id, summary="criou um convite")
     db.commit()
     db.refresh(invitation)
@@ -207,6 +218,16 @@ def accept_invitation(
     invitation.status = "accepted"
     invitation.accepted_at = now
     record_trip_activity(db, trip_id=invitation.trip_id, actor=user, action="accepted", entity_type="invitation", entity_id=invitation.id, summary="aceitou um convite para a viagem")
+    trip_owner_id = db.scalar(select(Trip.user_id).where(Trip.id == invitation.trip_id))
+    if trip_owner_id is not None and trip_owner_id != user.id:
+        add_notification(
+            db,
+            user_id=trip_owner_id,
+            notification_type="trip_invitation_accepted",
+            title="Convite aceite",
+            message=f"{user.display_name or user.email} aceitou o convite para {invitation.email}.",
+            metadata={"trip_id": str(invitation.trip_id), "invitation_id": str(invitation.id)},
+        )
     db.commit()
     db.refresh(invitation)
     return invitation
