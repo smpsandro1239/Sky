@@ -237,7 +237,7 @@ export default function FlightSearchPanel({
           <p className="budget-description">
             {results.results_count === 0
               ? "Não foram encontradas ofertas para estes critérios."
-              : results.results_count + " ofertas encontradas · ordenadas por preço"}
+              : results.results_count + " ofertas encontradas · ordenadas pela recomendação SKY"}
           </p>
           {results.offers.map((offer) => (
             <article className="trip-card" key={offer.id}>
