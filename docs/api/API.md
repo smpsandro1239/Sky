@@ -36,7 +36,7 @@ Formato: JSON. A aplicação disponibiliza documentação OpenAPI em `/docs` e R
 | POST | `/trips/{trip_id}/expenses` | Bearer | Registar despesa |
 | PATCH | `/trips/{trip_id}/expenses/{expense_id}` | Bearer | Atualizar despesa; rejeita alterações que invalidem partilhas existentes |
 | DELETE | `/trips/{trip_id}/expenses/{expense_id}` | Bearer | Eliminar despesa e respetivas partilhas |
-| GET | `/trips/{trip_id}/participants` | Bearer | Listar participantes |
+| GET | `/trips/{trip_id}/participants` | Bearer | Listar participantes da viagem |\n| PATCH | `/trips/{trip_id}/participants/{participant_id}` | Bearer (proprietário) | Alterar papel entre `editor` e `viewer` e atualizar convite pendente correspondente |
 | POST | `/trips/{trip_id}/participants` | Bearer | Adicionar participante |
 | DELETE | `/trips/{trip_id}/participants/{participant_id}` | Bearer | Remover participante sem partilhas ou despesas pagas associadas |
 | POST | `/trips/{trip_id}/invitations` | Bearer | Criar convite para um endereço de email |
@@ -55,7 +55,7 @@ O login devolve um access token JWT. Nos endpoints privados, enviar:
 Authorization: Bearer <access_token>
 ```
 
-A API valida o token e confirma que a conta existe e está ativa. As viagens podem ser partilhadas com contas registadas. O proprietário tem controlo total; editores podem consultar e alterar voos, alojamentos, despesas, partilhas e balanços; leitores só podem consultar. Apenas o proprietário pode alterar os metadados e orçamento da viagem, gerir participantes e gerir convites. A API valida o papel em cada operação; viagens não partilhadas continuam ocultas (404) e tentativas de escrita por leitores devolvem 403.
+A API valida o token e confirma que a conta existe e está ativa. As viagens podem ser partilhadas com contas registadas. O proprietário tem controlo total; editores podem consultar e alterar voos, alojamentos, despesas, partilhas e balanços; leitores só podem consultar. Apenas o proprietário pode alterar os metadados e orçamento da viagem, gerir participantes, alterar os seus papéis e gerir convites. A API valida o papel em cada operação; viagens não partilhadas continuam ocultas (404) e tentativas de escrita por leitores devolvem 403.
 
 ### Convites para participantes
 
