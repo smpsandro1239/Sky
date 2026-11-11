@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import FlightSearchPanel from "@/components/flight-search-panel";
 import HotelSearchPanel from "@/components/hotel-search-panel";
@@ -125,6 +125,7 @@ export default function TripDetailPage() {
   const [activityEntityFilter, setActivityEntityFilter] = useState("all");
   const [activityActionFilter, setActivityActionFilter] = useState("all");
   const [activityAuthors, setActivityAuthors] = useState<string[]>([]);
+  const collaborativeRefreshRef = useRef(false);
   const [participantName, setParticipantName] = useState("");
   const [participantEmail, setParticipantEmail] = useState("");
   const [invitations, setInvitations] = useState<Invitation[]>([]);
@@ -467,6 +468,84 @@ export default function TripDetailPage() {
     if (activityActionFilter !== "all") params.set("action", activityActionFilter);
     return params.toString();
   }
+
+  useEffect(() => {
+    if (loading) return;
+    let cancelled = false;
+
+    async function refreshCollaborativeData() {
+      if (collaborativeRefreshRef.current) return;
+      collaborativeRefreshRef.current = true;
+      try {
+        const params = new URLSearchParams({ limit: "20", offset: "0" });
+        if (activityActorFilter !== "all") params.set("actor_name", activityActorFilter);
+        if (activityEntityFilter !== "all") params.set("entity_type", activityEntityFilter);
+        if (activityActionFilter !== "all") params.set("action", activityActionFilter);
+
+        const [tripResponse, flightResponse, accommodationResponse, expenseResponse, participantResponse, balanceResponse, accessResponse, activityResponse, settlementResponse] = await Promise.all([
+          fetch(`/api/backend/trips/${tripId}`, { cache: "no-store" }),
+          fetch(`/api/backend/trips/${tripId}/flights`, { cache: "no-store" }),
+          fetch(`/api/backend/trips/${tripId}/accommodations`, { cache: "no-store" }),
+          fetch(`/api/backend/trips/${tripId}/expenses`, { cache: "no-store" }),
+          fetch(`/api/backend/trips/${tripId}/participants`, { cache: "no-store" }),
+          fetch(`/api/backend/trips/${tripId}/balances`, { cache: "no-store" }),
+          fetch(`/api/backend/trips/${tripId}/access`, { cache: "no-store" }),
+          fetch(`/api/backend/trips/${tripId}/activity?${params.toString()}`, { cache: "no-store" }),
+          fetch(`/api/backend/trips/${tripId}/settlements`, { cache: "no-store" }),
+        ]);
+        const responses = [tripResponse, flightResponse, accommodationResponse, expenseResponse, participantResponse, balanceResponse, accessResponse, activityResponse, settlementResponse];
+        if (responses.some((response) => response.status === 401)) {
+          if (!cancelled) router.replace("/login");
+          return;
+        }
+        if (responses.some((response) => !response.ok)) return;
+
+        const [tripData, flightData, accommodationData, expenseData, participantData, balanceData, accessData, activityData, settlementData] = await Promise.all([
+          tripResponse.json() as Promise<Trip>,
+          flightResponse.json() as Promise<Flight[]>,
+          accommodationResponse.json() as Promise<Accommodation[]>,
+          expenseResponse.json() as Promise<Expense[]>,
+          participantResponse.json() as Promise<Participant[]>,
+          balanceResponse.json() as Promise<TripBalances>,
+          accessResponse.json() as Promise<{ role: Trip["role"] }>,
+          activityResponse.json() as Promise<TripActivityPage>,
+          settlementResponse.json() as Promise<TripSettlement[]>,
+        ]);
+        const shareResults = await Promise.all(expenseData.map(async (expense) => {
+          const response = await fetch(`/api/backend/trips/${tripId}/expenses/${expense.id}/shares`, { cache: "no-store" });
+          if (!response.ok) throw new Error("Não foi possível actualizar as partilhas.");
+          return await response.json() as ExpenseShare[];
+        }));
+        if (cancelled) return;
+
+        setTrip({ ...tripData, role: accessData.role });
+        setAccessRole(accessData.role);
+        setFlights(flightData);
+        setAccommodations(accommodationData);
+        setExpenses(expenseData);
+        setExpenseShares(shareResults.flat());
+        setParticipants(participantData);
+        setBalances(balanceData);
+        setSettlements(settlementData);
+        setActivity(activityData.items);
+        setActivityAuthors((current) => [...new Set([...current, ...activityData.items.map((item) => item.actor_name)])].sort((a, b) => a.localeCompare(b, "pt-PT")));
+        setActivityHasMore(activityData.has_more);
+        setActivityOffset(activityData.items.length);
+      } catch {
+        /* A falha transitória de sincronização não substitui os dados já apresentados. */
+      } finally {
+        collaborativeRefreshRef.current = false;
+      }
+    }
+
+    const interval = window.setInterval(() => void refreshCollaborativeData(), 30000);
+    window.addEventListener("focus", refreshCollaborativeData);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refreshCollaborativeData);
+    };
+  }, [loading, router, tripId, activityActorFilter, activityEntityFilter, activityActionFilter]);
 
   async function refreshActivity() {
     if (activityLoading) return;
