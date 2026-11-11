@@ -13,6 +13,7 @@ def _offer(
 ) -> FlightSearchOffer:
     return FlightSearchOffer(
         id=offer_id,
+        price_tracking_key="flight:test-" + offer_id,
         provider="amadeus",
         price_total=Decimal(price),
         currency="EUR",
