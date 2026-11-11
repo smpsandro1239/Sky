@@ -1,15 +1,6 @@
 from decimal import Decimal
 
-
-def price_alert_matches(
-    *, observed_price: Decimal, currency: str, target_price: Decimal, alert_currency: str
-) -> bool:
-    """A comparação é válida apenas na mesma moeda e ao atingir ou ultrapassar o objetivo."""
-    return (
-        currency.upper() == alert_currency.upper()
-        and observed_price > 0
-        and observed_price <= target_price
-    )
+from app.services.price_intelligence import price_alert_matches
 
 
 def test_alert_matches_when_price_reaches_target():
@@ -31,6 +22,15 @@ def test_alert_does_not_match_above_target_or_in_another_currency():
     assert not price_alert_matches(
         observed_price=Decimal("99.00"),
         currency="USD",
+        target_price=Decimal("120.00"),
+        alert_currency="EUR",
+    )
+
+
+def test_alert_does_not_match_non_positive_price():
+    assert not price_alert_matches(
+        observed_price=Decimal("0"),
+        currency="EUR",
         target_price=Decimal("120.00"),
         alert_currency="EUR",
     )
