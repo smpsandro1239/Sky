@@ -121,6 +121,9 @@ export default function TripDetailPage() {
   const [activityLoading, setActivityLoading] = useState(false);
   const [activityError, setActivityError] = useState("");
   const [activityExporting, setActivityExporting] = useState(false);
+  const [activityActorFilter, setActivityActorFilter] = useState("all");
+  const [activityEntityFilter, setActivityEntityFilter] = useState("all");
+  const [activityActionFilter, setActivityActionFilter] = useState("all");
   const [participantName, setParticipantName] = useState("");
   const [participantEmail, setParticipantEmail] = useState("");
   const [invitations, setInvitations] = useState<Invitation[]>([]);
@@ -374,7 +377,7 @@ export default function TripDetailPage() {
           fetch(`/api/backend/trips/${tripId}/participants`, { cache: "no-store" }),
           fetch(`/api/backend/trips/${tripId}/balances`, { cache: "no-store" }),
           fetch(`/api/backend/trips/${tripId}/access`, { cache: "no-store" }),
-          fetch(`/api/backend/trips/${tripId}/activity?limit=20&offset=0`, { cache: "no-store" }),
+          fetch(`/api/backend/trips/${tripId}/activity?${activityQuery(20, 0)}`, { cache: "no-store" }),
           fetch(`/api/backend/trips/${tripId}/settlements`, { cache: "no-store" }),
         ]);
 
@@ -454,6 +457,14 @@ export default function TripDetailPage() {
     };
   }, [router, tripId]);
 
+  function activityQuery(limit: number, offset: number) {
+    const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+    if (activityActorFilter !== "all") params.set("actor_name", activityActorFilter);
+    if (activityEntityFilter !== "all") params.set("entity_type", activityEntityFilter);
+    if (activityActionFilter !== "all") params.set("action", activityActionFilter);
+    return params.toString();
+  }
+
   async function refreshActivity() {
     if (activityLoading) return;
     setActivityLoading(true);
@@ -487,7 +498,7 @@ export default function TripDetailPage() {
       let offset = 0;
       let hasMore = true;
       while (hasMore) {
-        const response = await fetch("/api/backend/trips/" + tripId + "/activity?limit=" + pageSize + "&offset=" + offset, { cache: "no-store" });
+        const response = await fetch("/api/backend/trips/" + tripId + "/activity?" + activityQuery(pageSize, offset), { cache: "no-store" });
         if (!response.ok) throw new Error("Não foi possível exportar o histórico completo.");
         const page = await response.json() as TripActivityPage;
         allItems.push(...page.items);
@@ -750,7 +761,7 @@ export default function TripDetailPage() {
     setActivityLoading(true);
     setActivityError("");
     try {
-      const response = await fetch(`/api/backend/trips/${tripId}/activity?limit=20&offset=${activityOffset}`, { cache: "no-store" });
+      const response = await fetch(`/api/backend/trips/${tripId}/activity?${activityQuery(20, activityOffset)}`, { cache: "no-store" });
       if (!response.ok) throw new Error("Não foi possível carregar atividades anteriores.");
       const data = await response.json() as TripActivityPage;
       setActivity((current) => [...current, ...data.items]);
@@ -1736,6 +1747,39 @@ export default function TripDetailPage() {
                     {activityLoading ? "A atualizar..." : "Atualizar"}
                   </button>
                 </div>
+              </div>
+              <div className="expense-filters" aria-label="Filtros do histórico de atividade">
+                <label>Participante / autor
+                  <select value={activityActorFilter} onChange={(event) => setActivityActorFilter(event.target.value)}>
+                    <option value="all">Todos</option>
+                    {[...new Set(activity.map((item) => item.actor_name))].sort((a, b) => a.localeCompare(b, "pt-PT")).map((name) => <option key={name} value={name}>{name}</option>)}
+                  </select>
+                </label>
+                <label>Tipo de registo
+                  <select value={activityEntityFilter} onChange={(event) => setActivityEntityFilter(event.target.value)}>
+                    <option value="all">Todos</option>
+                    <option value="trip">Viagem</option>
+                    <option value="participant">Participante</option>
+                    <option value="invitation">Convite</option>
+                    <option value="expense">Despesa</option>
+                    <option value="expense_share">Partilha de despesa</option>
+                    <option value="flight">Voo</option>
+                    <option value="accommodation">Alojamento</option>
+                    <option value="settlement">Acerto</option>
+                  </select>
+                </label>
+                <label>Ação
+                  <select value={activityActionFilter} onChange={(event) => setActivityActionFilter(event.target.value)}>
+                    <option value="all">Todas</option>
+                    <option value="created">Criação</option>
+                    <option value="updated">Alteração</option>
+                    <option value="deleted">Eliminação</option>
+                    <option value="accepted">Aceitação</option>
+                    <option value="revoked">Revogação</option>
+                  </select>
+                </label>
+                <button className="secondary-button" type="button" onClick={() => void refreshActivity()} disabled={activityLoading || activityExporting}>Aplicar filtros</button>
+                <button className="text-button" type="button" onClick={() => { setActivityActorFilter("all"); setActivityEntityFilter("all"); setActivityActionFilter("all"); }} disabled={activityActorFilter === "all" && activityEntityFilter === "all" && activityActionFilter === "all"}>Limpar filtros</button>
               </div>
               {activityError && <p className="notice" role="alert">{activityError}</p>}
               {activity.length === 0 ? <p className="notice" aria-live="polite">{activityLoading ? "A carregar histórico..." : "Ainda não existem atividades registadas."}</p> : <ol className="activity-list" aria-live="polite">
