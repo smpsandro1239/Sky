@@ -5,6 +5,7 @@ import PriceHistoryPanel from "./price-history-panel";
 
 type HotelOffer = {
   id: string;
+  price_tracking_key: string;
   provider: "amadeus";
   hotel_name: string;
   hotel_id: string;
@@ -398,7 +399,7 @@ export default function HotelSearchPanel({ tripId, canEdit, onAccommodationSaved
               searchType="hotel"
               searchKey={results.search_key}
               items={results.offers.map((offer) => ({
-                key: offer.hotel_id + ":" + offer.id,
+                key: offer.price_tracking_key,
                 label: offer.hotel_name + " · " + offer.id,
               }))}
             />
