@@ -56,4 +56,5 @@ class HotelSearchOffer(BaseModel):
 class HotelSearchResponse(BaseModel):
     provider: Literal["amadeus"]
     results_count: int
+    search_key: str
     offers: list[HotelSearchOffer]
