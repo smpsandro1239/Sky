@@ -1,13 +1,22 @@
-import { NextResponse } from "next/server";
-
 export async function POST() {
-  const response = NextResponse.json({ message: "Sessão terminada." });
-  response.cookies.set("sky_access_token", "", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 0,
-  });
+  const response = Response.json(
+    { message: "Sessão terminada." },
+    { headers: { "Cache-Control": "no-store" } },
+  );
+
+  const cookieAttributes = [
+    "sky_access_token=",
+    "HttpOnly",
+    "SameSite=Lax",
+    "Path=/",
+    "Max-Age=0",
+    "Expires=Thu, 01 Jan 1970 00:00:00 GMT",
+  ];
+
+  if (process.env.NODE_ENV === "production") {
+    cookieAttributes.push("Secure");
+  }
+
+  response.headers.append("Set-Cookie", cookieAttributes.join("; "));
   return response;
 }
