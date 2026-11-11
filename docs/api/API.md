@@ -2,7 +2,7 @@
 
 ## Estado
 
-A API FastAPI disponibiliza saúde, autenticação, gestão de viagens, voos, alojamentos, despesas, participantes, partilhas e balanços de despesas. A pesquisa externa de voos e alojamentos tem adaptadores Amadeus em modo sandbox, condicionados à configuração de credenciais. Os favoritos de hotéis são privados por utilizador. Recomendações e alertas de preço continuam por implementar. A execução da CI e dos testes deve ser consultada no GitHub Actions.
+A API FastAPI disponibiliza saúde, autenticação, gestão de viagens, voos, alojamentos, despesas, participantes, partilhas e balanços de despesas. A pesquisa externa de voos e alojamentos tem adaptadores Amadeus em modo sandbox, condicionados à configuração de credenciais. Os favoritos de hotéis são privados por utilizador. Os endpoints de pesquisa de voos e alojamentos já aplicam ranking explicável; personalização por preferências e alertas de preço continuam por implementar. A execução da CI e dos testes deve ser consultada no GitHub Actions.
 
 ## Base path
 
@@ -54,6 +54,14 @@ Formato: JSON. A aplicação disponibiliza documentação OpenAPI em `/docs` e R
 | GET | `/trips/{trip_id}/settlements` | Bearer | Consultar pagamentos/acertos registados |
 | POST | `/trips/{trip_id}/settlements` | Bearer (editor) | Registar um pagamento entre participantes |
 | PATCH | `/trips/{trip_id}/expenses/{expense_id}/shares` | Bearer | Substituir a divisão da despesa (lista de partes); lista vazia limpa a divisão |
+
+### Recomendações de voos e alojamentos
+
+A pesquisa de voos devolve `duration_minutes`, `recommendation_score` e `recommendation_reasons`. O score de voos é relativo ao conjunto da mesma pesquisa: preço (50%), duração total dos itinerários (30%) e número de escalas (20%). Dimensões sem dados válidos são excluídas e os pesos disponíveis são normalizados.
+
+A pesquisa de alojamentos devolve `nights`, `price_per_night`, `recommendation_score` e `recommendation_reasons`. O score de alojamento usa preço por noite (70%) e condições de cancelamento (30%). A dimensão de cancelamento só é considerada quando o texto do fornecedor contém uma indicação explícita reconhecida de cancelamento gratuito ou de tarifa não reembolsável. Texto ambíguo ou ausente não é interpretado como uma condição conhecida.
+
+Ambos os scores são comparativos dentro dos resultados da mesma pesquisa, não são probabilidades, classificações absolutas de qualidade nem garantias de disponibilidade. A ordenação usa o score e critérios determinísticos de desempate.
 
 ### Autenticação e autorização
 
