@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
 from app.core.activity import record_trip_activity
+from app.core.notifications import notify_trip_members
 from app.models.trip import Trip
 from app.models.participant import TripParticipant
 from app.models.user import User
@@ -130,6 +131,15 @@ def update_trip(
         setattr(trip, field, value)
     if changes:
         record_trip_activity(db, trip_id=trip.id, actor=user, action="updated", entity_type="trip", entity_id=trip.id, summary="atualizou os dados da viagem")
+        notify_trip_members(
+            db,
+            trip=trip,
+            actor_user_id=user.id,
+            notification_type="trip_updated",
+            title="Viagem actualizada",
+            message=f"Os dados da viagem {trip.name} foram actualizados.",
+            metadata={"changed_fields": sorted(changes.keys())},
+        )
     db.commit()
     db.refresh(trip)
     return trip
