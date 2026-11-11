@@ -50,6 +50,7 @@ services:
       timeout: 5s
       retries: 5
   price-monitor:
+    restart: unless-stopped
     build: ./apps/api
     command: ["python", "-m", "app.price_monitor_worker"]
     environment:
