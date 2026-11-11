@@ -14,6 +14,7 @@ from app.schemas.flight_search import (
     FlightSearchResponse,
     FlightSearchSegment,
 )
+from app.services.recommendations import rank_flight_offers
 from app.services.amadeus_flights import (
     FlightProviderError,
     FlightProviderNotConfigured,
@@ -102,5 +103,5 @@ async def search_flights(
             detail="O fornecedor devolveu uma oferta inválida.",
         ) from exc
 
-    offers.sort(key=lambda item: (item.price_total, item.number_of_stops))
+    offers = rank_flight_offers(offers)
     return FlightSearchResponse(provider="amadeus", results_count=len(offers), offers=offers)
