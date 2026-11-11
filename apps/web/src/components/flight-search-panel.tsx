@@ -14,6 +14,7 @@ type FlightSegment = {
 
 type FlightOffer = {
   id: string;
+  price_tracking_key: string;
   provider: "amadeus";
   price_total: string;
   currency: string;
@@ -273,7 +274,7 @@ export default function FlightSearchPanel({
               searchType="flight"
               searchKey={results.search_key}
               items={results.offers.map((offer) => ({
-                key: offer.id,
+                key: offer.price_tracking_key,
                 label: offer.itineraries[0]?.map((segment) => segment.origin + "–" + segment.destination).join(" / ") || offer.id,
               }))}
             />
