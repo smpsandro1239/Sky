@@ -378,7 +378,7 @@ export default function TripDetailPage() {
           fetch(`/api/backend/trips/${tripId}/participants`, { cache: "no-store" }),
           fetch(`/api/backend/trips/${tripId}/balances`, { cache: "no-store" }),
           fetch(`/api/backend/trips/${tripId}/access`, { cache: "no-store" }),
-          fetch(`/api/backend/trips/${tripId}/activity?${activityQuery(20, 0)}`, { cache: "no-store" }),
+          fetch(`/api/backend/trips/${tripId}/activity?limit=20&offset=0`, { cache: "no-store" }),
           fetch(`/api/backend/trips/${tripId}/settlements`, { cache: "no-store" }),
         ]);
 
@@ -439,8 +439,9 @@ export default function TripDetailPage() {
         setBalances(balanceData);
         setSettlements(settlementData);
         setSettlementCurrency(balanceData.currencies?.[0]?.currency ?? "EUR");
-        setActivity(activityData.items ?? []);
-        setActivityAuthors([...new Set((activityData.items ?? []).map((item: TripActivity) => item.actor_name))].sort((a: string, b: string) => a.localeCompare(b, "pt-PT")));
+        const initialActivityItems = (activityData as TripActivityPage).items ?? [];
+        setActivity(initialActivityItems);
+        setActivityAuthors([...new Set(initialActivityItems.map((item) => item.actor_name))].sort((a, b) => a.localeCompare(b, "pt-PT")));
         setActivityHasMore(Boolean(activityData.has_more));
         setActivityOffset(activityData.items?.length ?? 0);
         setInvitations(invitationData);
