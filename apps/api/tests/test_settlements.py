@@ -194,6 +194,7 @@ def test_settlements_reduce_outstanding_balances_and_reject_overpayment(client: 
     assert positions[rui]["net"] == "-12.50"
     assert positions[ana]["net"] == "12.50"
     assert eur["suggested_transfers"][0]["amount"] == "12.50"
+    assert eur["reconciliation"]["total_expenses"] == "30.00"
     assert eur["reconciliation"]["total_paid"] == "30.00"
     assert eur["reconciliation"]["total_allocated"] == "30.00"
     assert eur["reconciliation"]["expense_difference"] == "0.00"
