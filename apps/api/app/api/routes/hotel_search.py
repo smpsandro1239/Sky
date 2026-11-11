@@ -68,6 +68,8 @@ def _map_offers(hotel_results: list[dict[str, Any]], criteria: HotelSearchReques
                 room = room if isinstance(room, dict) else {}
                 description = room.get("description")
                 description = description if isinstance(description, dict) else {}
+                room_type_estimated = room.get("typeEstimated")
+                room_type_estimated = room_type_estimated if isinstance(room_type_estimated, dict) else {}
                 board = offer.get("boardType")
                 policies = offer.get("policies")
                 policies = policies if isinstance(policies, dict) else {}
@@ -81,6 +83,12 @@ def _map_offers(hotel_results: list[dict[str, Any]], criteria: HotelSearchReques
                 stable_identity = {
                     "hotel_id": hotel_id,
                     "room_description": str(description.get("text") or "").strip().casefold(),
+                    "room_type": str(room.get("type") or "").strip().upper(),
+                    "room_type_estimated": {
+                        "category": str(room_type_estimated.get("category") or "").strip().upper(),
+                        "beds": str(room_type_estimated.get("beds") or "").strip().upper(),
+                        "beds_quantity": room_type_estimated.get("bedsQuantity"),
+                    },
                     "board_type": str(board or "").strip().upper(),
                     "payment_type": str(payment_type or "").strip().upper(),
                     "cancellation_deadline": str(cancellation_deadline or "").strip(),
