@@ -97,6 +97,8 @@ export default function TripDetailPage() {
   const [activity, setActivity] = useState<TripActivity[]>([]);
   const [activityHasMore, setActivityHasMore] = useState(false);
   const [activityOffset, setActivityOffset] = useState(0);
+  const [activityLoading, setActivityLoading] = useState(false);
+  const [activityError, setActivityError] = useState("");
   const [participantName, setParticipantName] = useState("");
   const [participantEmail, setParticipantEmail] = useState("");
   const [invitations, setInvitations] = useState<Invitation[]>([]);
@@ -222,6 +224,42 @@ export default function TripDetailPage() {
       cancelled = true;
     };
   }, [router, tripId]);
+
+  async function refreshActivity() {
+    if (activityLoading) return;
+    setActivityLoading(true);
+    setActivityError("");
+    try {
+      const response = await fetch(`/api/backend/trips/${tripId}/activity?limit=20&offset=0`, { cache: "no-store" });
+      if (!response.ok) throw new Error("Não foi possível atualizar o histórico.");
+      const data = await response.json() as TripActivityPage;
+      setActivity(data.items);
+      setActivityHasMore(data.has_more);
+      setActivityOffset(data.items.length);
+    } catch (cause) {
+      setActivityError(cause instanceof Error ? cause.message : "Ocorreu um erro ao atualizar o histórico.");
+    } finally {
+      setActivityLoading(false);
+    }
+  }
+
+  async function loadMoreActivity() {
+    if (activityLoading || !activityHasMore) return;
+    setActivityLoading(true);
+    setActivityError("");
+    try {
+      const response = await fetch(`/api/backend/trips/${tripId}/activity?limit=20&offset=${activityOffset}`, { cache: "no-store" });
+      if (!response.ok) throw new Error("Não foi possível carregar atividades anteriores.");
+      const data = await response.json() as TripActivityPage;
+      setActivity((current) => [...current, ...data.items]);
+      setActivityHasMore(data.has_more);
+      setActivityOffset(activityOffset + data.items.length);
+    } catch (cause) {
+      setActivityError(cause instanceof Error ? cause.message : "Ocorreu um erro ao carregar o histórico.");
+    } finally {
+      setActivityLoading(false);
+    }
+  }
 
   async function saveBudget(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -820,21 +858,20 @@ export default function TripDetailPage() {
             <section className="activity-panel" aria-labelledby="activity-title">
               <div className="activity-heading">
                 <div><p className="eyebrow">REGISTO DA VIAGEM</p><h2 id="activity-title">Histórico de atividade</h2><p className="budget-description">Alterações registadas nesta viagem, visíveis a todos os participantes com acesso.</p></div>
-                <button className="secondary-button" type="button" onClick={async () => {
-                  const response = await fetch(`/api/backend/trips/${tripId}/activity?limit=20&offset=0`, { cache: "no-store" });
-                  if (response.ok) { const data = await response.json() as TripActivityPage; setActivity(data.items); setActivityHasMore(data.has_more); setActivityOffset(data.items.length); }
-                }}>Atualizar</button>
+                <button className="secondary-button" type="button" onClick={() => void refreshActivity()} disabled={activityLoading}>
+                  {activityLoading ? "A atualizar..." : "Atualizar"}
+                </button>
               </div>
-              {activity.length === 0 ? <p className="notice">Ainda não existem atividades registadas.</p> : <ol className="activity-list">
+              {activityError && <p className="notice" role="alert">{activityError}</p>}
+              {activity.length === 0 ? <p className="notice" aria-live="polite">{activityLoading ? "A carregar histórico..." : "Ainda não existem atividades registadas."}</p> : <ol className="activity-list" aria-live="polite">
                 {activity.map((item) => <li className="activity-item" key={item.id}>
                   <span className="activity-dot" aria-hidden="true" />
                   <div><strong>{item.summary}</strong><span>{item.actor_name} · {new Date(item.created_at).toLocaleString("pt-PT", { dateStyle: "medium", timeStyle: "short" })}</span></div>
                 </li>)}
               </ol>}
-              {activityHasMore && <button className="secondary-button" type="button" onClick={async () => {
-                const response = await fetch(`/api/backend/trips/${tripId}/activity?limit=20&offset=${activityOffset}`, { cache: "no-store" });
-                if (response.ok) { const data = await response.json() as TripActivityPage; setActivity((current) => [...current, ...data.items]); setActivityHasMore(data.has_more); setActivityOffset((current) => current + data.items.length); }
-              }}>Carregar atividades anteriores</button>}
+              {activityHasMore && <button className="secondary-button" type="button" onClick={() => void loadMoreActivity()} disabled={activityLoading}>
+                {activityLoading ? "A carregar..." : "Carregar atividades anteriores"}
+              </button>}
             </section>
             <div className="section-heading"><div><p className="eyebrow">GESTÃO FINANCEIRA</p><h2>Despesas</h2></div></div>
             {accessRole !== "viewer" && <form className="trip-create-form" onSubmit={saveExpense}>
