@@ -419,3 +419,11 @@ footer { border-top: 1px solid #1c3043; padding: 25px 28px; text-align: center; 
   .activity-panel { padding: 18px; }
   .activity-heading { flex-direction: column; }
 }
+
+.accommodation-nightly-price {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 400;
+}
