@@ -204,6 +204,32 @@ def test_shared_members_can_read_activity_and_viewers_cannot_write(client: TestC
     )
     assert denied.status_code == 403
 
+    updated_flight = client.patch(
+        f"/api/v1/trips/{trip_id}/flights/{created_flight.json()['id']}",
+        headers=editor_headers,
+        json={"destination": "TER"},
+    )
+    assert updated_flight.status_code == 200
+    deleted_flight = client.delete(
+        f"/api/v1/trips/{trip_id}/flights/{created_flight.json()['id']}",
+        headers=editor_headers,
+    )
+    assert deleted_flight.status_code == 204
+
+    owner_history = client.get(
+        activity_url,
+        headers=owner_headers,
+    )
+    assert owner_history.status_code == 200
+    flight_events = [
+        (item["entity_type"], item["action"])
+        for item in owner_history.json()["items"]
+        if item["entity_type"] == "flight"
+    ]
+    assert ("flight", "created") in flight_events
+    assert ("flight", "updated") in flight_events
+    assert ("flight", "deleted") in flight_events
+
 
 def test_activity_covers_expenses_accommodation_shares_and_invitations(client: TestClient) -> None:
     owner = register_and_login(client, "activity-full-owner@example.com")
