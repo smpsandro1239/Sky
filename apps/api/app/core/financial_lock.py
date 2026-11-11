@@ -3,6 +3,8 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.models.expense import Expense
+
 from app.models.settlement import TripSettlement
 from app.models.trip import Trip
 
@@ -18,10 +20,13 @@ def lock_trip_financials(db: Session, trip_id: UUID) -> None:
     ).scalar_one()
 
 
-def trip_has_settlements(db: Session, trip_id: UUID) -> bool:
-    """Indica se a viagem já tem pagamentos/acertos registados."""
+def expense_has_prior_settlement(db: Session, expense: Expense) -> bool:
+    """Indica se já existia um acerto quando esta despesa foi criada."""
     return db.scalar(
         select(TripSettlement.id)
-        .where(TripSettlement.trip_id == trip_id)
+        .where(
+            TripSettlement.trip_id == expense.trip_id,
+            TripSettlement.created_at >= expense.created_at,
+        )
         .limit(1)
     ) is not None

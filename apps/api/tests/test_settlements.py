@@ -278,8 +278,51 @@ def test_settlements_reduce_outstanding_balances_and_reject_overpayment(client: 
         headers=headers,
         json=[{"participant_id": ana, "amount": "5.00"}],
     )
-    assert late_allocation.status_code == 409
-    assert "acertos financeiros" in late_allocation.json()["detail"]
+    assert late_allocation.status_code == 200
+    assert sum(Decimal(item["amount"]) for item in late_allocation.json()) == Decimal("5.00")
+
+    post_settlement_expense = client.post(
+        f"/api/v1/trips/{trip_id}/expenses",
+        headers=headers,
+        json={
+            "category": "transportes",
+            "description": "Nova despesa após acerto",
+            "expense_date": "2027-08-05",
+            "amount": "8.00",
+            "currency": "EUR",
+            "paid_by_participant_id": ana,
+        },
+    )
+    assert post_settlement_expense.status_code == 201
+    updated_post_settlement_expense = client.patch(
+        f"/api/v1/trips/{trip_id}/expenses/{post_settlement_expense.json()['id']}",
+        headers=headers,
+        json={"amount": "9.00"},
+    )
+    assert updated_post_settlement_expense.status_code == 200
+    allocated_post_settlement_expense = client.patch(
+        f"/api/v1/trips/{trip_id}/expenses/{post_settlement_expense.json()['id']}/shares",
+        headers=headers,
+        json=[{"participant_id": ana, "amount": "9.00"}],
+    )
+    assert allocated_post_settlement_expense.status_code == 200
+
+    removable_post_settlement_expense = client.post(
+        f"/api/v1/trips/{trip_id}/expenses",
+        headers=headers,
+        json={
+            "category": "outros",
+            "description": "Despesa ainda não liquidada",
+            "expense_date": "2027-08-06",
+            "amount": "2.00",
+            "currency": "EUR",
+        },
+    )
+    assert removable_post_settlement_expense.status_code == 201
+    assert client.delete(
+        f"/api/v1/trips/{trip_id}/expenses/{removable_post_settlement_expense.json()['id']}",
+        headers=headers,
+    ).status_code == 204
 
     audited_balances = client.get(f"/api/v1/trips/{trip_id}/balances", headers=headers)
     assert audited_balances.status_code == 200
@@ -315,10 +358,10 @@ def test_settlements_reduce_outstanding_balances_and_reject_overpayment(client: 
         unallocated.json()["id"],
         missing_shares.json()["id"],
     }
-    assert audited_balances.json()["currencies"][0]["reconciliation"]["total_expenses"] == "41.00"
-    assert audited_balances.json()["currencies"][0]["reconciliation"]["total_paid"] == "36.00"
-    assert audited_balances.json()["currencies"][0]["reconciliation"]["total_allocated"] == "10.00"
-    assert audited_balances.json()["currencies"][0]["reconciliation"]["expense_difference"] == "26.00"
+    assert audited_balances.json()["currencies"][0]["reconciliation"]["total_expenses"] == "50.00"
+    assert audited_balances.json()["currencies"][0]["reconciliation"]["total_paid"] == "45.00"
+    assert audited_balances.json()["currencies"][0]["reconciliation"]["total_allocated"] == "24.00"
+    assert audited_balances.json()["currencies"][0]["reconciliation"]["expense_difference"] == "21.00"
 
 
 

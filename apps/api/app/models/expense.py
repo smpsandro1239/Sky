@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from uuid import UUID, uuid4
 
@@ -25,7 +25,9 @@ class Expense(Base):
         PG_UUID(as_uuid=True), ForeignKey("trip_participants.id", ondelete="RESTRICT"), nullable=True, index=True
     )
     notes: Mapped[str | None] = mapped_column(Text)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), server_default=func.now()
+    )
 
     trip: Mapped["Trip"] = relationship(back_populates="expenses")
     paid_by: Mapped["TripParticipant | None"] = relationship(foreign_keys=[paid_by_participant_id])
