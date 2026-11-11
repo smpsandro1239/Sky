@@ -248,3 +248,25 @@ def test_settlements_reduce_outstanding_balances_and_reject_overpayment(client: 
             "reason": "missing_payer",
         }
     ]
+
+    missing_shares = client.post(
+        f"/api/v1/trips/{trip_id}/expenses",
+        headers=headers,
+        json={
+            "category": "transportes",
+            "description": "Despesa sem divisão",
+            "expense_date": "2027-08-04",
+            "amount": "6.00",
+            "currency": "EUR",
+            "paid_by_participant_id": ana,
+        },
+    )
+    assert missing_shares.status_code == 201
+    audited_balances = client.get(f"/api/v1/trips/{trip_id}/balances", headers=headers)
+    assert audited_balances.status_code == 200
+    unallocated_items = audited_balances.json()["currencies"][0]["reconciliation"]["unallocated_expenses"]
+    assert {item["reason"] for item in unallocated_items} == {"missing_payer", "missing_shares"}
+    assert {item["expense_id"] for item in unallocated_items} == {
+        unallocated.json()["id"],
+        missing_shares.json()["id"],
+    }
