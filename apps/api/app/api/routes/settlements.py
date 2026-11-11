@@ -10,6 +10,7 @@ from app.api.deps import get_current_user, get_db
 from app.api.routes.balances import get_trip_balances
 from app.api.routes.trips import get_accessible_trip, require_trip_editor
 from app.core.activity import record_trip_activity
+from app.core.financial_lock import lock_trip_financials
 from app.models.participant import TripParticipant
 from app.models.settlement import TripSettlement
 from app.models.user import User
@@ -41,6 +42,7 @@ def create_settlement(
     user: User = Depends(get_current_user),
 ) -> TripSettlement:
     trip = require_trip_editor(db, trip_id, user.id)
+    lock_trip_financials(db, trip.id)
     if payload.from_participant_id == payload.to_participant_id:
         raise HTTPException(status_code=422, detail="O pagador e o destinatário têm de ser diferentes.")
 
