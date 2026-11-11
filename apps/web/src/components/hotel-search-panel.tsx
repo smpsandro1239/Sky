@@ -17,6 +17,10 @@ type HotelOffer = {
   payment_type: string | null;
   cancellation_deadline: string | null;
   cancellation_description: string | null;
+  nights: number | null;
+  price_per_night: string | null;
+  recommendation_score: number | null;
+  recommendation_reasons: string[];
 };
 
 type SavedAccommodation = {
@@ -310,7 +314,7 @@ export default function HotelSearchPanel({ tripId, canEdit, onAccommodationSaved
       {message && <p className="notice" role="status">{message}</p>}
       {results && (
         <div className="trip-list" aria-live="polite">
-          <p className="budget-description">{results.results_count === 0 ? "Não foram encontradas ofertas disponíveis para estes critérios." : results.results_count + " ofertas recebidas do fornecedor, ordenadas por preço."} Pesquisa para {adults} adulto(s), {roomQuantity} quarto(s), num raio de {radius} km.</p>
+          <p className="budget-description">{results.results_count === 0 ? "Não foram encontradas ofertas disponíveis para estes critérios." : results.results_count + " ofertas recebidas do fornecedor, ordenadas pela recomendação SKY."} Pesquisa para {adults} adulto(s), {roomQuantity} quarto(s), num raio de {radius} km.</p>
           {results.results_count > 0 && (
             <div className="trip-form-grid" aria-label="Filtrar ofertas por preço">
               <label>Preço mínimo ({resultsCurrency})<input type="number" min="0" step="0.01" inputMode="decimal" value={minimumPrice} onChange={(event) => setMinimumPrice(event.target.value)} placeholder="Sem mínimo" /></label>
@@ -337,6 +341,8 @@ export default function HotelSearchPanel({ tripId, canEdit, onAccommodationSaved
                 {offer.cancellation_description && <p>Cancelamento: {offer.cancellation_description}</p>}
                 {offer.cancellation_deadline && <p>Prazo de cancelamento indicado: {offer.cancellation_deadline}</p>}
                 <strong>{formatPrice(offer.price_total, offer.currency)}</strong>
+                {offer.price_per_night !== null && offer.nights !== null && <p className="budget-description">{formatPrice(offer.price_per_night, offer.currency)} por noite · {offer.nights} noite(s)</p>}
+                {offer.recommendation_score !== null && <p className="budget-description"><strong>Recomendação SKY · {offer.recommendation_score.toLocaleString("pt-PT", { maximumFractionDigits: 1 })}/100</strong>{offer.recommendation_reasons.length > 0 ? " · " + offer.recommendation_reasons.join(" · ") : ""}</p>}
               </div>
               <div className="trip-card-actions">
                 <button
