@@ -90,6 +90,7 @@ def create_invitation(
             title="Novo convite para uma viagem",
             message=f"{user.display_name or user.email} convidou-te para {trip.name}.",
             metadata={"trip_id": str(trip.id), "invitation_id": str(invitation.id)},
+            link=f"/dashboard/{trip.id}",
         )
     record_trip_activity(db, trip_id=trip.id, actor=user, action="created", entity_type="invitation", entity_id=invitation.id, summary="criou um convite")
     db.commit()
@@ -227,6 +228,7 @@ def accept_invitation(
             title="Convite aceite",
             message=f"{user.display_name or user.email} aceitou o convite para {invitation.email}.",
             metadata={"trip_id": str(invitation.trip_id), "invitation_id": str(invitation.id)},
+            link=f"/dashboard/{invitation.trip_id}",
         )
     db.commit()
     db.refresh(invitation)
