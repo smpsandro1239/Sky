@@ -45,7 +45,7 @@ Formato: JSON. A aplicação disponibiliza documentação OpenAPI em `/docs` e R
 | DELETE | `/trips/{trip_id}/invitations/{invitation_id}` | Bearer | Revogar convite pendente |
 | POST | `/invitations/accept` | Bearer | Aceitar convite com token e conta de email correspondente |
 | GET | `/trips/{trip_id}/expenses/{expense_id}/shares` | Bearer | Consultar divisão da despesa |
-| GET | `/trips/{trip_id}/balances` | Bearer | Calcular saldos e transferências sugeridas por moeda |
+| GET | `/trips/{trip_id}/balances` | Bearer | Calcular saldos, pagamentos já efetuados e transferências sugeridas por moeda |\n| GET | `/trips/{trip_id}/settlements` | Bearer | Consultar pagamentos/acertos registados |\n| POST | `/trips/{trip_id}/settlements` | Bearer (editor) | Registar um pagamento entre participantes |
 | PATCH | `/trips/{trip_id}/expenses/{expense_id}/shares` | Bearer | Substituir a divisão da despesa (lista de partes); lista vazia limpa a divisão |
 
 ### Autenticação e autorização
@@ -136,7 +136,7 @@ Os endpoints PATCH aceitam apenas os campos a alterar. A API valida o estado com
 
 Ao criar ou atualizar uma despesa, `paid_by_participant_id` identifica opcionalmente o participante que adiantou o valor. O identificador tem de pertencer à viagem. O pedido `PATCH /trips/{trip_id}/expenses/{expense_id}/shares` recebe uma lista completa de partes. Cada participante só pode surgir uma vez, tem de pertencer à viagem e cada valor tem de ser positivo. A soma é comparada ao total da despesa em cêntimos; diferenças de um cêntimo são rejeitadas. Enviar `[]` remove todas as partes. Um participante que seja pagador ou tenha partilhas associadas não pode ser eliminado (409).
 
-O endpoint `GET /trips/{trip_id}/balances` calcula, para cada moeda, o total pago, a parte atribuída e o saldo líquido de cada participante. Inclui sugestões de transferências entre devedores e credores para liquidar os saldos com o menor número de movimentos gerado pelo algoritmo guloso. Só entram no cálculo despesas com pagador identificado e divisão guardada; despesas sem pagador ou sem partilhas ficam de fora.
+O endpoint `GET /trips/{trip_id}/balances` calcula, para cada moeda, o total pago, a parte atribuída, os acertos enviados/recebidos e o saldo líquido de cada participante. Inclui sugestões de transferências entre devedores e credores para liquidar os saldos com o menor número de movimentos gerado pelo algoritmo guloso. Só entram no cálculo despesas com pagador identificado e divisão guardada; despesas sem pagador ou sem partilhas ficam de fora.\n\nOs endpoints `GET` e `POST /trips/{trip_id}/settlements` permitem consultar e registar pagamentos reais entre participantes. O registo exige que ambos pertençam à viagem, que o pagador tenha saldo devedor e o destinatário saldo credor na moeda indicada, e que o montante não exceda o valor em aberto de qualquer um dos lados. O pagamento é refletido no saldo líquido e no histórico de atividade. Apenas proprietários e editores podem registar pagamentos; qualquer participante com acesso pode consultar o histórico de acertos.
 
 Exemplo:
 
