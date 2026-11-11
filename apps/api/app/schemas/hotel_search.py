@@ -44,6 +44,9 @@ class HotelSearchOffer(BaseModel):
     currency: str
     room_description: str | None = None
     board_type: str | None = None
+    payment_type: str | None = None
+    cancellation_deadline: str | None = None
+    cancellation_description: str | None = None
 
 
 class HotelSearchResponse(BaseModel):
