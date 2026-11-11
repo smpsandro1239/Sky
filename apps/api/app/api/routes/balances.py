@@ -45,6 +45,7 @@ def get_trip_balances(
             select(ExpenseShare).where(ExpenseShare.expense_id == expense.id)
         ).all())
         if expense.paid_by_participant_id is None or not shares:
+            ledger[expense.currency]
             unallocated_expenses[expense.currency].append({
                 "expense_id": str(expense.id),
                 "description": expense.description,
