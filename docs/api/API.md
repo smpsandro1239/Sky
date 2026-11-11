@@ -310,3 +310,12 @@ Os alertas são privados por utilizador e só podem ser criados para uma oferta 
 A avaliação pode ocorrer numa pesquisa manual ou no worker periódico `app.price_monitor_worker`, executado como serviço `price-monitor` no `compose.yaml`. O worker procura alertas activos, recupera os critérios da última observação e volta a consultar o Amadeus. Por omissão, limita cada combinação utilizador/pesquisa a uma consulta a cada 6 horas, com bloqueio distribuído Redis; em falha, tenta novamente após 10 minutos. Pesquisas de voos após a partida e estadias após a data de saída são ignoradas para evitar chamadas desnecessárias ao fornecedor. Os intervalos são configuráveis por `PRICE_MONITOR_INTERVAL_SECONDS`, `PRICE_MONITOR_POLL_SECONDS` e `PRICE_MONITOR_RETRY_SECONDS`. O worker depende de credenciais Amadeus e de Redis. Ainda não existe envio de notificações por email, push ou SMS. Criar um alerta não reserva a oferta nem garante que o preço continue disponível.
 
 Na interface, o painel Price Intelligence permite selecionar uma oferta e visualizar o último preço, mínimo e máximo observados, número de recolhas e gráfico cronológico. Uma primeira pesquisa gera normalmente apenas o primeiro ponto; a evolução só fica visível após novas pesquisas com os mesmos critérios. A ausência de histórico é apresentada como estado vazio, não como erro. A interface usa a mesma identidade estável da API para associar observações e alertas entre pesquisas. A interface não estima preços futuros.
+
+## Notificações
+
+- `GET /api/v1/notifications?limit=20&offset=0&unread_only=false`: lista notificações do utilizador autenticado, devolve contagem total por ler e paginação.
+- `PATCH /api/v1/notifications/{notification_id}/read`: marca uma notificação própria como lida.
+- `POST /api/v1/notifications/read-all`: marca todas as notificações próprias como lidas e devolve o número actualizado.
+- As notificações são privadas, persistentes e eliminadas em cascata quando a conta é eliminada.
+- Quando um alerta de preço é atingido, é criada uma notificação na mesma transacção que actualiza o alerta. Se o preço já estiver no alvo no momento da criação, a notificação é criada imediatamente.
+- A interface do dashboard apresenta o contador de notificações por ler e permite abrir, marcar uma notificação como lida ou marcar todas como lidas.
