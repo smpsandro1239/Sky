@@ -29,7 +29,8 @@ A visão de longo prazo é uma plataforma integral de viagens. O princípio cent
 | Frontend — dashboard | Perfil, listagem, criação, edição e eliminação de viagens integrados com a API |
 | Frontend — planeador de viagem | Página de detalhe com CRUD de voos, alojamentos e despesas via BFF; orçamento e saldo por moeda |
 | CI GitHub Actions | Pipeline configurado para testes API, validação de migrações, ESLint e TypeScript; consultar a execução mais recente no GitHub Actions |
-| Pesquisa externa, recomendações e favoritos | Por implementar |
+| Pesquisa externa de voos | Adaptador Amadeus sandbox na API, endpoint autenticado, normalização de ofertas e testes adicionados; requer credenciais e validação CI/E2E |
+| Pesquisa externa de alojamentos, recomendações e favoritos | Por implementar |
 | Reservas e pagamentos | Fase futura |
 
 As páginas de autenticação e dashboard estão implementadas no código, mas ainda precisam de validação funcional em Docker e testes de ponta a ponta. Não existe ainda pesquisa real de inventário nem ligação a fornecedores externos. Os convites podem ser criados e aceites por link; o envio por email está disponível quando o SMTP é configurado através das variáveis `SMTP_*` no ficheiro `.env.example`. Sem SMTP, o link pode ser partilhado manualmente.
@@ -112,7 +113,7 @@ Requisitos: Docker Desktop com Docker Compose e Git.
 
 Parar: `docker compose down`. Para remover também os dados da base de dados: `docker compose down -v` (ação destrutiva).
 
-**Nota:** o dashboard permite gerir viagens, voos, alojamentos e despesas, incluindo partilhas, balanços e acesso colaborativo por proprietário/editor/leitor. As operações usam a API através do BFF autenticado. A CI mais recente para o código funcional concluiu com sucesso: testes API, migrações, ESLint e TypeScript. A validação funcional ponta a ponta em Docker/browser ainda não está confirmada. A pesquisa de inventário real, integração com fornecedores e reservas não estão implementadas. O envio de convites por email requer configuração SMTP.
+**Nota:** o dashboard permite gerir viagens, voos, alojamentos e despesas, incluindo partilhas, balanços e acesso colaborativo por proprietário/editor/leitor. As operações usam a API através do BFF autenticado. A CI mais recente para o código funcional concluiu com sucesso: testes API, migrações, ESLint e TypeScript. A validação funcional ponta a ponta em Docker/browser ainda não está confirmada. A pesquisa de voos tem agora um adaptador Amadeus em sandbox no backend, mas ainda depende de credenciais e não está validada ponta a ponta nem integrada no frontend. A pesquisa de alojamentos, reservas e pagamentos não estão implementadas. O envio de convites por email requer configuração SMTP.
 
 ## Documentação
 
@@ -140,7 +141,7 @@ Parar: `docker compose down`. Para remover também os dados da base de dados: `d
 - [x] **Fase 2 — arquitetura e documentação.**
 - [x] **Fase 3 — fundações:** Docker, API, autenticação, CRUD de viagens/voos/alojamentos/despesas, orçamento, participantes, convites e permissões colaborativas. Falta validação funcional Docker/E2E.
 - [x] **Fase 4 — gestão frontend (primeira entrega):** gestão de viagens, voos, alojamentos, despesas, orçamento, participantes, convites e balanços integrada no dashboard/planeador através do BFF. Falta validação E2E e refinamento de UX.
-- [ ] **Fase 5 — pesquisa e fornecedores:** APIs oficiais e adaptadores para voos e alojamentos.
+- [ ] **Fase 5 — pesquisa e fornecedores:** adaptador inicial Amadeus para pesquisa de voos publicado; falta validar CI, configurar credenciais sandbox e integrar pesquisa no frontend. Pesquisa de alojamentos e respetivo fornecedor continuam por implementar.
 - [ ] **Fase 6 — inteligência:** Recommendation Engine e Price Intelligence.
 - [ ] **Fase 7 — qualidade e operação:** testes E2E, CI/CD, observabilidade e preparação para produção.
 - [ ] **Fase futura — transações:** reservas e pagamentos.
