@@ -1,7 +1,7 @@
 """Add private in-app notifications.
 
 Revision ID: 0016_notifications
-Revises: 0015_merge_price_and_budget_heads
+Revises: 0015_merge_heads
 Create Date: 2026-11-11
 """
 
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 revision = "0016_notifications"
-down_revision = "0015_merge_price_and_budget_heads"
+down_revision = "0015_merge_heads"
 branch_labels = None
 depends_on = None
 
