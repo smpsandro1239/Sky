@@ -25,6 +25,9 @@ class Settings:
     smtp_from_email: str | None = os.getenv("SMTP_FROM_EMAIL")
     smtp_starttls: bool = os.getenv("SMTP_STARTTLS", "true").strip().lower() in {"1", "true", "yes"}
     smtp_use_ssl: bool = os.getenv("SMTP_USE_SSL", "false").strip().lower() in {"1", "true", "yes"}
+    amadeus_client_id: str | None = os.getenv("AMADEUS_CLIENT_ID")
+    amadeus_client_secret: str | None = os.getenv("AMADEUS_CLIENT_SECRET")
+    amadeus_base_url: str = os.getenv("AMADEUS_BASE_URL", "https://test.api.amadeus.com")
     google_client_id: str | None = os.getenv("GOOGLE_CLIENT_ID")
     google_client_secret: str | None = os.getenv("GOOGLE_CLIENT_SECRET")
     google_redirect_uri: str = os.getenv(
