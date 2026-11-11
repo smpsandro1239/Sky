@@ -261,8 +261,10 @@ export default function FlightSearchPanel({
               </div>
             </article>
           ))}
+          {saveMessage && <p className="notice" role="status">{saveMessage}</p>}
         </div>
       )}
+      {saveMessage && !results && <p className="notice" role="status">{saveMessage}</p>}
       <p className="budget-description">
         Os preços e a disponibilidade são indicativos e podem mudar no fornecedor.
       </p>
