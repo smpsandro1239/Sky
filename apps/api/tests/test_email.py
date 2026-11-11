@@ -69,3 +69,29 @@ def test_invitation_email_failure_is_reported_without_raising(monkeypatch) -> No
     )
 
     assert sent is False
+
+
+def test_invitation_email_supports_implicit_tls(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "smtp_host", "smtp.example.com")
+    monkeypatch.setattr(settings, "smtp_port", 465)
+    monkeypatch.setattr(settings, "smtp_from_email", "sky@example.com")
+    monkeypatch.setattr(settings, "smtp_username", None)
+    monkeypatch.setattr(settings, "smtp_password", None)
+    monkeypatch.setattr(settings, "smtp_starttls", False)
+    monkeypatch.setattr(settings, "smtp_use_ssl", True)
+
+    smtp = MagicMock()
+    smtp.__enter__.return_value = smtp
+    monkeypatch.setattr(email_service.smtplib, "SMTP_SSL", MagicMock(return_value=smtp))
+
+    sent = email_service.send_trip_invitation_email(
+        to_email="guest@example.com",
+        trip_name="Férias",
+        inviter_name="Organizador",
+        role="viewer",
+        accept_url="https://sky.example/invitations/accept?token=secret-token",
+    )
+
+    assert sent is True
+    smtp.starttls.assert_not_called()
+    smtp.send_message.assert_called_once()
