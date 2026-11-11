@@ -71,6 +71,20 @@ def test_settlements_reduce_outstanding_balances_and_reject_overpayment(client: 
         participants.append(response.json()["id"])
     ana, rui = participants
 
+    other_trip = client.post(
+        "/api/v1/trips",
+        headers=headers,
+        json={"name": "Outra viagem", "destination": "Braga"},
+    )
+    assert other_trip.status_code == 201
+    outsider_response = client.post(
+        f"/api/v1/trips/{other_trip.json()['id']}/participants",
+        headers=headers,
+        json={"name": "Participante externo"},
+    )
+    assert outsider_response.status_code == 201
+    outsider = outsider_response.json()["id"]
+
     expense = client.post(
         f"/api/v1/trips/{trip_id}/expenses",
         headers=headers,
@@ -96,6 +110,42 @@ def test_settlements_reduce_outstanding_balances_and_reject_overpayment(client: 
     assert shares.status_code == 200
 
     settlements_url = f"/api/v1/trips/{trip_id}/settlements"
+    outsider_payment = client.post(
+        settlements_url,
+        headers=headers,
+        json={
+            "from_participant_id": outsider,
+            "to_participant_id": ana,
+            "amount": "1.00",
+            "currency": "EUR",
+        },
+    )
+    assert outsider_payment.status_code == 422
+
+    self_payment = client.post(
+        settlements_url,
+        headers=headers,
+        json={
+            "from_participant_id": rui,
+            "to_participant_id": rui,
+            "amount": "1.00",
+            "currency": "EUR",
+        },
+    )
+    assert self_payment.status_code == 422
+
+    unknown_currency = client.post(
+        settlements_url,
+        headers=headers,
+        json={
+            "from_participant_id": rui,
+            "to_participant_id": ana,
+            "amount": "1.00",
+            "currency": "USD",
+        },
+    )
+    assert unknown_currency.status_code == 422
+
     invalid = client.post(
         settlements_url,
         headers=headers,
@@ -115,11 +165,12 @@ def test_settlements_reduce_outstanding_balances_and_reject_overpayment(client: 
             "from_participant_id": rui,
             "to_participant_id": ana,
             "amount": "7.50",
-            "currency": "EUR",
+            "currency": "eur",
             "notes": "Transferência parcial",
         },
     )
     assert recorded.status_code == 201
+    assert recorded.json()["currency"] == "EUR"
 
     balances = client.get(f"/api/v1/trips/{trip_id}/balances", headers=headers)
     assert balances.status_code == 200
