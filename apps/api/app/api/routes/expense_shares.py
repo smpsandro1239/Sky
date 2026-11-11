@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.api.deps import get_current_user, get_db
 from app.core.activity import record_trip_activity
-from app.core.financial_lock import lock_trip_financials
+from app.core.financial_lock import lock_trip_financials, trip_has_settlements
 from app.core.notifications import notify_trip_members
 from app.api.routes.expenses import get_trip_expense
 from app.api.routes.trips import get_accessible_trip, get_user_trip, require_trip_editor
@@ -49,6 +49,15 @@ def replace_expense_shares(
     trip = require_trip_editor(db, trip_id, user.id)
     lock_trip_financials(db, trip.id)
     expense = get_trip_expense(db, trip.id, expense_id)
+
+    if trip_has_settlements(db, trip.id):
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Não é possível alterar a divisão de uma despesa depois de existirem "
+                "acertos financeiros na viagem. Revê primeiro os acertos registados."
+            ),
+        )
 
     participant_ids = [item.participant_id for item in payload]
     if len(participant_ids) != len(set(participant_ids)):

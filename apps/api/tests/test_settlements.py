@@ -191,6 +191,24 @@ def test_settlements_reduce_outstanding_balances_and_reject_overpayment(client: 
     assert expense_description_change.json()["currency"] == "EUR"
     assert expense_description_change.json()["amount"] == "30.00"
 
+    changed_shares = client.patch(
+        f"/api/v1/trips/{trip_id}/expenses/{expense_id}/shares",
+        headers=headers,
+        json=[
+            {"participant_id": ana, "amount": "9.00"},
+            {"participant_id": rui, "amount": "21.00"},
+        ],
+    )
+    assert changed_shares.status_code == 409
+    assert "acertos financeiros" in changed_shares.json()["detail"]
+
+    deleted_settled_expense = client.delete(
+        f"/api/v1/trips/{trip_id}/expenses/{expense_id}",
+        headers=headers,
+    )
+    assert deleted_settled_expense.status_code == 409
+    assert "acertos financeiros" in deleted_settled_expense.json()["detail"]
+
     overpayment_after_partial = client.post(
         settlements_url,
         headers=headers,
@@ -255,6 +273,14 @@ def test_settlements_reduce_outstanding_balances_and_reject_overpayment(client: 
         },
     )
     assert unallocated.status_code == 201
+    late_allocation = client.patch(
+        f"/api/v1/trips/{trip_id}/expenses/{unallocated.json()['id']}/shares",
+        headers=headers,
+        json=[{"participant_id": ana, "amount": "5.00"}],
+    )
+    assert late_allocation.status_code == 409
+    assert "acertos financeiros" in late_allocation.json()["detail"]
+
     audited_balances = client.get(f"/api/v1/trips/{trip_id}/balances", headers=headers)
     assert audited_balances.status_code == 200
     audited_eur = audited_balances.json()["currencies"][0]
@@ -291,8 +317,8 @@ def test_settlements_reduce_outstanding_balances_and_reject_overpayment(client: 
     }
     assert audited_balances.json()["currencies"][0]["reconciliation"]["total_expenses"] == "41.00"
     assert audited_balances.json()["currencies"][0]["reconciliation"]["total_paid"] == "36.00"
-    assert audited_balances.json()["currencies"][0]["reconciliation"]["total_allocated"] == "30.00"
-    assert audited_balances.json()["currencies"][0]["reconciliation"]["expense_difference"] == "6.00"
+    assert audited_balances.json()["currencies"][0]["reconciliation"]["total_allocated"] == "10.00"
+    assert audited_balances.json()["currencies"][0]["reconciliation"]["expense_difference"] == "26.00"
 
 
 
@@ -357,13 +383,19 @@ def test_balances_reconcile_each_currency_independently(client: TestClient) -> N
     assert eur["reconciliation"]["total_paid"] == "20.00"
     assert eur["reconciliation"]["total_allocated"] == "20.00"
     assert eur["reconciliation"]["is_balanced"] is True
-    assert eur["suggested_transfers"] == []
+    assert len(eur["suggested_transfers"]) == 1
+    assert eur["suggested_transfers"][0]["from_participant_id"] == rui
+    assert eur["suggested_transfers"][0]["to_participant_id"] == ana
+    assert eur["suggested_transfers"][0]["amount"] == "10.00"
 
     assert usd["reconciliation"]["total_expenses"] == "12.00"
     assert usd["reconciliation"]["total_paid"] == "12.00"
     assert usd["reconciliation"]["total_allocated"] == "12.00"
     assert usd["reconciliation"]["is_balanced"] is True
-    assert usd["suggested_transfers"] == []
+    assert len(usd["suggested_transfers"]) == 1
+    assert usd["suggested_transfers"][0]["from_participant_id"] == ana
+    assert usd["suggested_transfers"][0]["to_participant_id"] == rui
+    assert usd["suggested_transfers"][0]["amount"] == "6.00"
 
     eur_positions = {row["participant_id"]: row for row in eur["participants"]}
     usd_positions = {row["participant_id"]: row for row in usd["participants"]}

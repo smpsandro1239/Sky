@@ -3,6 +3,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.models.settlement import TripSettlement
 from app.models.trip import Trip
 
 
@@ -15,3 +16,12 @@ def lock_trip_financials(db: Session, trip_id: UUID) -> None:
     db.execute(
         select(Trip.id).where(Trip.id == trip_id).with_for_update()
     ).scalar_one()
+
+
+def trip_has_settlements(db: Session, trip_id: UUID) -> bool:
+    """Indica se a viagem já tem pagamentos/acertos registados."""
+    return db.scalar(
+        select(TripSettlement.id)
+        .where(TripSettlement.trip_id == trip_id)
+        .limit(1)
+    ) is not None

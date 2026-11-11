@@ -7,13 +7,12 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
 from app.core.activity import record_trip_activity
-from app.core.financial_lock import lock_trip_financials
+from app.core.financial_lock import lock_trip_financials, trip_has_settlements
 from app.core.notifications import notify_trip_members
-from app.api.routes.trips import get_accessible_trip, get_user_trip, require_trip_editor
+from app.api.routes.trips import get_accessible_trip, require_trip_editor
 from app.models.expense import Expense
 from app.models.expense_share import ExpenseShare
 from app.models.participant import TripParticipant
-from app.models.settlement import TripSettlement
 from app.models.user import User
 from app.schemas.expense import ExpenseCreate, ExpenseResponse, ExpenseUpdate
 
@@ -101,21 +100,15 @@ def update_expense(
 
     financial_fields = {"amount", "currency", "paid_by_participant_id"}
     changed_financial_fields = financial_fields.intersection(changes)
-    if changed_financial_fields:
-        has_settlements = db.scalar(
-            select(TripSettlement.id)
-            .where(TripSettlement.trip_id == trip.id)
-            .limit(1)
+    if changed_financial_fields and trip_has_settlements(db, trip.id):
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Não é possível alterar o valor, a moeda ou o pagador de uma despesa "
+                "depois de existirem acertos financeiros na viagem. "
+                "Revê primeiro os acertos registados."
+            ),
         )
-        if has_settlements is not None:
-            raise HTTPException(
-                status_code=409,
-                detail=(
-                    "Não é possível alterar o valor, a moeda ou o pagador de uma despesa "
-                    "depois de existirem acertos financeiros na viagem. "
-                    "Revê primeiro os acertos registados."
-                ),
-            )
 
     existing_share_total = db.scalar(
         select(func.coalesce(func.sum(ExpenseShare.amount), 0)).where(
@@ -147,6 +140,14 @@ def delete_expense(
     trip = require_trip_editor(db, trip_id, user.id)
     lock_trip_financials(db, trip.id)
     expense = get_trip_expense(db, trip.id, expense_id)
+    if trip_has_settlements(db, trip.id):
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Não é possível eliminar despesas depois de existirem acertos financeiros "
+                "na viagem. Revê primeiro os acertos registados."
+            ),
+        )
     record_trip_activity(db, trip_id=trip.id, actor=user, action="deleted", entity_type="expense", entity_id=expense.id, summary="eliminou uma despesa")
     notify_trip_members(db, trip=trip, actor_user_id=user.id, notification_type="trip_expense_deleted", title="Despesa eliminada", message=f"A despesa {expense.description} foi eliminada.", metadata={"expense_id": str(expense.id), "description": expense.description})
     db.delete(expense)
