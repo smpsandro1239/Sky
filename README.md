@@ -29,7 +29,8 @@ A visão de longo prazo é uma plataforma integral de viagens. O princípio cent
 | Frontend — dashboard | Perfil, listagem, criação, edição e eliminação de viagens integrados com a API |
 | Frontend — planeador de viagem | Página de detalhe com CRUD de voos, alojamentos e despesas via BFF; orçamento e saldo por moeda |
 | CI GitHub Actions | Pipeline configurado para testes API, validação de migrações, ESLint e TypeScript; consultar a execução mais recente no GitHub Actions |
-| Pesquisa externa de voos | Adaptador Amadeus sandbox na API, endpoint autenticado, normalização de ofertas e testes adicionados; requer credenciais e validação CI/E2E |
+| Pesquisa externa de voos | Adaptador Amadeus sandbox na API, endpoint autenticado, normalização de ofertas e formulário integrado; requer credenciais e validação CI/E2E |
+| Recomendação inicial de voos | Ranking explicável relativo aos resultados da pesquisa: preço (50%), duração (30%) e escalas (20%); score e motivos apresentados na interface; testes unitários adicionados; falta validação CI/E2E e evolução das preferências do utilizador |
 | Pesquisa externa de alojamentos, recomendações e favoritos | Por implementar |
 | Reservas e pagamentos | Fase futura |
 
@@ -142,6 +143,6 @@ Parar: `docker compose down`. Para remover também os dados da base de dados: `d
 - [x] **Fase 3 — fundações:** Docker, API, autenticação, CRUD de viagens/voos/alojamentos/despesas, orçamento, participantes, convites e permissões colaborativas. Falta validação funcional Docker/E2E.
 - [x] **Fase 4 — gestão frontend (primeira entrega):** gestão de viagens, voos, alojamentos, despesas, orçamento, participantes, convites e balanços integrada no dashboard/planeador através do BFF. Falta validação E2E e refinamento de UX.
 - [ ] **Fase 5 — pesquisa e fornecedores:** adaptador inicial Amadeus para pesquisa de voos publicado; falta validar CI, configurar credenciais sandbox e integrar pesquisa no frontend. Pesquisa de alojamentos e respetivo fornecedor continuam por implementar.
-- [ ] **Fase 6 — inteligência:** Recommendation Engine e Price Intelligence.
+- [ ] **Fase 6 — inteligência:** primeira versão do ranking explicável de voos publicada; falta personalização por preferências, recomendação de alojamentos e Price Intelligence.
 - [ ] **Fase 7 — qualidade e operação:** testes E2E, CI/CD, observabilidade e preparação para produção.
 - [ ] **Fase futura — transações:** reservas e pagamentos.
