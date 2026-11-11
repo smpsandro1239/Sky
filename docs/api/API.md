@@ -75,7 +75,7 @@ A pessoa convidada tem de iniciar sessão com o mesmo endereço de email e envia
 
 A aceitação associa a conta ao participante existente com o mesmo email ou cria um participante novo. Os tokens são de utilização única. Convites pendentes podem ser revogados pelo proprietário. Convites expirados, revogados ou já aceites não podem ser reutilizados.
 
-**Limitação atual:** o SKY ainda não envia emails automaticamente. O frontend permite copiar o link para o proprietário o partilhar por um canal externo. A aceitação associa a conta à viagem com o papel definido pelo proprietário. O papel é aplicado na API e validado em cada operação. Os papéis permitidos são `editor` e `viewer`; o proprietário é sempre o dono original da viagem e não pode ser substituído por um convite.
+**Entrega de email:** o serviço SMTP é opcional. Configura `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM_EMAIL`, `SMTP_STARTTLS` e `SMTP_USE_SSL` no ambiente da API. `SMTP_STARTTLS` e `SMTP_USE_SSL` não podem estar ativos em simultâneo. Quando não existe configuração SMTP ou o envio falha, `email_sent` é `false` e o frontend apresenta o link para partilha manual. A aceitação associa a conta à viagem com o papel definido pelo proprietário. O papel é aplicado na API e validado em cada operação. Os papéis permitidos são `editor` e `viewer`; o proprietário é sempre o dono original da viagem e não pode ser substituído por um convite.
 
 ### Criar uma viagem
 
