@@ -15,6 +15,7 @@ from app.models.user import User
 from app.models.hotel_favorite import HotelFavorite
 from app.schemas.hotel_favorite import HotelFavoriteCreate, HotelFavoriteResponse
 from app.schemas.hotel_search import HotelSearchRequest, HotelSearchOffer, HotelSearchResponse
+from app.services.hotel_recommendations import rank_hotel_offers
 from app.services.amadeus_hotels import (
     HotelProviderError,
     HotelProviderNotConfigured,
@@ -128,7 +129,7 @@ async def search_hotels(
 
     try:
         raw_results = await amadeus_hotel_provider.search(criteria.model_dump())
-        offers = _map_offers(raw_results, criteria)
+        offers = rank_hotel_offers(_map_offers(raw_results, criteria))
     except HotelProviderNotConfigured as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
