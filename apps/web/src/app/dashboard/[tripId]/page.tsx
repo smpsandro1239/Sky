@@ -160,6 +160,8 @@ export default function TripDetailPage() {
     {},
   );
 
+  const selectedSettlementBalance = balances.currencies.find((group) => group.currency === settlementCurrency);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -272,6 +274,42 @@ export default function TripDetailPage() {
     }
   }
 
+  async function saveSettlement(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSaving(true);
+    setError("");
+    try {
+      const response = await fetch("/api/backend/trips/" + tripId + "/settlements", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          from_participant_id: settlementFrom,
+          to_participant_id: settlementTo,
+          amount: Number(settlementAmount),
+          currency: settlementCurrency,
+          notes: settlementNotes.trim() || null,
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setError(typeof data.detail === "string" ? data.detail : "Não foi possível registar o acerto.");
+        return;
+      }
+      setSettlementAmount("");
+      setSettlementNotes("");
+      const [balanceResponse, settlementResponse] = await Promise.all([
+        fetch("/api/backend/trips/" + tripId + "/balances", { cache: "no-store" }),
+        fetch("/api/backend/trips/" + tripId + "/settlements", { cache: "no-store" }),
+      ]);
+      if (balanceResponse.ok) setBalances(await balanceResponse.json());
+      if (settlementResponse.ok) setSettlements(await settlementResponse.json());
+      void refreshActivity();
+    } catch {
+      setError("Não foi possível contactar a API. Tenta novamente.");
+    } finally {
+      setSaving(false);
+    }
+  }
   async function saveBudget(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!trip) return;
@@ -859,7 +897,7 @@ export default function TripDetailPage() {
                       {group.participants.map((entry) => (
                         <div className="balance-row" key={entry.participant_id}>
                           <strong>{entry.name}</strong>
-                          <span>Pagou {Number(entry.paid).toLocaleString("pt-PT", { minimumFractionDigits: 2 })} · Parte {Number(entry.owed).toLocaleString("pt-PT", { minimumFractionDigits: 2 })}</span>
+                          <span>Pagou {Number(entry.paid).toLocaleString("pt-PT", { minimumFractionDigits: 2 })} · Parte {Number(entry.owed).toLocaleString("pt-PT", { minimumFractionDigits: 2 })} · Acertos enviados {Number(entry.settled_sent ?? "0").toLocaleString("pt-PT", { minimumFractionDigits: 2 })}</span>
                           <b className={Number(entry.net) >= 0 ? "balance-positive" : "balance-negative"}>{Number(entry.net) > 0 ? "A receber " : Number(entry.net) < 0 ? "A pagar " : ""}{Math.abs(Number(entry.net)).toLocaleString("pt-PT", { minimumFractionDigits: 2 })} {group.currency}</b>
                         </div>
                       ))}
@@ -876,6 +914,24 @@ export default function TripDetailPage() {
                     )}
                   </div>
                 ))}
+              </section>
+            )}
+            {balances.currencies.length > 0 && (
+              <section className="balances-panel" aria-labelledby="settlements-title">
+                <div><p className="eyebrow">PAGAMENTOS REGISTADOS</p><h2 id="settlements-title">Acertos efetuados</h2><p className="budget-description">Regista transferências reais entre participantes. O saldo em aberto é recalculado automaticamente.</p></div>
+                {accessRole !== "viewer" && (
+                  <form className="expense-form" onSubmit={(event) => void saveSettlement(event)}>
+                    <label>Moeda<select value={settlementCurrency} onChange={(event) => setSettlementCurrency(event.target.value)}>{balances.currencies.map((group) => <option key={group.currency} value={group.currency}>{group.currency}</option>)}</select></label>
+                    <label>Quem paga<select required value={settlementFrom} onChange={(event) => setSettlementFrom(event.target.value)}><option value="">Selecionar devedor</option>{selectedSettlementBalance?.participants.filter((entry) => Number(entry.net) < 0).map((entry) => <option key={entry.participant_id} value={entry.participant_id}>{entry.name}</option>)}</select></label>
+                    <label>Quem recebe<select required value={settlementTo} onChange={(event) => setSettlementTo(event.target.value)}><option value="">Selecionar credor</option>{selectedSettlementBalance?.participants.filter((entry) => Number(entry.net) > 0).map((entry) => <option key={entry.participant_id} value={entry.participant_id}>{entry.name}</option>)}</select></label>
+                    <label>Valor<input required type="number" min="0.01" step="0.01" value={settlementAmount} onChange={(event) => setSettlementAmount(event.target.value)} placeholder="0,00" /></label>
+                    <label>Notas<input maxLength={1000} value={settlementNotes} onChange={(event) => setSettlementNotes(event.target.value)} placeholder="Opcional" /></label>
+                    <button className="primary-button" type="submit" disabled={saving || !settlementFrom || !settlementTo || settlementFrom === settlementTo}>{saving ? "A guardar..." : "Registar pagamento"}</button>
+                  </form>
+                )}
+                {settlements.length === 0 ? <p className="notice">Ainda não foram registados pagamentos.</p> : <div className="settlement-list">{settlements.map((item) => (
+                  <p key={item.id}><strong>{participants.find((participant) => participant.id === item.from_participant_id)?.name ?? "Participante"}</strong> pagou <strong>{Number(item.amount).toLocaleString("pt-PT", { minimumFractionDigits: 2 })} {item.currency}</strong> a <strong>{participants.find((participant) => participant.id === item.to_participant_id)?.name ?? "Participante"}</strong> · {new Date(item.paid_at).toLocaleDateString("pt-PT")}{item.notes ? " · " + item.notes : ""}</p>
+                ))}</div>}
               </section>
             )}
             <section className="activity-panel" aria-labelledby="activity-title">
