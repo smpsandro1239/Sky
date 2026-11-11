@@ -9,6 +9,7 @@ from app.models.invitation import TripInvitation
 from app.models.participant import TripParticipant
 from app.models.participant_budget import ParticipantBudget
 from app.models.price_observation import PriceObservation
+from app.models.price_alert import PriceAlert
 from app.models.settlement import TripSettlement
 from app.models.trip import Trip
 from app.models.trip_budget_plan import TripBudgetPlan
@@ -16,5 +17,5 @@ from app.models.user import User
 
 __all__ = [
     "User", "Trip", "Flight", "Accommodation", "Expense", "TripActivity",
-    "ExpenseShare", "TripParticipant", "ParticipantBudget", "TripInvitation", "AuthIdentity", "TripSettlement", "HotelFavorite", "TripBudgetPlan", "PriceObservation",
+    "ExpenseShare", "TripParticipant", "ParticipantBudget", "TripInvitation", "AuthIdentity", "TripSettlement", "HotelFavorite", "TripBudgetPlan", "PriceObservation", "PriceAlert",
 ]
