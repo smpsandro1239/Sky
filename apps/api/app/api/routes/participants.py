@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
 from app.core.activity import record_trip_activity
+from app.core.notifications import add_notification
 from app.api.routes.trips import get_accessible_trip, get_user_trip
 from app.models.expense import Expense
 from app.models.expense_share import ExpenseShare
@@ -101,6 +102,16 @@ def update_participant(
             entity_type="participant", entity_id=participant.id,
             summary="alterou a permissão de um participante",
         )
+        if participant.user_id is not None and participant.user_id != user.id:
+            role_label = "editor" if participant.role == "editor" else "leitor"
+            add_notification(
+                db,
+                user_id=participant.user_id,
+                notification_type="trip_role_changed",
+                title="Permissões da viagem actualizadas",
+                message=f"A tua permissão na viagem {trip.name} foi alterada para {role_label}.",
+                metadata={"trip_id": str(trip.id), "participant_id": str(participant.id), "role": participant.role},
+            )
     db.commit()
     db.refresh(participant)
     return ParticipantResponse.model_validate(participant).model_copy(
