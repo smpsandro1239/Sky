@@ -8,7 +8,7 @@
 | `support` | Apoio ao cliente | Consultar a lista administrativa limitada de contas. Não pode alterar papéis nem executar operações de administração. |
 | `admin` | Administração da plataforma | Consultar contas e atribuir/remover papéis globais. |
 
-O registo público atribui sempre `traveler`. A atribuição inicial de administrador é feita apenas para emails explicitamente incluídos em `SKY_ADMIN_EMAILS`, uma variável de ambiente separada por vírgulas. A conta tem de iniciar sessão depois de a variável estar configurada.
+O registo público atribui sempre `traveler`. Um endereço de email numa lista de configuração nunca é prova de titularidade e não concede privilégios. A primeira conta `admin` deve ser provisionada apenas depois de a identidade do titular ser confirmada por um processo operacional seguro; a atribuição deve ser feita por um operador autorizado diretamente na base de dados, sem expor credenciais ou criar endpoints públicos de bootstrap. O início de sessão nunca promove automaticamente uma conta.
 
 ## Papéis por viagem
 
