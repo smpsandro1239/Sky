@@ -2,7 +2,7 @@
 
 ## Estado
 
-A API FastAPI disponibiliza saúde, autenticação, gestão de viagens, voos, alojamentos, despesas, participantes, partilhas e balanços de despesas. A pesquisa externa de voos e alojamentos tem adaptadores Amadeus em modo sandbox, condicionados à configuração de credenciais. Favoritos, recomendações e alertas continuam por implementar. A execução da CI e dos testes deve ser consultada no GitHub Actions.
+A API FastAPI disponibiliza saúde, autenticação, gestão de viagens, voos, alojamentos, despesas, participantes, partilhas e balanços de despesas. A pesquisa externa de voos e alojamentos tem adaptadores Amadeus em modo sandbox, condicionados à configuração de credenciais. Os favoritos de hotéis são privados por utilizador. Recomendações e alertas de preço continuam por implementar. A execução da CI e dos testes deve ser consultada no GitHub Actions.
 
 ## Base path
 
@@ -26,6 +26,9 @@ Formato: JSON. A aplicação disponibiliza documentação OpenAPI em `/docs` e R
 | DELETE | `/trips/{trip_id}` | Bearer | Eliminar uma viagem própria |
 | GET | `/flights/search` | Bearer | Pesquisar ofertas externas Amadeus por rota, data, passageiros e moeda (requer credenciais) |
 | GET | `/hotels/search` | Bearer | Pesquisar alojamentos e ofertas Amadeus por cidade IATA, datas, ocupação, raio e moeda (requer credenciais) |
+| GET | `/hotels/favorites` | Bearer | Listar favoritos de hotéis do utilizador autenticado |
+| POST | `/hotels/favorites` | Bearer | Guardar um hotel nos favoritos (operação idempotente por utilizador e hotel) |
+| DELETE | `/hotels/favorites/{favorite_id}` | Bearer | Remover um favorito próprio |
 | GET | `/trips/{trip_id}/flights` | Bearer | Listar voos associados à viagem |
 | POST | `/trips/{trip_id}/flights` | Bearer | Associar um voo à viagem |
 | PATCH | `/trips/{trip_id}/flights/{flight_id}` | Bearer | Atualizar um voo |
@@ -163,6 +166,16 @@ A resposta contém `items`, `limit`, `offset` e `has_more`. O limite predefinido
 
 São registadas criações e alterações da viagem, despesas, voos, alojamentos, participantes, convites e divisões de despesas, bem como a aceitação e revogação de convites. A eliminação da própria viagem elimina também o respetivo histórico.
 
+### Favoritos de hotéis
+
+Os favoritos são associados à conta autenticada e não a uma viagem. O endpoint `GET /hotels/favorites` devolve apenas os favoritos do utilizador. Para guardar um hotel, enviar `POST /hotels/favorites` com o identificador estável do hotel devolvido pelo Amadeus, o nome, a localização e o fornecedor:
+
+```json
+{ "provider": "amadeus", "hotel_id": "HOTEL_REFERENCE", "hotel_name": "Hotel Central", "location": "Lisboa, PT" }
+```
+
+Repetir o pedido para o mesmo `hotel_id` não cria duplicados: devolve o favorito existente. A remoção usa `DELETE /hotels/favorites/{favorite_id}` e só é permitida ao proprietário do favorito. A lista e as operações não representam uma reserva nem garantem preços ou disponibilidade.
+
 ### Códigos HTTP
 
 - `201`: recurso criado.
@@ -181,9 +194,6 @@ São registadas criações e alterações da viagem, despesas, voos, alojamentos
 | POST | `/search/hotels` | Pesquisar alojamento em fornecedores externos |
 | GET | `/offers/{offer_id}` | Consultar oferta normalizada |
 | POST | `/recommendations` | Calcular recomendações |
-| GET | `/favorites` | Listar favoritos |
-| POST | `/favorites` | Guardar favorito |
-| DELETE | `/favorites/{favorite_id}` | Remover favorito |
 | POST | `/price-alerts` | Criar alerta de preço |
 
 A pesquisa Amadeus de alojamentos consulta hotéis por código de cidade IATA e depois procura ofertas para as datas e ocupação indicadas. A disponibilidade e os preços são devolvidos pelo fornecedor no momento da pesquisa, podem mudar e não constituem uma reserva. Os endpoints de alojamentos associados à viagem continuam a gerir apenas os registos guardados; não efetuam reservas.
