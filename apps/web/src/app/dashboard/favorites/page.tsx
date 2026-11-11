@@ -79,11 +79,16 @@ export default function HotelFavoritesPage() {
   }, [router]);
 
   const visibleFavorites = useMemo(() => {
-    const term = search.trim().toLocaleLowerCase("pt-PT");
+    const normalizeSearchText = (value: string) => value
+      .normalize("NFD")
+      .replace(/[\\u0300-\\u036f]/g, "")
+      .toLocaleLowerCase("pt-PT")
+      .trim();
+    const term = normalizeSearchText(search);
     return [...favorites]
       .filter((favorite) => !term
-        || favorite.hotel_name.toLocaleLowerCase("pt-PT").includes(term)
-        || favorite.location.toLocaleLowerCase("pt-PT").includes(term))
+        || normalizeSearchText(favorite.hotel_name).includes(term)
+        || normalizeSearchText(favorite.location).includes(term))
       .sort((first, second) => sort === "name"
         ? first.hotel_name.localeCompare(second.hotel_name, "pt-PT")
         : second.created_at.localeCompare(first.created_at));
