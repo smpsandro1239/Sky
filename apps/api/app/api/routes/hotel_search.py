@@ -1,4 +1,5 @@
 from datetime import date
+from uuid import UUID
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
@@ -176,7 +177,7 @@ def create_hotel_favorite(
 
 @router.delete("/favorites/{favorite_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_hotel_favorite(
-    favorite_id: str,
+    favorite_id: UUID,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> Response:
