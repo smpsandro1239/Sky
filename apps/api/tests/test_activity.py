@@ -79,6 +79,21 @@ def test_trip_activity_records_changes_and_supports_pagination(client: TestClien
     assert older.json()["items"][0]["action"] == "created"
     assert older.json()["has_more"] is False
 
+    filtered = client.get(
+        f"/api/v1/trips/{trip_id}/activity?actor_name=Activity%20Tester&entity_type=trip&action=updated",
+        headers=headers,
+    )
+    assert filtered.status_code == 200
+    assert len(filtered.json()["items"]) == 1
+    assert filtered.json()["items"][0]["summary"] == "atualizou os dados da viagem"
+
+    no_matches = client.get(
+        f"/api/v1/trips/{trip_id}/activity?entity_type=expense",
+        headers=headers,
+    )
+    assert no_matches.status_code == 200
+    assert no_matches.json()["items"] == []
+
 
 def test_trip_activity_requires_access_to_trip(client: TestClient) -> None:
     owner_token = register_and_login(client, "activity-private@example.com")
