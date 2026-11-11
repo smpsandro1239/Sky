@@ -159,6 +159,15 @@ export default function TripDetailPage() {
     currencyA.localeCompare(currencyB),
   );
 
+  const budgetComparison = trip?.budget_amount !== null && trip?.budget_amount !== undefined
+    ? (() => {
+        const budget = Number(trip.budget_amount);
+        if (!Number.isFinite(budget) || budget < 0) return null;
+        const budgetCents = Math.round(budget * 100);
+        const spentCents = totalsByCurrency[trip.budget_currency] ?? 0;
+        return { budgetCents, spentCents, differenceCents: budgetCents - spentCents, percentage: budgetCents > 0 ? (spentCents / budgetCents) * 100 : spentCents > 0 ? 100 : 0, otherCurrencies: currencyTotals.filter(([currency]) => currency !== trip.budget_currency).map(([currency]) => currency) };
+      })()
+    : null;
   const costTypeBreakdown = [...flights.map((item) => ({
     currency: item.price_currency,
     type: "flights",
@@ -855,6 +864,21 @@ export default function TripDetailPage() {
                 })()}
               </form>}
             </section>
+            {budgetComparison && (
+              <section className="budget-summary" aria-labelledby="budget-comparison-title">
+                <div><p className="eyebrow">ORÇAMENTO VS. CUSTOS REGISTADOS</p><h2 id="budget-comparison-title">Utilização do orçamento</h2><p className="budget-description">Compara o limite definido com os custos já registados na moeda do orçamento. Não inclui estimativas de custos ainda não introduzidos.</p></div>
+                <div className="budget-total-list">
+                  <div className="budget-total"><span>Orçamento definido</span><strong>{(budgetComparison.budgetCents / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {trip.budget_currency}</strong></div>
+                  <div className="budget-total"><span>Custos registados</span><strong>{(budgetComparison.spentCents / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {trip.budget_currency}</strong></div>
+                  <div className="budget-total"><span>{budgetComparison.differenceCents >= 0 ? "Disponível" : "Acima do orçamento"}</span><strong className={budgetComparison.differenceCents >= 0 ? "budget-balance" : "budget-balance budget-over"}>{(Math.abs(budgetComparison.differenceCents) / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {trip.budget_currency}</strong></div>
+                </div>
+                <div className="budget-usage">
+                  <div className="budget-usage-heading"><strong>{Math.round(budgetComparison.percentage)}% utilizado</strong><span>{budgetComparison.percentage > 100 ? "Limite ultrapassado" : "Do orçamento definido"}</span></div>
+                  <div className="budget-usage-track" role="progressbar" aria-label="Percentagem do orçamento utilizada" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.min(100, Math.max(0, budgetComparison.percentage))}><span className={budgetComparison.percentage > 100 ? "budget-usage-over" : ""} style={{ width: Math.min(100, Math.max(0, budgetComparison.percentage)) + "%" }} /></div>
+                </div>
+                {budgetComparison.otherCurrencies.length > 0 && <p className="notice">Existem também custos noutras moedas ({budgetComparison.otherCurrencies.join(", ")}), que não são incluídos nesta comparação.</p>}
+              </section>
+            )}
             {(flights.length > 0 || accommodations.length > 0 || expenses.length > 0) && (
               <section className="budget-summary" aria-labelledby="budget-summary-title">
                 <div>
