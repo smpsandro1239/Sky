@@ -12,7 +12,7 @@ class NotificationResponse(BaseModel):
     title: str
     message: str
     link: str | None
-    metadata_json: dict = Field(validation_alias="metadata")
+    metadata_json: dict
     read_at: datetime | None
     created_at: datetime
 
