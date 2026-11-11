@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: sky-api
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./apps/api/Dockerfile
+    dockerContext: ./apps/api
+    healthCheckPath: /api/v1/health
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: SKY_ENV
+        value: production
+      - key: SKY_SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: FRONTEND_URL
+        value: https://sky-eight-mocha.vercel.app
+      - key: CORS_ORIGINS
+        value: https://sky-eight-mocha.vercel.app
