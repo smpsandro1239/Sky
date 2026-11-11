@@ -312,6 +312,25 @@ export default function TripDetailPage() {
     }
   }
 
+  async function updateParticipantRole(id: string, role: "editor" | "viewer") {
+    setError("");
+    try {
+      const response = await fetch(`/api/backend/trips/${tripId}/participants/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setError(typeof data.detail === "string" ? data.detail : "Não foi possível atualizar a permissão.");
+        return;
+      }
+      setParticipants((current) => current.map((participant) => participant.id === id ? data : participant));
+    } catch {
+      setError("Não foi possível contactar a API. Tenta novamente.");
+    }
+  }
+
   async function removeParticipant(id: string) {
     if (!window.confirm("Queres mesmo remover este participante da viagem?")) return;
     setError("");
@@ -750,8 +769,8 @@ export default function TripDetailPage() {
               <div className="participant-list">
                 {participants.length === 0 ? <p className="notice">Ainda não foram adicionados participantes.</p> : participants.map((participant) => (
                   <article className="participant-item" key={participant.id}>
-                    <div><strong>{participant.name}</strong>{participant.email && <span>{participant.email}</span>}</div>
-                    {accessRole === "owner" && <button className="delete-button" type="button" onClick={() => void removeParticipant(participant.id)}>Remover</button>}
+                    <div><strong>{participant.name}</strong>{participant.email && <span>{participant.email}</span>}<span>{participant.role === "editor" ? "Editor" : "Leitor"}</span></div>
+                    {accessRole === "owner" && <div className="trip-action-buttons"><label className="participant-role-control">Permissão<select value={participant.role} onChange={(event) => void updateParticipantRole(participant.id, event.target.value as "editor" | "viewer")}><option value="viewer">Leitor</option><option value="editor">Editor</option></select></label><button className="delete-button" type="button" onClick={() => void removeParticipant(participant.id)}>Remover</button></div>}
                   </article>
                 ))}
               </div>
