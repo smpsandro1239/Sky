@@ -51,6 +51,6 @@ def send_trip_invitation_email(
                     smtp.login(settings.smtp_username, settings.smtp_password or "")
                 smtp.send_message(message)
     except (OSError, smtplib.SMTPException):
-        logger.exception("Falha ao enviar convite SKY para %s.", to_email)
+        logger.exception("Falha ao enviar convite SKY por SMTP.")
         return False
     return True
