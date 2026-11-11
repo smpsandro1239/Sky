@@ -33,7 +33,11 @@ class Settings:
 
     def validate_security(self) -> None:
         if self.environment == "production":
-            if (\n                self.secret_key.startswith("dev-only-")\n                or "replace-with" in self.secret_key.lower()\n                or len(self.secret_key) < 32\n            ):
+            if (
+                self.secret_key.startswith("dev-only-")
+                or "replace-with" in self.secret_key.lower()
+                or len(self.secret_key) < 32
+            ):
                 raise RuntimeError("Em produção, SKY_SECRET_KEY tem de ter pelo menos 32 caracteres e ser única.")
         if self.smtp_port < 1 or self.smtp_port > 65535:
             raise RuntimeError("SMTP_PORT tem de estar entre 1 e 65535.")
