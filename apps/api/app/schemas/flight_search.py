@@ -57,4 +57,5 @@ class FlightSearchOffer(BaseModel):
 class FlightSearchResponse(BaseModel):
     provider: Literal["amadeus"]
     results_count: int
+    search_key: str
     offers: list[FlightSearchOffer]
