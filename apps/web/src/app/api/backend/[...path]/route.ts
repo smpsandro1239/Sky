@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { isSameOriginMutation } from "../../../../lib/security/csrf";
 
 const API_URL = process.env.API_INTERNAL_URL ?? "http://localhost:8000";
 const UUID_PATTERN = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}";
@@ -49,6 +50,16 @@ async function proxyRequest(
 
   if (!allowed) {
     return NextResponse.json({ detail: "Recurso ou operação não permitido." }, { status: 404 });
+  }
+
+  if (method !== "GET" && !isSameOriginMutation(request)) {
+    return NextResponse.json(
+      { detail: "Pedido rejeitado: origem não autorizada." },
+      {
+        status: 403,
+        headers: { "Cache-Control": "no-store" },
+      },
+    );
   }
 
   const cookieStore = await cookies();
