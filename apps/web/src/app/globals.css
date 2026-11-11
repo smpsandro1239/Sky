@@ -597,3 +597,6 @@ footer { border-top: 1px solid #1c3043; padding: 25px 28px; text-align: center; 
 .trip-budget-plans-panel .participant-budget-form input[type="month"] { color-scheme: dark; }
 @media (max-width: 980px) { .trip-budget-plans-panel .participant-budget-form { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 520px) { .trip-budget-plans-panel .participant-budget-form { grid-template-columns: 1fr; } }
+
+.budget-alert-near { color: #e8bd69 !important; font-weight: 700; }
+.budget-alert-over { color: #e58a78 !important; font-weight: 800; }
