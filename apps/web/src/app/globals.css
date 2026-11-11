@@ -538,3 +538,22 @@ footer { border-top: 1px solid #1c3043; padding: 25px 28px; text-align: center; 
   .financial-report-print footer { margin-top: 24px; padding-top: 8px; border-top: 1px solid #bbb; font-size: 8pt; }
   .financial-report-print section, .financial-report-print table tr { break-inside: avoid; }
 }
+
+
+/* Participant paid versus allocated share comparison */
+.participant-comparison { display: grid; gap: 16px; margin: 18px 0 8px; }
+.participant-comparison-row { display: grid; grid-template-columns: minmax(120px, .65fr) minmax(0, 1.35fr); gap: 14px; align-items: center; }
+.participant-comparison-row > strong { overflow-wrap: anywhere; font-size: 13px; }
+.participant-comparison-values { display: grid; grid-template-columns: 1fr minmax(70px, 1.2fr); gap: 6px 12px; align-items: center; }
+.participant-comparison-values > span { color: var(--muted); font-size: 11px; }
+.participant-comparison-values b { color: var(--foreground); font-size: 12px; }
+.participant-comparison-track { height: 8px; overflow: hidden; border-radius: 99px; background: #263c50; }
+.participant-comparison-track > span { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
+.participant-quota-track > span { background: #d69a54; }
+.participant-comparison-legend { display: flex; flex-wrap: wrap; gap: 16px; color: var(--muted); font-size: 11px; }
+.participant-comparison-legend span { display: inline-flex; align-items: center; gap: 7px; }
+.participant-comparison-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; }
+.participant-paid-key { background: var(--accent); }
+.participant-quota-key { background: #d69a54; }
+@media (max-width: 600px) { .participant-comparison-row { grid-template-columns: 1fr; gap: 7px; } }
+@media print { .participant-comparison-track { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
