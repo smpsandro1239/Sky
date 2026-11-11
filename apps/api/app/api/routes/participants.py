@@ -35,9 +35,11 @@ def create_participant(
     participant = TripParticipant(trip_id=trip.id, **payload.model_dump())
     db.add(participant)
     db.flush()
-    record_trip_activity(db, trip_id=trip.id, actor=user, action="created", entity_type="participant", entity_id=participant.id, summary="adicionou um participante")
-    if previous_role != participant.role:
-        record_trip_activity(db, trip_id=trip.id, actor=user, action="updated", entity_type="participant", entity_id=participant.id, summary="alterou a permissão de um participante")
+    record_trip_activity(
+        db, trip_id=trip.id, actor=user, action="created",
+        entity_type="participant", entity_id=participant.id,
+        summary="adicionou um participante",
+    )
     db.commit()
     db.refresh(participant)
     return ParticipantResponse.model_validate(participant).model_copy(
@@ -93,6 +95,12 @@ def update_participant(
         ).all()
         for invitation in pending_invitations:
             invitation.role = payload.role
+    if previous_role != participant.role:
+        record_trip_activity(
+            db, trip_id=trip.id, actor=user, action="updated",
+            entity_type="participant", entity_id=participant.id,
+            summary="alterou a permissão de um participante",
+        )
     db.commit()
     db.refresh(participant)
     return ParticipantResponse.model_validate(participant).model_copy(
@@ -127,7 +135,11 @@ def delete_participant(
             status_code=409,
             detail="Não é possível remover este participante enquanto estiver associado a despesas como pagador ou participante.",
         )
-    record_trip_activity(db, trip_id=trip.id, actor=user, action="deleted", entity_type="participant", entity_id=participant.id, summary="removeu um participante")
+    record_trip_activity(
+        db, trip_id=trip.id, actor=user, action="deleted",
+        entity_type="participant", entity_id=participant.id,
+        summary="removeu um participante",
+    )
     db.delete(participant)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
