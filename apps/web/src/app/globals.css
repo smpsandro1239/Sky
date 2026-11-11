@@ -509,3 +509,32 @@ footer { border-top: 1px solid #1c3043; padding: 25px 28px; text-align: center; 
   .financial-movement { align-items: flex-start; flex-direction: column; }
   .financial-movement-values { text-align: left; white-space: normal; }
 }
+
+
+/* Printable trip financial report */
+.financial-report-print { display: none; }
+@media print {
+  @page { size: A4; margin: 16mm; }
+  body * { visibility: hidden !important; }
+  .financial-report-print, .financial-report-print * { visibility: visible !important; }
+  .financial-report-print {
+    display: block !important;
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    color: #111 !important;
+    background: #fff !important;
+    font: 10pt/1.45 Arial, sans-serif;
+  }
+  .financial-report-print header { border-bottom: 2px solid #222; padding-bottom: 12px; margin-bottom: 18px; }
+  .financial-report-print header > p:first-child { font-weight: 700; letter-spacing: .12em; }
+  .financial-report-print h1 { margin: 8px 0; font-size: 24pt; }
+  .financial-report-print h2 { margin: 18px 0 8px; font-size: 15pt; break-after: avoid; }
+  .financial-report-print h3 { margin: 12px 0 5px; font-size: 11pt; }
+  .financial-report-print p { margin: 5px 0; }
+  .financial-report-print table { width: 100%; border-collapse: collapse; margin: 5px 0 12px; font-size: 9pt; }
+  .financial-report-print th, .financial-report-print td { padding: 6px 8px; border: 1px solid #bbb; text-align: left; }
+  .financial-report-print td { text-align: right; }
+  .financial-report-print footer { margin-top: 24px; padding-top: 8px; border-top: 1px solid #bbb; font-size: 8pt; }
+  .financial-report-print section, .financial-report-print table tr { break-inside: avoid; }
+}
