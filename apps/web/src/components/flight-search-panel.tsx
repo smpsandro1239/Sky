@@ -37,6 +37,7 @@ type SavedFlight = {
 type FlightSearchResponse = {
   provider: "amadeus";
   results_count: number;
+  search_key: string;
   offers: FlightOffer[];
 };
 
