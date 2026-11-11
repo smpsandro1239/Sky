@@ -66,3 +66,20 @@ def get_current_user(
     if user is None or not user.is_active:
         raise unauthorized
     return user
+
+
+def require_roles(*allowed_roles: str):
+    """Dependency factory para autorizar apenas os papéis indicados."""
+    valid_roles = {"traveler", "support", "admin"}
+    if not allowed_roles or not set(allowed_roles) <= valid_roles:
+        raise ValueError("Foi configurado um papel de acesso SKY inválido.")
+
+    def role_dependency(user: User = Depends(get_current_user)) -> User:
+        if user.role not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Não tens permissões para executar esta operação.",
+            )
+        return user
+
+    return role_dependency
