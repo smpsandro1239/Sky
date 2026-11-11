@@ -40,12 +40,24 @@ def get_trip_balances(
         select(Expense).where(Expense.trip_id == trip.id).order_by(Expense.expense_date, Expense.id)
     ).all())
     unallocated_expenses: dict[str, list[dict[str, str]]] = defaultdict(list)
+    expense_totals: dict[str, dict[str, Decimal]] = defaultdict(lambda: {
+        "total_expenses": Decimal("0.00"),
+        "total_paid": Decimal("0.00"),
+        "total_allocated": Decimal("0.00"),
+    })
     for expense in expenses:
         shares = list(db.scalars(
             select(ExpenseShare).where(ExpenseShare.expense_id == expense.id)
         ).all())
+        ledger[expense.currency]
+        expense_totals[expense.currency]["total_expenses"] += expense.amount
+        if expense.paid_by_participant_id is not None:
+            expense_totals[expense.currency]["total_paid"] += expense.amount
+        if shares:
+            expense_totals[expense.currency]["total_allocated"] += sum(
+                (share.amount for share in shares), Decimal("0.00")
+            )
         if expense.paid_by_participant_id is None or not shares:
-            ledger[expense.currency]
             unallocated_expenses[expense.currency].append({
                 "expense_id": str(expense.id),
                 "description": expense.description,
@@ -107,12 +119,14 @@ def get_trip_balances(
                 creditor_index += 1
             if debtor["cents"] == 0:
                 debtor_index += 1
-        total_paid = sum((values["paid"] for values in ledger[currency].values()), Decimal("0.00"))
-        total_allocated = sum((values["owed"] for values in ledger[currency].values()), Decimal("0.00"))
+        total_expenses = expense_totals[currency]["total_expenses"]
+        total_paid = expense_totals[currency]["total_paid"]
+        total_allocated = expense_totals[currency]["total_allocated"]
         total_sent = sum((values["settled_sent"] for values in ledger[currency].values()), Decimal("0.00"))
         total_received = sum((values["settled_received"] for values in ledger[currency].values()), Decimal("0.00"))
         net_total = sum((Decimal(row["net"]) for row in rows), Decimal("0.00"))
         reconciliation = {
+            "total_expenses": str(total_expenses.quantize(Decimal("0.01"))),
             "total_paid": str(total_paid.quantize(Decimal("0.01"))),
             "total_allocated": str(total_allocated.quantize(Decimal("0.01"))),
             "expense_difference": str((total_paid - total_allocated).quantize(Decimal("0.01"))),
