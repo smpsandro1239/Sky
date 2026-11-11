@@ -1,6 +1,17 @@
-import { NextResponse } from "next/server";
-
 const API_URL = process.env.API_INTERNAL_URL ?? "http://localhost:8000";
+
+type LoginResponse = {
+  access_token?: unknown;
+  expires_in?: unknown;
+  detail?: unknown;
+};
+
+function jsonResponse(body: unknown, status = 200) {
+  return Response.json(body, {
+    status,
+    headers: { "Cache-Control": "no-store" },
+  });
+}
 
 export async function POST(request: Request) {
   let payload: { email?: string; password?: string };
@@ -8,7 +19,7 @@ export async function POST(request: Request) {
   try {
     payload = await request.json();
   } catch {
-    return NextResponse.json({ detail: "Pedido inválido." }, { status: 400 });
+    return jsonResponse({ detail: "Pedido inválido." }, 400);
   }
 
   const loginResponse = await fetch(`${API_URL}/api/v1/auth/login`, {
@@ -19,39 +30,79 @@ export async function POST(request: Request) {
   }).catch(() => null);
 
   if (!loginResponse) {
-    return NextResponse.json(
+    return jsonResponse(
       { detail: "Não foi possível contactar a API SKY." },
-      { status: 502 },
+      502,
     );
   }
 
-  const loginData = await loginResponse.json().catch(() => ({}));
+  const loginData = (await loginResponse.json().catch(() => null)) as LoginResponse | null;
   if (!loginResponse.ok) {
-    return NextResponse.json(
-      { detail: loginData.detail ?? "Não foi possível iniciar sessão." },
-      { status: loginResponse.status },
+    return jsonResponse(
+      {
+        detail:
+          typeof loginData?.detail === "string"
+            ? loginData.detail
+            : "Não foi possível iniciar sessão.",
+      },
+      loginResponse.status,
     );
   }
 
-  const profileResponse = await fetch(`${API_URL}/api/v1/auth/me`, {
-    headers: { Authorization: `Bearer ${loginData.access_token}` },
-    cache: "no-store",
-  });
+  if (
+    typeof loginData?.access_token !== "string" ||
+    loginData.access_token.trim().length === 0 ||
+    typeof loginData.expires_in !== "number" ||
+    !Number.isSafeInteger(loginData.expires_in) ||
+    loginData.expires_in <= 0
+  ) {
+    return jsonResponse(
+      { detail: "A API SKY devolveu uma resposta de autenticação inválida." },
+      502,
+    );
+  }
+
+  let profileResponse: Response;
+  try {
+    profileResponse = await fetch(`${API_URL}/api/v1/auth/me`, {
+      headers: { Authorization: `Bearer ${loginData.access_token}` },
+      cache: "no-store",
+    });
+  } catch {
+    return jsonResponse(
+      { detail: "A sessão foi iniciada, mas não foi possível contactar o serviço de perfil." },
+      502,
+    );
+  }
 
   if (!profileResponse.ok) {
-    return NextResponse.json(
+    return jsonResponse(
       { detail: "A sessão foi iniciada, mas não foi possível carregar o perfil." },
-      { status: 502 },
+      502,
     );
   }
 
-  const response = NextResponse.json(await profileResponse.json());
-  response.cookies.set("sky_access_token", loginData.access_token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: loginData.expires_in,
-  });
+  const profile = await profileResponse.json().catch(() => null);
+  if (profile === null || typeof profile !== "object" || Array.isArray(profile)) {
+    return jsonResponse(
+      { detail: "O serviço de perfil devolveu uma resposta inválida." },
+      502,
+    );
+  }
+
+  const response = jsonResponse(profile);
+  const cookieAttributes = [
+    `sky_access_token=${encodeURIComponent(loginData.access_token)}`,
+    "HttpOnly",
+    "SameSite=Lax",
+    "Path=/",
+    `Max-Age=${loginData.expires_in}`,
+  ];
+
+  if (process.env.NODE_ENV === "production") {
+    cookieAttributes.push("Secure");
+  }
+
+  response.headers.append("Set-Cookie", cookieAttributes.join("; "));
   return response;
 }
