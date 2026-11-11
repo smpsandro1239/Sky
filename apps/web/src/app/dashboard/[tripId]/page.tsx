@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import FlightSearchPanel from "@/components/flight-search-panel";
+import HotelSearchPanel from "@/components/hotel-search-panel";
 
 type Trip = {
   id: string;
@@ -1037,6 +1038,14 @@ export default function TripDetailPage() {
             </div>
 
             <div className="section-heading"><div><p className="eyebrow">ESTADIA</p><h2>Alojamentos</h2></div></div>
+            <HotelSearchPanel
+              tripId={tripId}
+              canEdit={accessRole !== "viewer"}
+              onAccommodationSaved={(accommodation) => {
+                setAccommodations((current) => [...current, accommodation].sort((a, b) => a.check_in.localeCompare(b.check_in)));
+                void refreshActivity();
+              }}
+            />
             {accessRole !== "viewer" && <form className="trip-create-form" onSubmit={saveAccommodation}>
               <h3>{editingAccommodationId ? "Editar alojamento" : "Adicionar alojamento"}</h3>
               <div className="trip-form-grid">
