@@ -19,13 +19,15 @@ Definir a linha de base de segurança e documentar os controlos já implementado
 - As operações de viagens, voos, alojamentos, despesas e partilhas validam o papel do utilizador (proprietário, editor ou leitor) no servidor.
 - Só o proprietário pode gerir participantes, convites, papéis, metadados e orçamento da viagem.
 - Os tokens de convite são aleatórios, armazenados como hash SHA-256, têm validade de 7 dias e são de utilização única.
+- O envio de convites por email é opcional e usa SMTP configurado por ambiente. Quando ativado, exige STARTTLS ou SSL; host e remetente têm de ser definidos em conjunto e as credenciais têm de estar completas.
+- A API devolve `email_sent` para distinguir o envio concluído de um convite criado apenas para partilha manual. Falhas de SMTP não invalidam o convite nem expõem credenciais.
 - O frontend usa Route Handlers Next.js como BFF.
 - O JWT é guardado num cookie `HttpOnly`, `SameSite=Lax`, com `Secure` em produção e expiração limitada ao tempo de vida do token.
 - O token não é exposto ao JavaScript do browser nem guardado em localStorage.
 - O endpoint BFF de leitura tem uma allowlist dos recursos autorizados.
 
 Pendências antes de produção:
-- Testes de integração e E2E do ciclo completo de autenticação.
+- Testes de integração e E2E do ciclo completo de autenticação e do envio SMTP num ambiente de teste controlado.
 - Estratégia de revogação/rotação de sessões e refresh tokens.
 - Rate limiting e proteção contra tentativas automatizadas de login.
 - Revisão de CSRF para operações mutáveis e política de origem.
