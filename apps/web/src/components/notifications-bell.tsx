@@ -43,7 +43,22 @@ export default function NotificationsBell() {
   }
 
   useEffect(() => {
-    void loadNotifications();
+    let active = true;
+    fetch("/api/backend/notifications?limit=20", { cache: "no-store" })
+      .then(async (response) => {
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(typeof payload.detail === "string" ? payload.detail : "Não foi possível carregar as notificações.");
+        return payload as NotificationPage;
+      })
+      .then((data) => {
+        if (!active) return;
+        setItems(data.items ?? []);
+        setUnreadCount(data.unread_count ?? 0);
+      })
+      .catch((cause: unknown) => {
+        if (active) setError(cause instanceof Error ? cause.message : "Erro ao carregar notificações.");
+      });
+    return () => { active = false; };
   }, []);
 
   async function markRead(notification: Notification) {
