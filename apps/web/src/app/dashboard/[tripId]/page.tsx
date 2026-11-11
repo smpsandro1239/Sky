@@ -262,11 +262,11 @@ export default function TripDetailPage() {
     ...expenses.flatMap((expense) => {
       const payer = participants.find((participant) => participant.id === expense.paid_by_participant_id);
       const paid = payer ? [{ id: "expense-paid-" + expense.id, date: expense.expense_date, participant_id: payer.id, participant_name: payer.name, currency: expense.currency, kind: "paid" as const, amount: Number(expense.amount), description: expense.description }] : [];
-      const shares = expenseShares.filter((share) => share.expense_id === expense.id).flatMap((share) => {
+      const shares = payer ? expenseShares.filter((share) => share.expense_id === expense.id).flatMap((share) => {
         const participant = participants.find((item) => item.id === share.participant_id);
         const amount = Number(share.amount);
         return participant && Number.isFinite(amount) ? [{ id: "expense-share-" + share.id, date: expense.expense_date, participant_id: participant.id, participant_name: participant.name, currency: expense.currency, kind: "owed" as const, amount, description: expense.description }] : [];
-      });
+      }) : [];
       return [...paid, ...shares];
     }),
     ...settlements.flatMap((settlement) => {
