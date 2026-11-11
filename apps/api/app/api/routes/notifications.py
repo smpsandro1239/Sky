@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
@@ -55,7 +55,6 @@ def mark_notification_read(
         Notification.user_id == user.id,
     ))
     if notification is None:
-        from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Notificação não encontrada.")
     if notification.read_at is None:
         notification.read_at = datetime.now(timezone.utc)
