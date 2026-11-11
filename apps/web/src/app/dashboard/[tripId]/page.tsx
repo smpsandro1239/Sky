@@ -36,7 +36,8 @@ type Accommodation = {
   price_currency: string;
 };
 type Expense = { id: string; category: string; description: string; expense_date: string; amount: string; currency: string; paid_by_participant_id: string | null; notes: string | null; };
-type TripBalances = { currencies: { currency: string; participants: { participant_id: string; name: string; paid: string; owed: string; net: string }[]; suggested_transfers: { from_participant_id: string; from_name: string; to_participant_id: string; to_name: string; amount: string }[] }[] };
+type TripBalances = { currencies: { currency: string; participants: { participant_id: string; name: string; paid: string; owed: string; settled_sent?: string; settled_received?: string; net: string }[]; suggested_transfers: { from_participant_id: string; from_name: string; to_participant_id: string; to_name: string; amount: string }[] }[] };
+type TripSettlement = { id: string; from_participant_id: string; to_participant_id: string; amount: string; currency: string; paid_at: string; notes: string | null };
 type Participant = { id: string; trip_id: string; name: string; email: string | null; role: "editor" | "viewer"; is_linked: boolean; created_at: string };
 type Invitation = { id: string; trip_id: string; email: string; status: string; expires_at: string; accepted_at: string | null; created_at: string };
 type CreatedInvitation = Invitation & { invitation_token: string; email_sent: boolean };
@@ -94,6 +95,12 @@ export default function TripDetailPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [balances, setBalances] = useState<TripBalances>({ currencies: [] });
+  const [settlements, setSettlements] = useState<TripSettlement[]>([]);
+  const [settlementCurrency, setSettlementCurrency] = useState("EUR");
+  const [settlementFrom, setSettlementFrom] = useState("");
+  const [settlementTo, setSettlementTo] = useState("");
+  const [settlementAmount, setSettlementAmount] = useState("");
+  const [settlementNotes, setSettlementNotes] = useState("");
   const [activity, setActivity] = useState<TripActivity[]>([]);
   const [activityHasMore, setActivityHasMore] = useState(false);
   const [activityOffset, setActivityOffset] = useState(0);
@@ -158,7 +165,7 @@ export default function TripDetailPage() {
 
     async function loadTrip() {
       try {
-        const [tripResponse, flightResponse, accommodationResponse, expenseResponse, participantResponse, balanceResponse, accessResponse, activityResponse] = await Promise.all([
+        const [tripResponse, flightResponse, accommodationResponse, expenseResponse, participantResponse, balanceResponse, accessResponse, activityResponse, settlementResponse] = await Promise.all([
           fetch(`/api/backend/trips/${tripId}`, { cache: "no-store" }),
           fetch(`/api/backend/trips/${tripId}/flights`, { cache: "no-store" }),
           fetch(`/api/backend/trips/${tripId}/accommodations`, { cache: "no-store" }),
@@ -167,20 +174,21 @@ export default function TripDetailPage() {
           fetch(`/api/backend/trips/${tripId}/balances`, { cache: "no-store" }),
           fetch(`/api/backend/trips/${tripId}/access`, { cache: "no-store" }),
           fetch(`/api/backend/trips/${tripId}/activity?limit=20&offset=0`, { cache: "no-store" }),
+          fetch(`/api/backend/trips/${tripId}/settlements`, { cache: "no-store" }),
         ]);
 
         if (cancelled) return;
 
-        if ([tripResponse, flightResponse, accommodationResponse, expenseResponse, participantResponse, balanceResponse, accessResponse, activityResponse].some((response) => response.status === 401)) {
+        if ([tripResponse, flightResponse, accommodationResponse, expenseResponse, participantResponse, balanceResponse, accessResponse, activityResponse, settlementResponse].some((response) => response.status === 401)) {
           router.replace("/login");
           return;
         }
 
-        if (!tripResponse.ok || !flightResponse.ok || !accommodationResponse.ok || !expenseResponse.ok || !participantResponse.ok || !balanceResponse.ok || !accessResponse.ok || !activityResponse.ok) {
+        if (!tripResponse.ok || !flightResponse.ok || !accommodationResponse.ok || !expenseResponse.ok || !participantResponse.ok || !balanceResponse.ok || !accessResponse.ok || !activityResponse.ok || !settlementResponse.ok) {
           throw new Error("Não foi possível carregar os dados desta viagem.");
         }
 
-        const [tripData, flightData, accommodationData, expenseData, participantData, balanceData, accessData, activityData] = await Promise.all([
+        const [tripData, flightData, accommodationData, expenseData, participantData, balanceData, accessData, activityData, settlementData] = await Promise.all([
           tripResponse.json(),
           flightResponse.json(),
           accommodationResponse.json(),
@@ -189,6 +197,7 @@ export default function TripDetailPage() {
           balanceResponse.json(),
           accessResponse.json(),
           activityResponse.json(),
+          settlementResponse.json(),
         ]);
 
         if (cancelled) return;
@@ -206,6 +215,8 @@ export default function TripDetailPage() {
         setExpenses(expenseData);
         setParticipants(participantData);
         setBalances(balanceData);
+        setSettlements(settlementData);
+        setSettlementCurrency(balanceData.currencies?.[0]?.currency ?? "EUR");
         setActivity(activityData.items ?? []);
         setActivityHasMore(Boolean(activityData.has_more));
         setActivityOffset(activityData.items?.length ?? 0);
