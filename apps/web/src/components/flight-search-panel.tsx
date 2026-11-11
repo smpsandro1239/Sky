@@ -17,6 +17,9 @@ type FlightOffer = {
   price_total: string;
   currency: string;
   number_of_stops: number;
+  duration_minutes: number | null;
+  recommendation_score: number | null;
+  recommendation_reasons: string[];
   itineraries: FlightSegment[][];
 };
 
@@ -240,7 +243,8 @@ export default function FlightSearchPanel({
             <article className="trip-card" key={offer.id}>
               <div>
                 <h3>{formatPrice(offer.price_total, offer.currency)}</h3>
-                <p>{offer.number_of_stops === 0 ? "Direto" : offer.number_of_stops + " escala(s)"} · Amadeus</p>
+                {offer.recommendation_score !== null && <p className="budget-description"><strong>Recomendação SKY · {offer.recommendation_score.toLocaleString("pt-PT", { maximumFractionDigits: 1 })}/100</strong>{offer.recommendation_reasons.length > 0 ? " · " + offer.recommendation_reasons.join(" · ") : ""}</p>}
+                <p>{offer.number_of_stops === 0 ? "Direto" : offer.number_of_stops + " escala(s)"} · {offer.duration_minutes !== null ? Math.floor(offer.duration_minutes / 60) + " h " + (offer.duration_minutes % 60) + " min" : "Duração indisponível"} · Amadeus</p>
                 {canEdit && (
                   <button className="secondary-button" type="button" disabled={savingOfferId !== null} onClick={() => void saveOffer(offer)}>
                     {savingOfferId === offer.id ? "A guardar..." : "Guardar na viagem"}
