@@ -426,3 +426,29 @@ def test_participant_email_cannot_be_duplicated_with_different_case(client: Test
         json={"name": "Pessoa duplicada", "email": "person@example.com"},
     )
     assert duplicate.status_code == 409
+
+
+def test_create_invitation_sends_email_and_reports_delivery(client: TestClient, monkeypatch) -> None:
+    owner = register_and_login(client, "owner-email-send@example.com")
+    trip_id = create_trip(client, owner)
+    captured: dict[str, str] = {}
+
+    def fake_send(**kwargs) -> bool:
+        captured.update(kwargs)
+        return True
+
+    monkeypatch.setattr(
+        "app.api.routes.invitations.send_trip_invitation_email",
+        fake_send,
+    )
+    response = client.post(
+        f"/api/v1/trips/{trip_id}/invitations",
+        headers=auth(owner),
+        json={"email": "guest-email-send@example.com", "role": "editor"},
+    )
+
+    assert response.status_code == 201
+    assert response.json()["email_sent"] is True
+    assert captured["to_email"] == "guest-email-send@example.com"
+    assert captured["role"] == "editor"
+    assert response.json()["invitation_token"] in captured["accept_url"]
