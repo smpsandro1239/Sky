@@ -46,6 +46,7 @@ export async function POST(request: Request) {
 
   if (
     typeof loginData?.access_token !== "string" ||
+    loginData.access_token.trim().length === 0 ||
     typeof loginData.expires_in !== "number" ||
     !Number.isFinite(loginData.expires_in) ||
     loginData.expires_in <= 0
