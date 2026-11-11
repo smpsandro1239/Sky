@@ -55,12 +55,22 @@ describe("POST /api/auth/login", () => {
     assert.equal(response.status, 502);
   });
 
-  it("rejects a successful login response with an invalid token payload", async () => {
-    mock.method(globalThis, "fetch", async () => jsonResponse({ access_token: "", expires_in: 3600 }));
+  it("rejects a successful login response with an empty token", async () => {
+    mock.method(globalThis, "fetch", async () => jsonResponse({ access_token: " ", expires_in: 3600 }));
 
     const response = await POST(request());
 
     assert.equal(response.status, 502);
+    assert.equal(response.headers.get("set-cookie"), null);
+  });
+
+  it("rejects a successful login response with an invalid expiry", async () => {
+    mock.method(globalThis, "fetch", async () => jsonResponse({ access_token: "valid-token", expires_in: "3600" }));
+
+    const response = await POST(request());
+
+    assert.equal(response.status, 502);
+    assert.equal(response.headers.get("set-cookie"), null);
   });
 
   it("returns 502 when the profile API cannot be reached", async () => {
@@ -77,6 +87,23 @@ describe("POST /api/auth/login", () => {
 
     assert.equal(calls, 2);
     assert.equal(response.status, 502);
+    assert.equal(response.headers.get("set-cookie"), null);
+  });
+
+  it("does not create a session cookie when the profile endpoint rejects the token", async () => {
+    let calls = 0;
+    mock.method(globalThis, "fetch", async () => {
+      calls += 1;
+      if (calls === 1) {
+        return jsonResponse({ access_token: "valid-token", expires_in: 3600 });
+      }
+      return jsonResponse({ detail: "Unauthorized" }, 401);
+    });
+
+    const response = await POST(request());
+
+    assert.equal(response.status, 502);
+    assert.equal(response.headers.get("set-cookie"), null);
   });
 
   it("does not create a session cookie when the profile response is not JSON", async () => {
