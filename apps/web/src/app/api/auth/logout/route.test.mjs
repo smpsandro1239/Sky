@@ -77,7 +77,7 @@ describe("POST /api/auth/logout", () => {
       },
     }));
 
-    assert.equal(calledUrl, "http://localhost:8000/api/v1/auth/logout");
+    assert.equal(calledUrl, "https://sky-api-cmm2.onrender.com/api/v1/auth/logout");
     assert.equal(calledAuthorization, "Bearer opaque-token");
     assert.equal(response.status, 200);
     assert.deepEqual(await response.json(), {
