@@ -45,10 +45,18 @@ def get_trip_balances(
         "total_paid": Decimal("0.00"),
         "total_allocated": Decimal("0.00"),
     })
+    shares_by_expense: dict[UUID, list[ExpenseShare]] = defaultdict(list)
+    if expenses:
+        all_shares = db.scalars(
+            select(ExpenseShare).where(
+                ExpenseShare.expense_id.in_([expense.id for expense in expenses])
+            )
+        ).all()
+        for share in all_shares:
+            shares_by_expense[share.expense_id].append(share)
+
     for expense in expenses:
-        shares = list(db.scalars(
-            select(ExpenseShare).where(ExpenseShare.expense_id == expense.id)
-        ).all())
+        shares = shares_by_expense.get(expense.id, [])
         ledger[expense.currency]
         expense_totals[expense.currency]["total_expenses"] += expense.amount
         if expense.paid_by_participant_id is not None:
