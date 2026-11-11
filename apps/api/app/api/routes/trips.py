@@ -5,6 +5,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
+from app.core.activity import record_trip_activity
 from app.models.trip import Trip
 from app.models.participant import TripParticipant
 from app.models.user import User
@@ -63,6 +64,8 @@ def create_trip(
 ) -> Trip:
     trip = Trip(user_id=user.id, **payload.model_dump())
     db.add(trip)
+    db.flush()
+    record_trip_activity(db, trip_id=trip.id, actor=user, action="created", entity_type="trip", entity_id=trip.id, summary="criou a viagem")
     db.commit()
     db.refresh(trip)
     return trip
@@ -125,6 +128,8 @@ def update_trip(
         )
     for field, value in changes.items():
         setattr(trip, field, value)
+    if changes:
+        record_trip_activity(db, trip_id=trip.id, actor=user, action="updated", entity_type="trip", entity_id=trip.id, summary="atualizou os dados da viagem")
     db.commit()
     db.refresh(trip)
     return trip
