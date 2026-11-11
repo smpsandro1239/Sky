@@ -26,6 +26,15 @@ def build_search_fingerprint(search_type: str, criteria: dict[str, Any]) -> str:
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
+def build_item_fingerprint(search_type: str, identity: dict[str, Any]) -> str:
+    """Identificador determinístico de uma oferta, independente do ID efémero do fornecedor."""
+    if search_type not in {"flight", "hotel"}:
+        raise ValueError("Tipo de oferta inválido.")
+    canonical = json.dumps(identity, sort_keys=True, separators=(",", ":"), ensure_ascii=True, default=str)
+    digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    return f"{search_type}:{digest}"
+
+
 def price_alert_matches(
     *, observed_price: Decimal, currency: str, target_price: Decimal, alert_currency: str
 ) -> bool:
