@@ -46,3 +46,28 @@ def test_non_positive_token_lifetime_is_rejected() -> None:
         assert "ACCESS_TOKEN_MINUTES" in str(exc)
     else:
         raise AssertionError("A duração do token tem de ser positiva.")
+
+
+def test_invalid_smtp_port_is_rejected() -> None:
+    settings = Settings()
+    settings.environment = "development"
+    settings.smtp_port = 70000
+    try:
+        settings.validate_security()
+    except RuntimeError as exc:
+        assert "SMTP_PORT" in str(exc)
+    else:
+        raise AssertionError("Uma porta SMTP inválida não pode ser aceite.")
+
+
+def test_conflicting_smtp_tls_modes_are_rejected() -> None:
+    settings = Settings()
+    settings.environment = "development"
+    settings.smtp_starttls = True
+    settings.smtp_use_ssl = True
+    try:
+        settings.validate_security()
+    except RuntimeError as exc:
+        assert "SMTP_STARTTLS" in str(exc)
+    else:
+        raise AssertionError("STARTTLS e SSL não podem estar ativos em simultâneo.")
