@@ -394,6 +394,7 @@ export default function HotelSearchPanel({ tripId, canEdit, onAccommodationSaved
           )}
           {results.offers.length > 0 && (
             <PriceHistoryPanel
+              key={results.search_key}
               searchType="hotel"
               searchKey={results.search_key}
               items={results.offers.map((offer) => ({
