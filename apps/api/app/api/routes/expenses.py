@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
 from app.core.activity import record_trip_activity
-from app.core.financial_lock import lock_trip_financials, trip_has_settlements
+from app.core.financial_lock import expense_has_prior_settlement, lock_trip_financials
 from app.core.notifications import notify_trip_members
 from app.api.routes.trips import get_accessible_trip, require_trip_editor
 from app.models.expense import Expense
@@ -100,7 +100,7 @@ def update_expense(
 
     financial_fields = {"amount", "currency", "paid_by_participant_id"}
     changed_financial_fields = financial_fields.intersection(changes)
-    if changed_financial_fields and trip_has_settlements(db, trip.id):
+    if changed_financial_fields and expense_has_prior_settlement(db, expense):
         raise HTTPException(
             status_code=409,
             detail=(
@@ -140,7 +140,7 @@ def delete_expense(
     trip = require_trip_editor(db, trip_id, user.id)
     lock_trip_financials(db, trip.id)
     expense = get_trip_expense(db, trip.id, expense_id)
-    if trip_has_settlements(db, trip.id):
+    if expense_has_prior_settlement(db, expense):
         raise HTTPException(
             status_code=409,
             detail=(
