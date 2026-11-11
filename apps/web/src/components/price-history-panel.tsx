@@ -57,6 +57,9 @@ export default function PriceHistoryPanel({
     )
       .then(async (response) => {
         const payload = await response.json().catch(() => ({}));
+        if (response.status === 404) {
+          return { observations_count: 0, observations: [] } as PriceHistoryResponse;
+        }
         if (!response.ok) {
           throw new Error(
             typeof payload.detail === "string"
