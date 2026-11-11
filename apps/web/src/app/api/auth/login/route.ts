@@ -1,3 +1,5 @@
+import { isSameOriginMutation } from "../../../../lib/security/csrf";
+
 const API_URL = process.env.API_INTERNAL_URL ?? "http://localhost:8000";
 
 type LoginResponse = {
@@ -14,6 +16,10 @@ function jsonResponse(body: unknown, status = 200) {
 }
 
 export async function POST(request: Request) {
+  if (!isSameOriginMutation(request)) {
+    return jsonResponse({ detail: "Pedido rejeitado: origem não autorizada." }, 403);
+  }
+
   let payload: { email?: string; password?: string };
 
   try {
