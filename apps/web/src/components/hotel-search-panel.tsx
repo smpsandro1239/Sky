@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 type HotelOffer = {
   id: string;
@@ -38,6 +38,15 @@ type Props = {
 
 type SearchResponse = { results_count: number; offers: HotelOffer[] };
 
+type HotelFavorite = {
+  id: string;
+  provider: string;
+  hotel_id: string;
+  hotel_name: string;
+  location: string;
+  created_at: string;
+};
+
 function formatPrice(amount: string, currency: string) {
   const value = Number(amount);
   if (!Number.isFinite(value)) return amount + " " + currency;
@@ -61,6 +70,27 @@ export default function HotelSearchPanel({ tripId, canEdit, onAccommodationSaved
   const [comparisonIds, setComparisonIds] = useState<string[]>([]);
   const [minimumPrice, setMinimumPrice] = useState("");
   const [maximumPrice, setMaximumPrice] = useState("");
+  const [favorites, setFavorites] = useState<HotelFavorite[]>([]);
+  const [favoriteActionId, setFavoriteActionId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/backend/hotels/favorites", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) return [];
+        const payload = await response.json().catch(() => []);
+        return Array.isArray(payload) ? payload as HotelFavorite[] : [];
+      })
+      .then((items) => {
+        if (active) setFavorites(items);
+      })
+      .catch(() => {
+        if (active) setFavorites([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   async function search(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -89,6 +119,43 @@ export default function HotelSearchPanel({ tripId, canEdit, onAccommodationSaved
       setError(cause instanceof Error ? cause.message : "Ocorreu um erro na pesquisa.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function toggleFavorite(offer: HotelOffer) {
+    const existing = favorites.find((favorite) => favorite.hotel_id === offer.hotel_id);
+    setFavoriteActionId(offer.hotel_id);
+    setError("");
+    setMessage("");
+    try {
+      const response = existing
+        ? await fetch("/api/backend/hotels/favorites/" + existing.id, { method: "DELETE" })
+        : await fetch("/api/backend/hotels/favorites", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              provider: offer.provider,
+              hotel_id: offer.hotel_id,
+              hotel_name: offer.hotel_name,
+              location: offer.location || cityCode.toUpperCase(),
+            }),
+          });
+      const payload = existing ? null : await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const detail = payload && typeof payload.detail === "string" ? payload.detail : "Não foi possível atualizar os favoritos.";
+        throw new Error(detail);
+      }
+      if (existing) {
+        setFavorites((current) => current.filter((favorite) => favorite.id !== existing.id));
+        setMessage(offer.hotel_name + " foi retirado dos favoritos.");
+      } else {
+        setFavorites((current) => current.some((favorite) => favorite.hotel_id === offer.hotel_id) ? current : [...current, payload as HotelFavorite]);
+        setMessage(offer.hotel_name + " foi adicionado aos favoritos.");
+      }
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Ocorreu um erro ao atualizar os favoritos.");
+    } finally {
+      setFavoriteActionId(null);
     }
   }
 
@@ -200,6 +267,15 @@ export default function HotelSearchPanel({ tripId, canEdit, onAccommodationSaved
                 <strong>{formatPrice(offer.price_total, offer.currency)}</strong>
               </div>
               <div className="trip-card-actions">
+                <button
+                  className="secondary-button"
+                  type="button"
+                  aria-pressed={favorites.some((favorite) => favorite.hotel_id === offer.hotel_id)}
+                  disabled={favoriteActionId !== null}
+                  onClick={() => void toggleFavorite(offer)}
+                >
+                  {favoriteActionId === offer.hotel_id ? "A atualizar..." : favorites.some((favorite) => favorite.hotel_id === offer.hotel_id) ? "Retirar dos favoritos" : "Adicionar aos favoritos"}
+                </button>
                 <button
                   className="secondary-button"
                   type="button"
