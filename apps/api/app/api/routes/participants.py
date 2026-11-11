@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
@@ -24,6 +24,13 @@ def create_participant(
     user: User = Depends(get_current_user),
 ) -> TripParticipant:
     trip = get_user_trip(db, trip_id, user.id)
+    if payload.email and db.scalar(
+        select(TripParticipant.id).where(
+            TripParticipant.trip_id == trip.id,
+            func.lower(TripParticipant.email) == payload.email.lower(),
+        )
+    ) is not None:
+        raise HTTPException(status_code=409, detail="Já existe um participante com este email nesta viagem.")
     participant = TripParticipant(trip_id=trip.id, **payload.model_dump())
     db.add(participant)
     db.commit()
