@@ -352,3 +352,71 @@ def test_editor_and_viewer_permissions_cover_financial_and_accommodation_resourc
         headers=auth(editor),
         json={"email": "another@example.com"},
     ).status_code == 404
+
+
+def test_owner_can_change_member_role_and_pending_invitation_role(client: TestClient) -> None:
+    owner = register_and_login(client, "owner-change-role@example.com")
+    guest = register_and_login(client, "guest-change-role@example.com")
+    trip_id = create_trip(client, owner)
+    participant = client.post(
+        f"/api/v1/trips/{trip_id}/participants",
+        headers=auth(owner),
+        json={"name": "Convidado", "email": "guest-change-role@example.com"},
+    )
+    assert participant.status_code == 201
+    participant_id = participant.json()["id"]
+
+    invitation = client.post(
+        f"/api/v1/trips/{trip_id}/invitations",
+        headers=auth(owner),
+        json={"email": "guest-change-role@example.com", "role": "viewer"},
+    )
+    assert invitation.status_code == 201
+
+    changed = client.patch(
+        f"/api/v1/trips/{trip_id}/participants/{participant_id}",
+        headers=auth(owner),
+        json={"role": "editor"},
+    )
+    assert changed.status_code == 200
+    assert changed.json()["role"] == "editor"
+
+    pending = client.get(
+        f"/api/v1/trips/{trip_id}/invitations", headers=auth(owner)
+    ).json()[0]
+    assert pending["role"] == "editor"
+
+    accepted = client.post(
+        "/api/v1/invitations/accept",
+        headers=auth(guest),
+        json={"token": invitation.json()["invitation_token"]},
+    )
+    assert accepted.status_code == 200
+    access = client.get(f"/api/v1/trips/{trip_id}/access", headers=auth(guest))
+    assert access.status_code == 200
+    assert access.json()["role"] == "editor"
+
+    # A member cannot change another member's permission.
+    denied = client.patch(
+        f"/api/v1/trips/{trip_id}/participants/{participant_id}",
+        headers=auth(guest),
+        json={"role": "viewer"},
+    )
+    assert denied.status_code == 404
+
+
+def test_participant_email_cannot_be_duplicated_with_different_case(client: TestClient) -> None:
+    owner = register_and_login(client, "owner-duplicate-member@example.com")
+    trip_id = create_trip(client, owner)
+    first = client.post(
+        f"/api/v1/trips/{trip_id}/participants",
+        headers=auth(owner),
+        json={"name": "Primeira pessoa", "email": "Person@Example.com"},
+    )
+    assert first.status_code == 201
+    duplicate = client.post(
+        f"/api/v1/trips/{trip_id}/participants",
+        headers=auth(owner),
+        json={"name": "Pessoa duplicada", "email": "person@example.com"},
+    )
+    assert duplicate.status_code == 409
