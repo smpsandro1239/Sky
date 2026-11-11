@@ -6,10 +6,11 @@ from app.models.expense_share import ExpenseShare
 from app.models.flight import Flight
 from app.models.invitation import TripInvitation
 from app.models.participant import TripParticipant
+from app.models.settlement import TripSettlement
 from app.models.trip import Trip
 from app.models.user import User
 
 __all__ = [
     "User", "Trip", "Flight", "Accommodation", "Expense", "TripActivity",
-    "ExpenseShare", "TripParticipant", "TripInvitation", "AuthIdentity",
+    "ExpenseShare", "TripParticipant", "TripInvitation", "AuthIdentity", "TripSettlement",
 ]
