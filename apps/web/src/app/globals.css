@@ -379,6 +379,12 @@ footer { border-top: 1px solid #1c3043; padding: 25px 28px; text-align: center; 
   gap: 18px;
 }
 .activity-heading h2 { margin: 8px 0; font-size: 25px; }
+.activity-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
 .activity-heading p { margin-bottom: 0; }
 .activity-list {
   display: grid;
