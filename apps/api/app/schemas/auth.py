@@ -28,6 +28,7 @@ class UserResponse(BaseModel):
     id: UUID
     email: EmailStr
     display_name: str | None
+    role: str
     is_active: bool
     is_verified: bool
 
