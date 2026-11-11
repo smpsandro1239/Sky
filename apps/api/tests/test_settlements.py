@@ -174,6 +174,23 @@ def test_settlements_reduce_outstanding_balances_and_reject_overpayment(client: 
     assert recorded.status_code == 201
     assert recorded.json()["currency"] == "EUR"
 
+    expense_currency_change = client.patch(
+        f"/api/v1/trips/{trip_id}/expenses/{expense_id}",
+        headers=headers,
+        json={"currency": "USD"},
+    )
+    assert expense_currency_change.status_code == 409
+    assert "acertos financeiros" in expense_currency_change.json()["detail"]
+
+    expense_description_change = client.patch(
+        f"/api/v1/trips/{trip_id}/expenses/{expense_id}",
+        headers=headers,
+        json={"description": "Jantar actualizado"},
+    )
+    assert expense_description_change.status_code == 200
+    assert expense_description_change.json()["currency"] == "EUR"
+    assert expense_description_change.json()["amount"] == "30.00"
+
     overpayment_after_partial = client.post(
         settlements_url,
         headers=headers,
