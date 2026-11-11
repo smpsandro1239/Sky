@@ -73,6 +73,16 @@ describe("POST /api/auth/login", () => {
     assert.equal(response.headers.get("set-cookie"), null);
   });
 
+  it("rejects a fractional expiry instead of issuing a zero-second cookie", async () => {
+    mock.method(globalThis, "fetch", async () => jsonResponse({ access_token: "valid-token", expires_in: 0.5 }));
+
+    const response = await POST(request());
+
+    assert.equal(response.status, 502);
+    assert.equal(response.headers.get("set-cookie"), null);
+    assert.equal(response.headers.get("cache-control"), "no-store");
+  });
+
   it("returns 502 when the profile API cannot be reached", async () => {
     let calls = 0;
     mock.method(globalThis, "fetch", async () => {
@@ -146,6 +156,7 @@ describe("POST /api/auth/login", () => {
 
     assert.equal(response.status, 200);
     assert.equal(calls, 2);
+    assert.equal(response.headers.get("cache-control"), "no-store");
     assert.match(cookie ?? "", /sky_access_token=valid-token/);
     assert.match(cookie ?? "", /HttpOnly/i);
     assert.match(cookie ?? "", /SameSite=Lax/i);
