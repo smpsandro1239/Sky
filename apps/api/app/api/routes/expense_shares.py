@@ -53,6 +53,11 @@ def replace_expense_shares(
 
     if not payload:
         db.query(ExpenseShare).filter(ExpenseShare.expense_id == expense.id).delete()
+        record_trip_activity(
+            db, trip_id=trip.id, actor=user, action="updated",
+            entity_type="expense_share", entity_id=expense.id,
+            summary="removeu a divisão de uma despesa",
+        )
         db.commit()
         return []
 
