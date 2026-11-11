@@ -24,13 +24,15 @@ Definir a linha de base de segurança e documentar os controlos já implementado
 - O frontend usa Route Handlers Next.js como BFF.
 - O JWT é guardado num cookie `HttpOnly`, `SameSite=Lax`, com `Secure` em produção e expiração limitada ao tempo de vida do token.
 - O token não é exposto ao JavaScript do browser nem guardado em localStorage.
-- O endpoint BFF de leitura tem uma allowlist dos recursos autorizados.
+- O BFF tem uma allowlist explícita de recursos e métodos autorizados.
+- As operações mutáveis encaminhadas pelo BFF exigem um cabeçalho `Origin` igual à origem do pedido; quando `Sec-Fetch-Site` existe, tem de ser `same-origin`.
+- Pedidos mutáveis sem `Origin`, com origem diferente ou identificados pelo browser como cross-site/same-site são rejeitados com HTTP 403.
 
 Pendências antes de produção:
 - Testes de integração e E2E do ciclo completo de autenticação e do envio SMTP num ambiente de teste controlado.
 - Estratégia de revogação/rotação de sessões e refresh tokens.
 - Rate limiting e proteção contra tentativas automatizadas de login.
-- Revisão de CSRF para operações mutáveis e política de origem.
+- Testes E2E de CSRF no browser e validação da política de origem em todos os domínios/proxies de produção.
 - Política de recuperação de conta e verificação de email.
 
 ## Dados pessoais
