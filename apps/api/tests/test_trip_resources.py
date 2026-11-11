@@ -7,7 +7,7 @@ import pytest
 from app.api.deps import get_db
 from app.database.base import Base
 from app.main import app
-from app.models import Accommodation, AuthIdentity, Flight, Trip, User  # noqa: F401
+from app.models import Accommodation, AuthIdentity, Flight, HotelFavorite, Trip, User  # noqa: F401
 
 TEST_DATABASE_URL = "sqlite+pysqlite:///:memory:"
 PASSWORD = "Correct-Horse-Battery-2026!"
@@ -261,3 +261,39 @@ def test_user_cannot_modify_another_users_flight_or_accommodation(
         f"/api/v1/trips/{trip_id}/accommodations/{accommodation['id']}",
         headers=headers(other_token),
     ).status_code == 404
+
+
+
+def test_hotel_favorites_are_private_idempotent_and_deletable(client: TestClient) -> None:
+    owner_token, _ = create_trip(client, "hotel-favorite-owner@example.com")
+    other_token, _ = create_trip(client, "hotel-favorite-other@example.com")
+    payload = {
+        "provider": "amadeus",
+        "hotel_id": "HOTEL-LIS-001",
+        "hotel_name": "Hotel Central",
+        "location": "Lisboa, PT",
+    }
+
+    created = client.post("/api/v1/hotels/favorites", headers=headers(owner_token), json=payload)
+    assert created.status_code == 200
+    favorite_id = created.json()["id"]
+
+    duplicate = client.post("/api/v1/hotels/favorites", headers=headers(owner_token), json=payload)
+    assert duplicate.status_code == 200
+    assert duplicate.json()["id"] == favorite_id
+
+    listed = client.get("/api/v1/hotels/favorites", headers=headers(owner_token))
+    assert listed.status_code == 200
+    assert len(listed.json()) == 1
+    assert listed.json()[0]["hotel_id"] == "HOTEL-LIS-001"
+
+    assert client.get("/api/v1/hotels/favorites", headers=headers(other_token)).json() == []
+    assert client.delete(
+        f"/api/v1/hotels/favorites/{favorite_id}", headers=headers(other_token)
+    ).status_code == 404
+
+    deleted = client.delete(
+        f"/api/v1/hotels/favorites/{favorite_id}", headers=headers(owner_token)
+    )
+    assert deleted.status_code == 204
+    assert client.get("/api/v1/hotels/favorites", headers=headers(owner_token)).json() == []
