@@ -52,6 +52,7 @@ def create_expense(
     user: User = Depends(get_current_user),
 ) -> Expense:
     trip = require_trip_editor(db, trip_id, user.id)
+    lock_trip_financials(db, trip.id)
     validate_payer(db, trip.id, payload.paid_by_participant_id)
     expense = Expense(trip_id=trip.id, **payload.model_dump())
     db.add(expense)
