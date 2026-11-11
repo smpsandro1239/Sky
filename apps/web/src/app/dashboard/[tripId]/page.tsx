@@ -662,6 +662,7 @@ export default function TripDetailPage() {
         setError(typeof data.detail === "string" ? data.detail : "Não foi possível guardar a divisão.");
         return;
       }
+      setExpenseShares((current) => [...current.filter((share) => share.expense_id !== expenseId), ...(data as ExpenseShare[])]);
       setActiveShareExpenseId(null);
       setShareDraft({});
       const balanceResponse = await fetch(`/api/backend/trips/${tripId}/balances`, { cache: "no-store" });
@@ -741,6 +742,7 @@ export default function TripDetailPage() {
         return;
       }
       setExpenses((current) => current.filter((item) => item.id !== id));
+      setExpenseShares((current) => current.filter((share) => share.expense_id !== id));
       const balanceResponse = await fetch(`/api/backend/trips/${tripId}/balances`, { cache: "no-store" });
       if (balanceResponse.ok) setBalances(await balanceResponse.json());
       if (editingExpenseId === id) {
