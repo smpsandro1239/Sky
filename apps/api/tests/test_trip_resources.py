@@ -304,3 +304,37 @@ def test_hotel_favorites_are_private_idempotent_and_deletable(client: TestClient
     )
     assert deleted.status_code == 204
     assert client.get("/api/v1/hotels/favorites", headers=headers(owner_token)).json() == []
+
+
+def test_hotel_favorites_require_authentication(client: TestClient) -> None:
+    payload = {
+        "provider": "amadeus",
+        "hotel_id": "HOTEL-LIS-002",
+        "hotel_name": "Hotel Seguro",
+        "location": "Lisboa, PT",
+    }
+
+    assert client.get("/api/v1/hotels/favorites").status_code == 401
+    assert client.post("/api/v1/hotels/favorites", json=payload).status_code == 401
+    assert client.delete(
+        "/api/v1/hotels/favorites/00000000-0000-0000-0000-000000000001"
+    ).status_code == 401
+
+
+def test_hotel_favorite_text_fields_are_trimmed(client: TestClient) -> None:
+    token, _ = create_trip(client, "hotel-favorite-normalize@example.com")
+    created = client.post(
+        "/api/v1/hotels/favorites",
+        headers=headers(token),
+        json={
+            "provider": "amadeus",
+            "hotel_id": "  HOTEL-LIS-003  ",
+            "hotel_name": "  Hotel Exemplo  ",
+            "location": "  Lisboa, PT  ",
+        },
+    )
+
+    assert created.status_code == 200
+    assert created.json()["hotel_id"] == "HOTEL-LIS-003"
+    assert created.json()["hotel_name"] == "Hotel Exemplo"
+    assert created.json()["location"] == "Lisboa, PT"
