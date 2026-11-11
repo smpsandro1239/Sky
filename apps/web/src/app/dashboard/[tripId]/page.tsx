@@ -468,6 +468,13 @@ export default function TripDetailPage() {
         rows.push(["Evolução mensal", currency, month, "", (amount / 100).toFixed(2), "Despesas manuais no período selecionado"]);
       });
     });
+    expenseShares.forEach((share) => {
+      const expense = expenses.find((item) => item.id === share.expense_id);
+      const participant = participants.find((item) => item.id === share.participant_id);
+      const amount = Number(share.amount);
+      if (!expense || !participant || !Number.isFinite(amount)) return;
+      rows.push(["Despesa por participante e categoria", expense.currency, expenseCategoryLabels[expense.category] ?? expense.category, participant.name, amount.toFixed(2), expense.description]);
+    });
     balances.currencies.forEach((group) => {
       group.participants.forEach((participant) => {
         rows.push(["Resumo por participante", group.currency, "", participant.name, (Number(participant.paid) || 0).toFixed(2), "Total pago"]);
