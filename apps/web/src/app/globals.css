@@ -479,3 +479,15 @@ footer { border-top: 1px solid #1c3043; padding: 25px 28px; text-align: center; 
   .global-finance-trip > div:last-child { justify-items: start; }
   .global-finance-trip small { text-align: left; }
 }
+
+
+/* Participant contribution and settlement analysis */
+.balance-analysis-row { align-items: flex-start; }
+.balance-analysis-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px 18px; flex: 1; }
+.balance-analysis-metrics > span { display: grid; gap: 3px; color: var(--muted); font-size: 12px; }
+.balance-analysis-metrics b { color: var(--foreground); font-size: 13px; font-weight: 650; }
+.balance-analysis-metrics small { color: var(--muted); font-size: 11px; }
+@media (max-width: 700px) {
+  .balance-analysis-metrics { width: 100%; grid-template-columns: 1fr 1fr; }
+  .balance-analysis-row { flex-wrap: wrap; }
+}
