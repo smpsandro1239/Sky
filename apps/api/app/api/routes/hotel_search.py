@@ -16,6 +16,7 @@ from app.models.hotel_favorite import HotelFavorite
 from app.schemas.hotel_favorite import HotelFavoriteCreate, HotelFavoriteResponse
 from app.schemas.hotel_search import HotelSearchRequest, HotelSearchOffer, HotelSearchResponse
 from app.services.hotel_recommendations import rank_hotel_offers
+from app.services.price_intelligence import record_price_observations
 from app.services.amadeus_hotels import (
     HotelProviderError,
     HotelProviderNotConfigured,
@@ -111,7 +112,8 @@ async def search_hotels(
     currency: str = Query(default="EUR", min_length=3, max_length=3),
     radius: int = Query(default=20, ge=1, le=50),
     max_hotels: int = Query(default=20, ge=1, le=40),
-    _: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> HotelSearchResponse:
     try:
         criteria = HotelSearchRequest(
@@ -138,7 +140,27 @@ async def search_hotels(
     except HotelProviderError as exc:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
 
-    return HotelSearchResponse(provider="amadeus", results_count=len(offers), offers=offers)
+    criteria_data = criteria.model_dump(mode="json")
+    search_key = record_price_observations(
+        db,
+        user_id=user.id,
+        search_type="hotel",
+        criteria=criteria_data,
+        observations=[
+            {
+                "item_key": f"{offer.hotel_id}:{offer.id}",
+                "item_name": offer.hotel_name,
+                "provider": offer.provider,
+                "amount": offer.price_total,
+                "currency": offer.currency,
+                "is_available": True,
+            }
+            for offer in offers
+        ],
+    )
+    return HotelSearchResponse(
+        provider="amadeus", results_count=len(offers), search_key=search_key, offers=offers
+    )
 
 
 
