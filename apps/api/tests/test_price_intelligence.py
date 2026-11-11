@@ -1,6 +1,7 @@
 from uuid import uuid4
 
 from app.services.price_intelligence import (
+    build_item_fingerprint,
     build_search_fingerprint,
     record_price_observations,
 )
@@ -91,3 +92,23 @@ def test_empty_capture_returns_fingerprint_without_database_write():
     assert len(search_key) == 64
     assert db.rows == []
     assert db.committed is False
+
+
+
+def test_item_fingerprint_is_stable_and_independent_of_dictionary_order():
+    first = {
+        "hotel_id": "H123",
+        "room": "Deluxe",
+        "board": "BREAKFAST",
+    }
+    second = {
+        "board": "BREAKFAST",
+        "room": "Deluxe",
+        "hotel_id": "H123",
+    }
+
+    assert build_item_fingerprint("hotel", first) == build_item_fingerprint("hotel", second)
+    assert build_item_fingerprint("hotel", first) != build_item_fingerprint(
+        "hotel", {**first, "room": "Standard"}
+    )
+    assert build_item_fingerprint("hotel", first).startswith("hotel:")
