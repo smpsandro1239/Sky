@@ -61,6 +61,15 @@ def _map_offers(hotel_results: list[dict[str, Any]], criteria: HotelSearchReques
                 description = room.get("description")
                 description = description if isinstance(description, dict) else {}
                 board = offer.get("boardType")
+                policies = offer.get("policies")
+                policies = policies if isinstance(policies, dict) else {}
+                cancellation = policies.get("cancellation")
+                cancellation = cancellation if isinstance(cancellation, dict) else {}
+                cancellation_description = cancellation.get("description")
+                cancellation_description = cancellation_description if isinstance(cancellation_description, dict) else {}
+                payment_type = policies.get("paymentType")
+                cancellation_deadline = cancellation.get("deadline")
+                cancellation_text = cancellation_description.get("text")
                 offers.append(
                     HotelSearchOffer(
                         id=offer_id,
@@ -73,7 +82,10 @@ def _map_offers(hotel_results: list[dict[str, Any]], criteria: HotelSearchReques
                         price_total=total,
                         currency=currency,
                         room_description=description.get("text"),
-                        board_type=str(board) if board else None,
+                        board_type=str(board)[:80] if isinstance(board, str) and board.strip() else None,
+                        payment_type=str(payment_type)[:80] if isinstance(payment_type, str) and payment_type.strip() else None,
+                        cancellation_deadline=str(cancellation_deadline)[:80] if isinstance(cancellation_deadline, str) and cancellation_deadline.strip() else None,
+                        cancellation_description=str(cancellation_text)[:500] if isinstance(cancellation_text, str) and cancellation_text.strip() else None,
                     )
                 )
             except (InvalidOperation, ValueError, TypeError):
