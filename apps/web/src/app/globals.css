@@ -546,7 +546,7 @@ footer { border-top: 1px solid #1c3043; padding: 25px 28px; text-align: center; 
 .participant-comparison-row > strong { overflow-wrap: anywhere; font-size: 13px; }
 .participant-comparison-values { display: grid; grid-template-columns: 1fr minmax(70px, 1.2fr); gap: 6px 12px; align-items: center; }
 .participant-comparison-values > span { color: var(--muted); font-size: 11px; }
-.participant-comparison-values b { color: var(--foreground); font-size: 12px; }
+.participant-comparison-values b { color: var(--text); font-size: 12px; }
 .participant-comparison-track { height: 8px; overflow: hidden; border-radius: 99px; background: #263c50; }
 .participant-comparison-track > span { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
 .participant-quota-track > span { background: #d69a54; }
@@ -573,13 +573,13 @@ footer { border-top: 1px solid #1c3043; padding: 25px 28px; text-align: center; 
 .participant-budget-form input, .participant-budget-form select { width: 100%; min-width: 0; padding: 10px 12px; border: 1px solid #30465b; border-radius: 8px; background: #091625; color: var(--text); font: inherit; }
 .participant-budget-form input:focus, .participant-budget-form select:focus { outline: none; border-color: var(--accent); }
 .participant-budget-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 12px; margin-top: 16px; }
-.participant-budget-card { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+.participant-budget-card { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
 .participant-budget-heading { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .participant-budget-heading > div { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .participant-budget-heading span { color: var(--muted); font-size: 11px; }
 .participant-budget-metrics { display: grid; gap: 8px; }
 .participant-budget-metrics > span { display: flex; justify-content: space-between; gap: 10px; color: var(--muted); font-size: 12px; }
-.participant-budget-metrics b { color: var(--foreground); text-align: right; }
+.participant-budget-metrics b { color: var(--text); text-align: right; }
 .participant-budget-metrics .participant-budget-over b { color: #e58a78; }
 .participant-budget-track { height: 8px; overflow: hidden; border-radius: 99px; background: #263c50; }
 .participant-budget-track > span { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
