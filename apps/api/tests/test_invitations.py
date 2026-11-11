@@ -365,6 +365,7 @@ def test_owner_can_change_member_role_and_pending_invitation_role(client: TestCl
     )
     assert participant.status_code == 201
     participant_id = participant.json()["id"]
+    assert participant.json()["is_linked"] is False
 
     invitation = client.post(
         f"/api/v1/trips/{trip_id}/invitations",
@@ -395,6 +396,10 @@ def test_owner_can_change_member_role_and_pending_invitation_role(client: TestCl
     access = client.get(f"/api/v1/trips/{trip_id}/access", headers=auth(guest))
     assert access.status_code == 200
     assert access.json()["role"] == "editor"
+    linked_participant = client.get(
+        f"/api/v1/trips/{trip_id}/participants", headers=auth(owner)
+    ).json()[0]
+    assert linked_participant["is_linked"] is True
 
     # A member cannot change another member's permission.
     denied = client.patch(
