@@ -16,7 +16,7 @@ from app.schemas.flight_search import (
     FlightSearchSegment,
 )
 from app.services.recommendations import rank_flight_offers
-from app.services.price_intelligence import record_price_observations
+from app.services.price_intelligence import build_item_fingerprint, record_price_observations
 from app.services.amadeus_flights import (
     FlightProviderError,
     FlightProviderNotConfigured,
@@ -50,8 +50,35 @@ def _map_offer(offer: dict[str, Any]) -> FlightSearchOffer:
         itineraries.append(segments)
 
     price = offer.get("price", {})
+    identity = {
+        "itineraries": [
+            [
+                {
+                    "carrier": str(segment.get("carrierCode", "")).upper(),
+                    "flight_number": str(segment.get("number", "")),
+                    "origin": str(segment.get("departure", {}).get("iataCode", "")).upper(),
+                    "destination": str(segment.get("arrival", {}).get("iataCode", "")).upper(),
+                    "departure_at": str(segment.get("departure", {}).get("at", "")),
+                    "arrival_at": str(segment.get("arrival", {}).get("at", "")),
+                }
+                for segment in itinerary.get("segments", [])
+            ]
+            for itinerary in offer.get("itineraries", [])
+        ],
+        "fare_details": [
+            {
+                "cabin": detail.get("cabin"),
+                "class": detail.get("class"),
+                "fare_basis": detail.get("fareBasis"),
+                "included_checked_bags": detail.get("includedCheckedBags"),
+            }
+            for traveler in offer.get("travelerPricings", [])
+            for detail in traveler.get("fareDetailsBySegment", [])
+        ],
+    }
     return FlightSearchOffer(
         id=str(offer.get("id", "")),
+        price_tracking_key=build_item_fingerprint("flight", identity),
         provider="amadeus",
         price_total=Decimal(str(price.get("grandTotal", price.get("total", "0")))),
         currency=str(price.get("currency", "EUR")).upper(),
@@ -115,7 +142,7 @@ async def search_flights(
         criteria=criteria_data,
         observations=[
             {
-                "item_key": offer.id,
+                "item_key": offer.price_tracking_key,
                 "item_name": f"{criteria.origin} → {criteria.destination}",
                 "provider": offer.provider,
                 "amount": offer.price_total,
