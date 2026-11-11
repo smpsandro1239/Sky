@@ -41,6 +41,8 @@ type Participant = { id: string; trip_id: string; name: string; email: string | 
 type Invitation = { id: string; trip_id: string; email: string; status: string; expires_at: string; accepted_at: string | null; created_at: string };
 type CreatedInvitation = Invitation & { invitation_token: string; email_sent: boolean };
 type ExpenseShare = { id: string; expense_id: string; participant_id: string; amount: string };
+type TripActivity = { id: string; actor_name: string; action: string; entity_type: string; summary: string; created_at: string };
+type TripActivityPage = { items: TripActivity[]; limit: number; offset: number; has_more: boolean };
 type ExpenseForm = { category: string; description: string; expense_date: string; amount: string; currency: string; paid_by_participant_id: string; notes: string; };
 type FlightForm = {
   provider: string;
@@ -92,6 +94,9 @@ export default function TripDetailPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [balances, setBalances] = useState<TripBalances>({ currencies: [] });
+  const [activity, setActivity] = useState<TripActivity[]>([]);
+  const [activityHasMore, setActivityHasMore] = useState(false);
+  const [activityOffset, setActivityOffset] = useState(0);
   const [participantName, setParticipantName] = useState("");
   const [participantEmail, setParticipantEmail] = useState("");
   const [invitations, setInvitations] = useState<Invitation[]>([]);
@@ -151,7 +156,7 @@ export default function TripDetailPage() {
 
     async function loadTrip() {
       try {
-        const [tripResponse, flightResponse, accommodationResponse, expenseResponse, participantResponse, balanceResponse, accessResponse] = await Promise.all([
+        const [tripResponse, flightResponse, accommodationResponse, expenseResponse, participantResponse, balanceResponse, accessResponse, activityResponse] = await Promise.all([
           fetch(`/api/backend/trips/${tripId}`, { cache: "no-store" }),
           fetch(`/api/backend/trips/${tripId}/flights`, { cache: "no-store" }),
           fetch(`/api/backend/trips/${tripId}/accommodations`, { cache: "no-store" }),
@@ -159,20 +164,21 @@ export default function TripDetailPage() {
           fetch(`/api/backend/trips/${tripId}/participants`, { cache: "no-store" }),
           fetch(`/api/backend/trips/${tripId}/balances`, { cache: "no-store" }),
           fetch(`/api/backend/trips/${tripId}/access`, { cache: "no-store" }),
+          fetch(`/api/backend/trips/${tripId}/activity?limit=20&offset=0`, { cache: "no-store" }),
         ]);
 
         if (cancelled) return;
 
-        if ([tripResponse, flightResponse, accommodationResponse, expenseResponse, participantResponse, balanceResponse, accessResponse].some((response) => response.status === 401)) {
+        if ([tripResponse, flightResponse, accommodationResponse, expenseResponse, participantResponse, balanceResponse, accessResponse, activityResponse].some((response) => response.status === 401)) {
           router.replace("/login");
           return;
         }
 
-        if (!tripResponse.ok || !flightResponse.ok || !accommodationResponse.ok || !expenseResponse.ok || !participantResponse.ok || !balanceResponse.ok || !accessResponse.ok) {
+        if (!tripResponse.ok || !flightResponse.ok || !accommodationResponse.ok || !expenseResponse.ok || !participantResponse.ok || !balanceResponse.ok || !accessResponse.ok || !activityResponse.ok) {
           throw new Error("Não foi possível carregar os dados desta viagem.");
         }
 
-        const [tripData, flightData, accommodationData, expenseData, participantData, balanceData, accessData] = await Promise.all([
+        const [tripData, flightData, accommodationData, expenseData, participantData, balanceData, accessData, activityData] = await Promise.all([
           tripResponse.json(),
           flightResponse.json(),
           accommodationResponse.json(),
@@ -180,6 +186,7 @@ export default function TripDetailPage() {
           participantResponse.json(),
           balanceResponse.json(),
           accessResponse.json(),
+          activityResponse.json(),
         ]);
 
         if (cancelled) return;
@@ -197,6 +204,9 @@ export default function TripDetailPage() {
         setExpenses(expenseData);
         setParticipants(participantData);
         setBalances(balanceData);
+        setActivity(activityData.items ?? []);
+        setActivityHasMore(Boolean(activityData.has_more));
+        setActivityOffset(activityData.items?.length ?? 0);
         setInvitations(invitationData);
       } catch (cause) {
         if (!cancelled) {
@@ -807,6 +817,25 @@ export default function TripDetailPage() {
                 ))}
               </section>
             )}
+            <section className="activity-panel" aria-labelledby="activity-title">
+              <div className="activity-heading">
+                <div><p className="eyebrow">REGISTO DA VIAGEM</p><h2 id="activity-title">Histórico de atividade</h2><p className="budget-description">Alterações registadas nesta viagem, visíveis a todos os participantes com acesso.</p></div>
+                <button className="secondary-button" type="button" onClick={async () => {
+                  const response = await fetch(`/api/backend/trips/${tripId}/activity?limit=20&offset=0`, { cache: "no-store" });
+                  if (response.ok) { const data = await response.json() as TripActivityPage; setActivity(data.items); setActivityHasMore(data.has_more); setActivityOffset(data.items.length); }
+                }}>Atualizar</button>
+              </div>
+              {activity.length === 0 ? <p className="notice">Ainda não existem atividades registadas.</p> : <ol className="activity-list">
+                {activity.map((item) => <li className="activity-item" key={item.id}>
+                  <span className="activity-dot" aria-hidden="true" />
+                  <div><strong>{item.summary}</strong><span>{item.actor_name} · {new Date(item.created_at).toLocaleString("pt-PT", { dateStyle: "medium", timeStyle: "short" })}</span></div>
+                </li>)}
+              </ol>}
+              {activityHasMore && <button className="secondary-button" type="button" onClick={async () => {
+                const response = await fetch(`/api/backend/trips/${tripId}/activity?limit=20&offset=${activityOffset}`, { cache: "no-store" });
+                if (response.ok) { const data = await response.json() as TripActivityPage; setActivity((current) => [...current, ...data.items]); setActivityHasMore(data.has_more); setActivityOffset((current) => current + data.items.length); }
+              }}>Carregar atividades anteriores</button>}
+            </section>
             <div className="section-heading"><div><p className="eyebrow">GESTÃO FINANCEIRA</p><h2>Despesas</h2></div></div>
             {accessRole !== "viewer" && <form className="trip-create-form" onSubmit={saveExpense}>
               <h3>{editingExpenseId ? "Editar despesa" : "Registar despesa"}</h3>
