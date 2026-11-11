@@ -47,3 +47,34 @@ def test_amadeus_hotel_offers_are_normalized_and_sorted():
 def test_hotel_search_requires_valid_iata_city_code():
     with pytest.raises(ValueError):
         HotelSearchRequest(city_code="Lisbon", check_in=date(2027, 8, 10), check_out=date(2027, 8, 11))
+
+
+def test_amadeus_mapper_ignores_malformed_and_non_finite_offers():
+    criteria = HotelSearchRequest(city_code="LIS", check_in="2027-08-10", check_out="2027-08-12")
+    results = [
+        None,
+        {"hotel": None, "offers": [{"id": "missing-hotel", "price": {"total": "100", "currency": "EUR"}}]},
+        {
+            "hotel": {"hotelId": "HOTEL003", "name": "Hotel C"},
+            "offers": [
+                None,
+                {"id": "no-price"},
+                {"id": "infinite", "price": {"total": "Infinity", "currency": "EUR"}},
+                {"id": "bad-currency", "price": {"total": "100", "currency": "EURO"}},
+                {"id": "valid", "price": {"total": "125.00", "currency": "EUR"}},
+            ],
+        },
+    ]
+    offers = _map_offers(results, criteria)
+    assert len(offers) == 1
+    assert offers[0].id == "valid"
+    assert offers[0].price_total == Decimal("125.00")
+
+
+def test_amadeus_mapper_uses_stable_sort_for_equal_prices():
+    criteria = HotelSearchRequest(city_code="LIS", check_in="2027-08-10", check_out="2027-08-12")
+    results = [
+        {"hotel": {"hotelId": "B", "name": "Hotel Z"}, "offers": [{"id": "z", "price": {"total": "100", "currency": "EUR"}}]},
+        {"hotel": {"hotelId": "A", "name": "Hotel A"}, "offers": [{"id": "a", "price": {"total": "100", "currency": "EUR"}}]},
+    ]
+    assert [offer.id for offer in _map_offers(results, criteria)] == ["a", "z"]
