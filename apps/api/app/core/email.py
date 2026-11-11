@@ -24,7 +24,8 @@ def send_trip_invitation_email(
 
     role_label = "editor" if role == "editor" else "leitor"
     message = EmailMessage()
-    message["Subject"] = f"Convite para a viagem {trip_name} no SKY"
+    safe_trip_name = " ".join(trip_name.replace("\r", " ").replace("\n", " ").split())
+    message["Subject"] = f"Convite para a viagem {safe_trip_name} no SKY"
     message["From"] = settings.smtp_from_email
     message["To"] = to_email
     message.set_content(
