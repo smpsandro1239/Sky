@@ -455,6 +455,46 @@ export default function TripDetailPage() {
     }
   }
 
+  function exportFinancialReport() {
+    const headers = ["Secção", "Moeda", "Período ou categoria", "Participante", "Valor", "Detalhe"];
+    const rows: string[][] = [];
+    Object.entries(expenseBreakdown).forEach(([currency, categories]) => {
+      Object.entries(categories).forEach(([category, amount]) => {
+        rows.push(["Despesas por categoria", currency, expenseCategoryLabels[category] ?? category, "", (amount / 100).toFixed(2), "Despesas manuais no período selecionado"]);
+      });
+    });
+    Object.entries(expenseTimeline).forEach(([currency, months]) => {
+      Object.entries(months).forEach(([month, amount]) => {
+        rows.push(["Evolução mensal", currency, month, "", (amount / 100).toFixed(2), "Despesas manuais no período selecionado"]);
+      });
+    });
+    balances.currencies.forEach((group) => {
+      group.participants.forEach((participant) => {
+        rows.push(["Resumo por participante", group.currency, "", participant.name, (Number(participant.paid) || 0).toFixed(2), "Total pago"]);
+        rows.push(["Resumo por participante", group.currency, "", participant.name, (Number(participant.owed) || 0).toFixed(2), "Quota atribuída"]);
+        rows.push(["Resumo por participante", group.currency, "", participant.name, (Number(participant.net) || 0).toFixed(2), "Saldo líquido"]);
+        rows.push(["Resumo por participante", group.currency, "", participant.name, (Number(participant.settled_sent ?? "0") || 0).toFixed(2), "Acertos enviados"]);
+        rows.push(["Resumo por participante", group.currency, "", participant.name, (Number(participant.settled_received ?? "0") || 0).toFixed(2), "Acertos recebidos"]);
+      });
+    });
+    if (budgetComparison && trip) {
+      rows.push(["Orçamento", trip.budget_currency, "", "", (budgetComparison.budgetCents / 100).toFixed(2), "Orçamento definido"]);
+      rows.push(["Orçamento", trip.budget_currency, "", "", (budgetComparison.spentCents / 100).toFixed(2), "Custos registados"]);
+      rows.push(["Orçamento", trip.budget_currency, "", "", (budgetComparison.differenceCents / 100).toFixed(2), "Disponível (negativo significa excedido)"]);
+    }
+    if (rows.length === 0) return;
+    const csv = "\uFEFF" + [headers, ...rows].map((row) => row.map((value) => csvCell(String(value))).join(";")).join("\r\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "sky-relatorio-financeiro-" + tripId + ".csv";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
   function exportFinancialMovements() {
     if (filteredFinancialMovements.length === 0) return;
     const labels: Record<FinancialMovement["kind"], string> = {
@@ -1119,6 +1159,7 @@ export default function TripDetailPage() {
                   <h2 id="expense-breakdown-title">Onde estás a gastar</h2>
                   <p className="budget-description">Distribuição das despesas manuais por categoria. Cada moeda é analisada separadamente.</p>
                 </div>
+                <button className="secondary-button" type="button" onClick={exportFinancialReport} disabled={Object.keys(expenseBreakdown).length === 0 && balances.currencies.length === 0 && !budgetComparison}>Exportar relatório financeiro CSV</button>
                 <div className="expense-breakdown-groups">
                   {Object.entries(expenseBreakdown).sort(([a], [b]) => a.localeCompare(b)).map(([currency, categories]) => {
                     const total = Object.values(categories).reduce((sum, amount) => sum + amount, 0);
