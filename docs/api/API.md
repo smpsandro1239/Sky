@@ -274,3 +274,24 @@ Authorization: Bearer <access_token>
 A resposta normaliza o preço total, moeda, número de escalas, duração total estimada e segmentos de cada itinerário. Cada oferta inclui `recommendation_score` (0–100) e `recommendation_reasons`. O ranking é relativo às ofertas devolvidas na mesma pesquisa: preço tem peso de 50%, duração de 30% e escalas de 20%; dimensões sem dados válidos são excluídas e os pesos restantes são normalizados. A duração soma o tempo decorrido de cada itinerário, incluindo ligações. O score não é uma probabilidade nem deve ser comparado entre pesquisas diferentes. As ofertas são ordenadas por score decrescente, seguindo-se preço, escalas e identificador para desempate. Esta integração apenas pesquisa ofertas: não reserva, não emite bilhetes e não garante disponibilidade após a resposta. A pesquisa de ida e volta utiliza a mesma quantidade de adultos para ambos os segmentos.
 
 Sem credenciais, a API responde `503`; falhas do fornecedor são traduzidas em `502`; critérios inválidos são rejeitados com `422`. O adaptador mantém o token OAuth em memória durante a validade indicada pelo fornecedor. A cache é local ao processo da API. A interface do detalhe da viagem permite a utilizadores com permissões de edição guardar uma oferta selecionada: cada segmento do itinerário é criado através de `POST /api/v1/trips/{trip_id}/flights`. O preço total da oferta fica associado apenas ao primeiro segmento para não duplicar o custo no orçamento. Se a criação de um segmento posterior falhar, os segmentos já criados permanecem guardados e a interface informa quantos foram persistidos.
+
+### SKY Price Intelligence — histórico de preços observados
+
+As pesquisas autenticadas de voos e alojamentos guardam automaticamente uma observação por oferta devolvida pelo fornecedor. Cada observação contém fornecedor, identificador da oferta, nome, preço total, moeda, disponibilidade reportada, instante de recolha e critérios da pesquisa. A recolha começa após a publicação desta funcionalidade: **não existe reconstrução de histórico anterior**.
+
+As respostas de pesquisa incluem o campo `search_key`, uma impressão digital SHA-256 determinística dos critérios normalizados. A chave não inclui o utilizador; o acesso ao histórico continua isolado pelo utilizador autenticado. Critérios equivalentes produzem a mesma chave. Os registos de cada execução são agrupados por `capture_id`, com unicidade por execução e oferta.
+
+Consultar o histórico:
+
+```http
+GET /api/v1/prices/history?search_type=flight&search_key=<64-hex>
+Authorization: Bearer <access_token>
+```
+
+Parâmetros:
+- `search_type`: `flight` ou `hotel`.
+- `search_key`: chave devolvida pela pesquisa correspondente.
+- `item_key`: opcional; limita a uma oferta (para hotéis combina o identificador do hotel e o identificador da tarifa).
+- `limit`: opcional, entre 1 e 500; predefinição 100.
+
+A resposta apresenta observações por ordem cronológica, com `observations_count` e os valores de preço efetivamente recolhidos. O endpoint só devolve dados pertencentes ao utilizador autenticado. Se ainda não houver observações para a chave, responde `404`. Os preços não são previsões nem garantias de preço futuro; diferenças entre observações só são comparáveis quando a chave de pesquisa e a moeda coincidem.
