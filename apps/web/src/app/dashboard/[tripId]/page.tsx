@@ -130,6 +130,7 @@ export default function TripDetailPage() {
   const [expenseShares, setExpenseShares] = useState<ExpenseShare[]>([]);
   const [movementParticipant, setMovementParticipant] = useState("all");
   const [movementCurrency, setMovementCurrency] = useState("all");
+  const [participantReportId, setParticipantReportId] = useState("all");
   const [expenseForm, setExpenseForm] = useState<ExpenseForm>(emptyExpense);
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -496,6 +497,45 @@ export default function TripDetailPage() {
     const link = document.createElement("a");
     link.href = url;
     link.download = "sky-relatorio-financeiro-" + tripId + ".csv";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function exportParticipantReport() {
+    if (participantReportId === "all") return;
+    const participant = participants.find((item) => item.id === participantReportId);
+    if (!participant) return;
+    const movements = movementsWithBalance.filter((item) => item.participant_id === participant.id);
+    if (movements.length === 0) return;
+    const headers = ["Data", "Participante", "Movimento", "Descrição", "Valor", "Impacto no saldo", "Saldo acumulado", "Moeda"];
+    const labels: Record<FinancialMovement["kind"], string> = {
+      paid: "Despesa paga", owed: "Quota atribuída", sent: "Acerto enviado", received: "Acerto recebido",
+    };
+    const rows: string[][] = movements.map((item) => {
+      const impact = item.kind === "paid" || item.kind === "sent" ? item.amount : -item.amount;
+      return [item.date, participant.name, labels[item.kind], item.description, item.amount.toFixed(2), impact.toFixed(2), item.runningBalance.toFixed(2), item.currency];
+    });
+    const currencies = [...new Set(movements.map((item) => item.currency))].sort();
+    currencies.forEach((currency) => {
+      const inCurrency = movements.filter((item) => item.currency === currency);
+      const totalPaid = inCurrency.filter((item) => item.kind === "paid").reduce((sum, item) => sum + item.amount, 0);
+      const totalOwed = inCurrency.filter((item) => item.kind === "owed").reduce((sum, item) => sum + item.amount, 0);
+      const sent = inCurrency.filter((item) => item.kind === "sent").reduce((sum, item) => sum + item.amount, 0);
+      const received = inCurrency.filter((item) => item.kind === "received").reduce((sum, item) => sum + item.amount, 0);
+      rows.push(["", participant.name, "Resumo", "Total pago", totalPaid.toFixed(2), "", "", currency]);
+      rows.push(["", participant.name, "Resumo", "Quota atribuída", totalOwed.toFixed(2), "", "", currency]);
+      rows.push(["", participant.name, "Resumo", "Acertos enviados", sent.toFixed(2), "", "", currency]);
+      rows.push(["", participant.name, "Resumo", "Acertos recebidos", received.toFixed(2), "", "", currency]);
+      rows.push(["", participant.name, "Resumo", "Saldo líquido reconstruído", (totalPaid + sent - totalOwed - received).toFixed(2), "", "", currency]);
+    });
+    const csv = "\\uFEFF" + [headers, ...rows].map((row) => row.map((value) => csvCell(String(value))).join(";")).join("\\r\\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "sky-relatorio-participante-" + participant.id + ".csv";
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -1404,6 +1444,20 @@ export default function TripDetailPage() {
                 ))}</div>}
               </section>
             )}
+            <section className="activity-panel" aria-labelledby="participant-report-title">
+              <div className="activity-heading">
+                <div><p className="eyebrow">RELATÓRIO INDIVIDUAL</p><h2 id="participant-report-title">Movimentos por participante</h2><p className="budget-description">Exporta os movimentos financeiros de uma pessoa, com resumo separado por moeda. O saldo é reconstruído a partir dos registos atuais.</p></div>
+                <div className="participant-report-actions">
+                  <label>Participante
+                    <select value={participantReportId} onChange={(event) => setParticipantReportId(event.target.value)}>
+                      <option value="all">Selecionar participante</option>
+                      {participants.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                    </select>
+                  </label>
+                  <button className="secondary-button" type="button" onClick={exportParticipantReport} disabled={participantReportId === "all" || !movementsWithBalance.some((item) => item.participant_id === participantReportId)}>Exportar relatório individual CSV</button>
+                </div>
+              </div>
+            </section>
             <section className="activity-panel" aria-labelledby="activity-title">
               <div className="activity-heading">
                 <div><p className="eyebrow">REGISTO DA VIAGEM</p><h2 id="activity-title">Histórico de atividade</h2><p className="budget-description">Alterações registadas nesta viagem, visíveis a todos os participantes com acesso.</p></div>
