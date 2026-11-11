@@ -44,6 +44,7 @@ type Participant = { id: string; trip_id: string; name: string; email: string | 
 type Invitation = { id: string; trip_id: string; email: string; status: string; expires_at: string; accepted_at: string | null; created_at: string };
 type CreatedInvitation = Invitation & { invitation_token: string; email_sent: boolean };
 type ExpenseShare = { id: string; expense_id: string; participant_id: string; amount: string };
+type ParticipantBudget = { id: string; trip_id: string; participant_id: string; amount: string; currency: string; created_at: string; updated_at: string };
 type FinancialMovement = { id: string; date: string; participant_id: string; participant_name: string; currency: string; kind: "paid" | "owed" | "sent" | "received"; amount: number; description: string };
 type TripActivity = { id: string; entity_id: string | null; actor_name: string; action: string; entity_type: string; summary: string; created_at: string };
 type TripActivityPage = { items: TripActivity[]; limit: number; offset: number; has_more: boolean };
@@ -131,6 +132,12 @@ export default function TripDetailPage() {
   const [movementParticipant, setMovementParticipant] = useState("all");
   const [movementCurrency, setMovementCurrency] = useState("all");
   const [participantReportId, setParticipantReportId] = useState("all");
+  const [participantBudgets, setParticipantBudgets] = useState<ParticipantBudget[]>([]);
+  const [participantBudgetId, setParticipantBudgetId] = useState("");
+  const [participantBudgetAmount, setParticipantBudgetAmount] = useState("");
+  const [participantBudgetCurrency, setParticipantBudgetCurrency] = useState("EUR");
+  const [participantBudgetSaving, setParticipantBudgetSaving] = useState(false);
+  const [participantBudgetError, setParticipantBudgetError] = useState("");
   const [expenseForm, setExpenseForm] = useState<ExpenseForm>(emptyExpense);
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -353,6 +360,11 @@ export default function TripDetailPage() {
           : null;
         if (invitationResponse && !invitationResponse.ok) throw new Error("Não foi possível carregar os convites.");
         const invitationData = invitationResponse ? await invitationResponse.json() : [];
+        const participantBudgetResults = await Promise.all((participantData as Participant[]).map(async (participant) => {
+          const response = await fetch("/api/backend/trips/" + tripId + "/participants/" + participant.id + "/budgets", { cache: "no-store" });
+          if (!response.ok) throw new Error("Não foi possível carregar os orçamentos individuais.");
+          return await response.json() as ParticipantBudget[];
+        }));
         const shareResults = await Promise.all((expenseData as Expense[]).map(async (expense) => {
           const response = await fetch("/api/backend/trips/" + tripId + "/expenses/" + expense.id + "/shares", { cache: "no-store" });
           if (!response.ok) throw new Error("Não foi possível carregar as divisões das despesas para o histórico financeiro.");
@@ -368,6 +380,7 @@ export default function TripDetailPage() {
         setExpenses(expenseData);
         setExpenseShares(shareResults.flat());
         setParticipants(participantData);
+        setParticipantBudgets(participantBudgetResults.flat());
         setBalances(balanceData);
         setSettlements(settlementData);
         setSettlementCurrency(balanceData.currencies?.[0]?.currency ?? "EUR");
@@ -501,6 +514,50 @@ export default function TripDetailPage() {
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
+  }
+
+  async function saveParticipantBudget(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!participantBudgetId || participantBudgetSaving) return;
+    const amount = Number(participantBudgetAmount);
+    if (!Number.isFinite(amount) || amount < 0) {
+      setParticipantBudgetError("Indica um orçamento válido, igual ou superior a zero.");
+      return;
+    }
+    setParticipantBudgetSaving(true);
+    setParticipantBudgetError("");
+    try {
+      const response = await fetch("/api/backend/trips/" + tripId + "/participants/" + participantBudgetId + "/budgets", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: amount.toFixed(2), currency: participantBudgetCurrency }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(typeof data.detail === "string" ? data.detail : "Não foi possível guardar o orçamento individual.");
+      setParticipantBudgets((current) => [...current.filter((item) => !(item.participant_id === data.participant_id && item.currency === data.currency)), data as ParticipantBudget]);
+      setParticipantBudgetAmount("");
+      void refreshActivity();
+    } catch (cause) {
+      setParticipantBudgetError(cause instanceof Error ? cause.message : "Ocorreu um erro ao guardar o orçamento.");
+    } finally {
+      setParticipantBudgetSaving(false);
+    }
+  }
+
+  async function deleteParticipantBudget(budget: ParticipantBudget) {
+    if (participantBudgetSaving) return;
+    setParticipantBudgetSaving(true);
+    setParticipantBudgetError("");
+    try {
+      const response = await fetch("/api/backend/trips/" + tripId + "/participants/" + budget.participant_id + "/budgets/" + budget.currency, { method: "DELETE" });
+      if (!response.ok) throw new Error("Não foi possível remover o orçamento individual.");
+      setParticipantBudgets((current) => current.filter((item) => item.id !== budget.id));
+      void refreshActivity();
+    } catch (cause) {
+      setParticipantBudgetError(cause instanceof Error ? cause.message : "Ocorreu um erro ao remover o orçamento.");
+    } finally {
+      setParticipantBudgetSaving(false);
+    }
   }
 
   function exportParticipantReport() {
@@ -1457,6 +1514,33 @@ export default function TripDetailPage() {
                   <button className="secondary-button" type="button" onClick={exportParticipantReport} disabled={participantReportId === "all" || !movementsWithBalance.some((item) => item.participant_id === participantReportId)}>Exportar relatório individual CSV</button>
                 </div>
               </div>
+            </section>
+            <section className="activity-panel participant-budgets-panel" aria-labelledby="participant-budgets-title">
+              <div className="activity-heading">
+                <div><p className="eyebrow">PLANEAMENTO INDIVIDUAL</p><h2 id="participant-budgets-title">Orçamento por participante</h2><p className="budget-description">Define um limite por pessoa e moeda. A despesa efetiva corresponde às quotas atribuídas nas divisões guardadas; não inclui valores sem divisão registada.</p></div>
+              </div>
+              {accessRole !== "viewer" && <form className="participant-budget-form" onSubmit={saveParticipantBudget}>
+                <label>Participante<select required value={participantBudgetId} onChange={(event) => setParticipantBudgetId(event.target.value)}><option value="">Selecionar participante</option>{participants.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+                <label>Orçamento previsto<input required type="number" min="0" step="0.01" value={participantBudgetAmount} onChange={(event) => setParticipantBudgetAmount(event.target.value)} placeholder="Ex.: 500,00" /></label>
+                <label>Moeda<select value={participantBudgetCurrency} onChange={(event) => setParticipantBudgetCurrency(event.target.value)}>{[...new Set(["EUR", "USD", "GBP", ...expenses.map((item) => item.currency), ...participantBudgets.map((item) => item.currency)])].sort().map((currency) => <option key={currency} value={currency}>{currency}</option>)}</select></label>
+                <button className="primary-button" type="submit" disabled={participantBudgetSaving || !participantBudgetId || participantBudgetAmount.trim() === ""}>{participantBudgetSaving ? "A guardar..." : "Guardar orçamento"}</button>
+              </form>}
+              {participantBudgetError && <p className="notice" role="alert">{participantBudgetError}</p>}
+              {participantBudgets.length === 0 ? <p className="notice">Ainda não foram definidos orçamentos individuais.</p> : <div className="participant-budget-list">
+                {participantBudgets.map((budget) => {
+                  const participant = participants.find((item) => item.id === budget.participant_id);
+                  const spent = movementsWithBalance.filter((movement) => movement.participant_id === budget.participant_id && movement.currency === budget.currency && movement.kind === "owed").reduce((sum, movement) => sum + movement.amount, 0);
+                  const planned = Number(budget.amount);
+                  const remaining = planned - spent;
+                  const percentage = planned > 0 ? spent / planned * 100 : spent > 0 ? 100 : 0;
+                  return <article className="participant-budget-card" key={budget.id}>
+                    <div className="participant-budget-heading"><div><strong>{participant?.name ?? "Participante"}</strong><span>{budget.currency}</span></div>{accessRole !== "viewer" && <button className="text-button" type="button" onClick={() => void deleteParticipantBudget(budget)} disabled={participantBudgetSaving}>Remover</button>}</div>
+                    <div className="participant-budget-metrics"><span>Previsto <b>{planned.toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {budget.currency}</b></span><span>Quota efetiva <b>{spent.toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {budget.currency}</b></span><span className={remaining < 0 ? "participant-budget-over" : ""}>{remaining < 0 ? "Excedido" : "Disponível"} <b>{Math.abs(remaining).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {budget.currency}</b></span></div>
+                    <div className="participant-budget-track" role="img" aria-label={`Utilização de orçamento: ${Math.round(percentage)} por cento`}><span className={percentage > 100 ? "is-over" : ""} style={{ width: `${Math.min(100, Math.max(0, percentage))}%` }} /></div>
+                    <small>{planned > 0 ? `${percentage.toLocaleString("pt-PT", { maximumFractionDigits: 1 })}% do orçamento utilizado` : spent > 0 ? "Sem orçamento disponível definido" : "Sem quota atribuída"}</small>
+                  </article>;
+                })}
+              </div>}
             </section>
             <section className="activity-panel" aria-labelledby="activity-title">
               <div className="activity-heading">
