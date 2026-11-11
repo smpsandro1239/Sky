@@ -147,6 +147,16 @@ Exemplo:
 ]
 ```
 
+### Histórico de atividade por viagem
+
+O histórico é consultado por qualquer utilizador com acesso à viagem (proprietário, editor ou leitor):
+
+`GET /trips/{trip_id}/activity?limit=30&offset=0`
+
+A resposta contém `items`, `limit`, `offset` e `has_more`. O limite predefinido é 30 e o máximo é 100. A ordenação é cronológica inversa, com desempate estável pelo identificador do evento. Cada evento expõe o nome do autor, ação, tipo e identificador da entidade, resumo e data. O registo não guarda tokens de convite, credenciais, endereços de email ou payloads integrais. Os eventos são criados na mesma transação da operação correspondente.
+
+São registadas criações e alterações da viagem, despesas, voos, alojamentos, participantes, convites e divisões de despesas, bem como a aceitação e revogação de convites. A eliminação da própria viagem elimina também o respetivo histórico.
+
 ### Códigos HTTP
 
 - `201`: recurso criado.
