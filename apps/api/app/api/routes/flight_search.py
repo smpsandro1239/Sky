@@ -3,10 +3,11 @@ from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.orm import Session
 from fastapi.encoders import jsonable_encoder
 from pydantic import ValidationError
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_db
 from app.models.user import User
 from app.schemas.flight_search import (
     FlightSearchOffer,
@@ -15,6 +16,7 @@ from app.schemas.flight_search import (
     FlightSearchSegment,
 )
 from app.services.recommendations import rank_flight_offers
+from app.services.price_intelligence import record_price_observations
 from app.services.amadeus_flights import (
     FlightProviderError,
     FlightProviderNotConfigured,
@@ -68,7 +70,8 @@ async def search_flights(
     currency: str = Query(default="EUR", min_length=3, max_length=3),
     non_stop: bool = Query(default=False),
     max_results: int = Query(default=20, ge=1, le=50),
-    _: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> FlightSearchResponse:
     try:
         criteria = FlightSearchRequest(
@@ -104,4 +107,24 @@ async def search_flights(
         ) from exc
 
     offers = rank_flight_offers(offers)
-    return FlightSearchResponse(provider="amadeus", results_count=len(offers), offers=offers)
+    criteria_data = criteria.model_dump(mode="json")
+    search_key = record_price_observations(
+        db,
+        user_id=user.id,
+        search_type="flight",
+        criteria=criteria_data,
+        observations=[
+            {
+                "item_key": offer.id,
+                "item_name": f"{criteria.origin} → {criteria.destination}",
+                "provider": offer.provider,
+                "amount": offer.price_total,
+                "currency": offer.currency,
+                "is_available": True,
+            }
+            for offer in offers
+        ],
+    )
+    return FlightSearchResponse(
+        provider="amadeus", results_count=len(offers), search_key=search_key, offers=offers
+    )
