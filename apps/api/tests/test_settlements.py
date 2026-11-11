@@ -354,3 +354,86 @@ def test_balances_reconcile_each_currency_independently(client: TestClient) -> N
     assert eur_positions[rui]["paid"] == "0.00"
     assert usd_positions[ana]["paid"] == "0.00"
     assert usd_positions[rui]["paid"] == "12.00"
+
+
+
+def test_expense_shares_reject_duplicates_and_inexact_totals(client: TestClient) -> None:
+    token = register_and_login(client, "expense-shares-validation@example.com")
+    headers = {"Authorization": f"Bearer {token}"}
+    trip = client.post(
+        "/api/v1/trips",
+        headers=headers,
+        json={"name": "Validação de divisões", "destination": "Lisboa"},
+    )
+    assert trip.status_code == 201
+    trip_id = trip.json()["id"]
+
+    participant_ids = []
+    for name in ("Ana", "Rui"):
+        response = client.post(
+            f"/api/v1/trips/{trip_id}/participants",
+            headers=headers,
+            json={"name": name},
+        )
+        assert response.status_code == 201
+        participant_ids.append(response.json()["id"])
+    ana, rui = participant_ids
+
+    expense = client.post(
+        f"/api/v1/trips/{trip_id}/expenses",
+        headers=headers,
+        json={
+            "category": "alimentacao",
+            "description": "Almoço",
+            "expense_date": "2027-08-06",
+            "amount": "10.00",
+            "currency": "EUR",
+            "paid_by_participant_id": ana,
+        },
+    )
+    assert expense.status_code == 201
+    shares_url = f"/api/v1/trips/{trip_id}/expenses/{expense.json()['id']}/shares"
+
+    duplicate = client.patch(
+        shares_url,
+        headers=headers,
+        json=[
+            {"participant_id": ana, "amount": "5.00"},
+            {"participant_id": ana, "amount": "5.00"},
+        ],
+    )
+    assert duplicate.status_code == 422
+    assert "uma vez" in duplicate.json()["detail"]
+
+    short_total = client.patch(
+        shares_url,
+        headers=headers,
+        json=[
+            {"participant_id": ana, "amount": "5.00"},
+            {"participant_id": rui, "amount": "4.99"},
+        ],
+    )
+    assert short_total.status_code == 422
+    assert "exactamente igual" in short_total.json()["detail"]
+
+    excess_total = client.patch(
+        shares_url,
+        headers=headers,
+        json=[
+            {"participant_id": ana, "amount": "5.00"},
+            {"participant_id": rui, "amount": "5.01"},
+        ],
+    )
+    assert excess_total.status_code == 422
+    assert "exactamente igual" in excess_total.json()["detail"]
+
+    valid = client.patch(
+        shares_url,
+        headers=headers,
+        json=[
+            {"participant_id": ana, "amount": "5.01"},
+            {"participant_id": rui, "amount": "4.99"},
+        ],
+    )
+    assert valid.status_code == 200
+    assert sum(Decimal(item["amount"]) for item in valid.json()) == Decimal("10.00")
