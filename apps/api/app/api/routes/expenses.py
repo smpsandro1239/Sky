@@ -6,6 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
+from app.core.activity import record_trip_activity
 from app.api.routes.trips import get_accessible_trip, get_user_trip, require_trip_editor
 from app.models.expense import Expense
 from app.models.expense_share import ExpenseShare
@@ -52,6 +53,8 @@ def create_expense(
     validate_payer(db, trip.id, payload.paid_by_participant_id)
     expense = Expense(trip_id=trip.id, **payload.model_dump())
     db.add(expense)
+    db.flush()
+    record_trip_activity(db, trip_id=trip.id, actor=user, action="created", entity_type="expense", entity_id=expense.id, summary="registou uma despesa")
     db.commit()
     db.refresh(expense)
     return expense
@@ -102,6 +105,7 @@ def update_expense(
 
     for field, value in validated.model_dump().items():
         setattr(expense, field, value)
+    record_trip_activity(db, trip_id=trip.id, actor=user, action="updated", entity_type="expense", entity_id=expense.id, summary="atualizou uma despesa")
     db.commit()
     db.refresh(expense)
     return expense
@@ -116,6 +120,7 @@ def delete_expense(
 ) -> Response:
     trip = require_trip_editor(db, trip_id, user.id)
     expense = get_trip_expense(db, trip.id, expense_id)
+    record_trip_activity(db, trip_id=trip.id, actor=user, action="deleted", entity_type="expense", entity_id=expense.id, summary="eliminou uma despesa")
     db.delete(expense)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
