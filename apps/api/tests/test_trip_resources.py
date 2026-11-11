@@ -378,6 +378,21 @@ def test_shared_resource_creation_notifies_only_other_trip_members(client: TestC
     )
     assert expense.status_code == 201
 
+    trip_participants = client.get(
+        f"/api/v1/trips/{trip_id}/participants", headers=headers(owner_token)
+    )
+    assert trip_participants.status_code == 200
+    shared_member = next(
+        item for item in trip_participants.json() if item["name"] == "Shared Member"
+    )
+    shares = client.patch(
+        f"/api/v1/trips/{trip_id}/expenses/{expense.json()['id']}/shares",
+        headers=headers(owner_token),
+        json=[{"participant_id": shared_member["id"], "amount": "85.00"}],
+    )
+    assert shares.status_code == 200
+    assert len(shares.json()) == 1
+
     flight = client.post(
         f"/api/v1/trips/{trip_id}/flights",
         headers=headers(owner_token),
@@ -414,10 +429,11 @@ def test_shared_resource_creation_notifies_only_other_trip_members(client: TestC
     }
     assert member_types == {
         "trip_expense_created",
+        "trip_expense_share_updated",
         "trip_flight_created",
         "trip_accommodation_created",
     }
-    assert member_notifications.json()["unread_count"] == 3
+    assert member_notifications.json()["unread_count"] == 4
     assert all(item["link"] == f"/dashboard/{trip_id}" for item in member_notifications.json()["items"])
 
     # The actor and accounts outside this trip receive no notifications.
