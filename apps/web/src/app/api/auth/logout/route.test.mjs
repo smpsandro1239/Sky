@@ -14,10 +14,30 @@ afterEach(() => {
 });
 
 describe("POST /api/auth/logout", () => {
+  it("rejects logout requests without an Origin header", async () => {
+    const response = await POST(new Request("http://localhost/api/auth/logout", {
+      method: "POST",
+    }));
+
+    assert.equal(response.status, 403);
+    assert.equal(response.headers.get("set-cookie"), null);
+    assert.equal(response.headers.get("cache-control"), "no-store");
+  });
+
+  it("rejects logout requests from a different origin", async () => {
+    const response = await POST(new Request("http://localhost/api/auth/logout", {
+      method: "POST",
+      headers: { Origin: "https://attacker.example" },
+    }));
+
+    assert.equal(response.status, 403);
+    assert.equal(response.headers.get("set-cookie"), null);
+  });
+
   it("expires the session cookie and prevents response caching", async () => {
     process.env.NODE_ENV = "development";
 
-    const response = await POST();
+    const response = await POST(new Request("http://localhost/api/auth/logout", { method: "POST", headers: { Origin: "http://localhost" } }));
     const cookie = response.headers.get("set-cookie") ?? "";
 
     assert.equal(response.status, 200);
