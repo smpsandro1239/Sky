@@ -5,8 +5,8 @@ Cada pesquisa activa é limitada por uma chave Redis com TTL para evitar chamada
 """
 import asyncio
 import logging
-from datetime import datetime, timezone
 import time
+from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID
 
@@ -148,6 +148,7 @@ def monitor_once(client: redis.Redis, db: Session) -> int:
                 len(observations),
             )
         except Exception:
+            db.rollback()
             logger.exception(
                 "Falha ao monitorizar %s (%s)",
                 search["search_type"],
