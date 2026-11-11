@@ -3,6 +3,7 @@ from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.encoders import jsonable_encoder
 from pydantic import ValidationError
 
 from app.api.deps import get_current_user
@@ -80,7 +81,7 @@ async def search_flights(
             max_results=max_results,
         )
     except ValidationError as exc:
-        raise HTTPException(status_code=422, detail=exc.errors()) from exc
+        raise HTTPException(status_code=422, detail=jsonable_encoder(exc.errors())) from exc
 
     try:
         raw_offers = await amadeus_flight_provider.search(criteria.model_dump())
