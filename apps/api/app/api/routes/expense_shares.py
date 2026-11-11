@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.api.deps import get_current_user, get_db
+from app.core.activity import record_trip_activity
 from app.api.routes.expenses import get_trip_expense
 from app.api.routes.trips import get_accessible_trip, get_user_trip, require_trip_editor
 from app.models.expense_share import ExpenseShare
@@ -78,6 +79,7 @@ def replace_expense_shares(
         for item in payload
     ]
     db.add_all(shares)
+    record_trip_activity(db, trip_id=trip.id, actor=user, action="updated", entity_type="expense_share", entity_id=expense.id, summary="atualizou a divisão de uma despesa")
     db.commit()
     for share in shares:
         db.refresh(share)
