@@ -65,7 +65,7 @@ O proprietário da viagem pode criar um convite através de `POST /trips/{trip_i
 { "email": "pessoa@example.com", "role": "viewer" }
 ```
 
-O campo `role` aceita `viewer` (predefinição) ou `editor`. A resposta inclui `invitation_token` uma única vez. O token é gerado aleatoriamente, só o respetivo hash SHA-256 é guardado na base de dados e o convite expira ao fim de 7 dias. A listagem nunca devolve o token. O link de aceitação deve ser partilhado apenas com o destinatário.
+O campo `role` aceita `viewer` (predefinição) ou `editor`. A resposta inclui `invitation_token` uma única vez e `email_sent`, que indica se o envio SMTP foi concluído. Sem `SMTP_HOST` e `SMTP_FROM_EMAIL`, o convite é criado normalmente e o link deve ser partilhado manualmente. O token é gerado aleatoriamente, só o respetivo hash SHA-256 é guardado na base de dados e o convite expira ao fim de 7 dias. A listagem nunca devolve o token. O link de aceitação deve ser partilhado apenas com o destinatário.
 
 A pessoa convidada tem de iniciar sessão com o mesmo endereço de email e enviar `POST /invitations/accept`:
 
