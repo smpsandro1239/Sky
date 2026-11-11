@@ -12,6 +12,7 @@ from app.api.routes.health import router as health_router
 from app.api.routes.hotel_search import router as hotel_search_router
 from app.api.routes.invitations import router as invitations_router
 from app.api.routes.participants import router as participants_router
+from app.api.routes.participant_budgets import router as participant_budgets_router
 from app.api.routes.settlements import router as settlements_router
 from app.api.routes.trips import router as trips_router
 
@@ -29,4 +30,5 @@ api_router.include_router(expense_shares_router)
 api_router.include_router(balances_router)
 api_router.include_router(settlements_router)
 api_router.include_router(participants_router)
+api_router.include_router(participant_budgets_router)
 api_router.include_router(invitations_router)
