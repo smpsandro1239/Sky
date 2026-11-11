@@ -1,6 +1,6 @@
 import { isSameOriginMutation } from "../../../../lib/security/csrf.ts";
 
-const API_URL = process.env.API_INTERNAL_URL ?? "http://localhost:8000";
+const API_URL = process.env.API_INTERNAL_URL ?? "https://sky-api-cmm2.onrender.com";
 
 type LoginResponse = {
   access_token?: unknown;
