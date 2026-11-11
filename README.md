@@ -30,8 +30,10 @@ A visão de longo prazo é uma plataforma integral de viagens. O princípio cent
 | Frontend — planeador de viagem | Página de detalhe com CRUD de voos, alojamentos e despesas via BFF; orçamento e saldo por moeda |
 | CI GitHub Actions | Pipeline configurado para testes API, validação de migrações, ESLint e TypeScript; consultar a execução mais recente no GitHub Actions |
 | Pesquisa externa de voos | Adaptador Amadeus sandbox na API, endpoint autenticado, normalização de ofertas e formulário integrado; requer credenciais e validação CI/E2E |
-| Recomendação inicial de voos | Ranking explicável relativo aos resultados da pesquisa: preço (50%), duração (30%) e escalas (20%); score e motivos apresentados na interface; testes unitários adicionados; falta validação CI/E2E e evolução das preferências do utilizador |
-| Pesquisa externa de alojamentos, recomendações e favoritos | Por implementar |
+| Recommendation Engine — voos | Ranking explicável relativo aos resultados da pesquisa: preço (50%), duração (30%) e escalas (20%); score e motivos apresentados na interface; testes unitários adicionados; falta validação CI/E2E e evolução das preferências do utilizador |
+| Hotel Intelligence — alojamentos | Ranking explicável por preço/noite (70%) e condições de cancelamento explicitamente reconhecidas (30%); preço/noite, noites, score e motivos apresentados na interface; testes unitários adicionados; falta validação CI/E2E |
+| Pesquisa externa de alojamentos e favoritos | Adaptador Amadeus sandbox, endpoint autenticado, pesquisa integrada, favoritos e comparação de até três ofertas; requer credenciais e validação CI/E2E |
+| Recommendation Engine — hotéis | Ranking explicável, preço médio por noite e condições de cancelamento; testes unitários adicionados; falta validação CI/E2E |
 | Reservas e pagamentos | Fase futura |
 
 As páginas de autenticação e dashboard estão implementadas no código, mas ainda precisam de validação funcional em Docker e testes de ponta a ponta. A pesquisa de voos Amadeus já tem um adaptador no backend e um formulário integrado na página de detalhe da viagem. A consulta real depende de credenciais sandbox configuradas no servidor; a interface apresenta ofertas, segmentos, escalas e preços, mas ainda não reserva nem emite bilhetes. Os convites podem ser criados e aceites por link; o envio por email está disponível quando o SMTP é configurado através das variáveis `SMTP_*` no ficheiro `.env.example`. Sem SMTP, o link pode ser partilhado manualmente.
