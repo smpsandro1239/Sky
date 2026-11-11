@@ -55,6 +55,7 @@ export default function HotelSearchPanel({ tripId, canEdit, onAccommodationSaved
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [savedOfferIds, setSavedOfferIds] = useState<string[]>([]);
+  const [comparisonIds, setComparisonIds] = useState<string[]>([]);
 
   async function search(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -62,6 +63,7 @@ export default function HotelSearchPanel({ tripId, canEdit, onAccommodationSaved
     setError("");
     setMessage("");
     setResults(null);
+    setComparisonIds([]);
     const params = new URLSearchParams({
       city_code: cityCode.trim().toUpperCase(),
       check_in: checkIn,
@@ -82,6 +84,19 @@ export default function HotelSearchPanel({ tripId, canEdit, onAccommodationSaved
       setLoading(false);
     }
   }
+
+  function toggleComparison(offerId: string) {
+    setComparisonIds((current) => {
+      if (current.includes(offerId)) return current.filter((id) => id !== offerId);
+      if (current.length >= 3) return current;
+      return [...current, offerId];
+    });
+  }
+
+  const comparisonOffers = (results?.offers ?? []).filter((offer) => comparisonIds.includes(offer.id));
+  const comparisonNights = comparisonOffers.length > 0
+    ? Math.max(1, Math.round((new Date(comparisonOffers[0].check_out + "T00:00:00Z").getTime() - new Date(comparisonOffers[0].check_in + "T00:00:00Z").getTime()) / 86_400_000))
+    : 0;
 
   async function saveOffer(offer: HotelOffer) {
     setSavingId(offer.id);
@@ -145,9 +160,41 @@ export default function HotelSearchPanel({ tripId, canEdit, onAccommodationSaved
                 {offer.board_type && <p>Regime: {offer.board_type}</p>}
                 <strong>{formatPrice(offer.price_total, offer.currency)}</strong>
               </div>
-              {canEdit && <div className="trip-card-actions"><button className="secondary-button" type="button" disabled={savingId !== null || savedOfferIds.includes(offer.id)} onClick={() => void saveOffer(offer)}>{savedOfferIds.includes(offer.id) ? "Já guardado" : savingId === offer.id ? "A guardar..." : "Guardar na viagem"}</button></div>}
+              <div className="trip-card-actions">
+                <button
+                  className="secondary-button"
+                  type="button"
+                  aria-pressed={comparisonIds.includes(offer.id)}
+                  disabled={!comparisonIds.includes(offer.id) && comparisonIds.length >= 3}
+                  onClick={() => toggleComparison(offer.id)}
+                >
+                  {comparisonIds.includes(offer.id) ? "Remover da comparação" : "Comparar"}
+                </button>
+                {canEdit && <button className="secondary-button" type="button" disabled={savingId !== null || savedOfferIds.includes(offer.id)} onClick={() => void saveOffer(offer)}>{savedOfferIds.includes(offer.id) ? "Já guardado" : savingId === offer.id ? "A guardar..." : "Guardar na viagem"}</button>}
+              </div>
             </article>
           ))}
+          {comparisonOffers.length > 0 && (
+            <section className="trip-card" aria-labelledby="hotel-comparison-title">
+              <div>
+                <h3 id="hotel-comparison-title">Comparação de alojamentos ({comparisonOffers.length}/3)</h3>
+                <p className="budget-description">Comparação para {comparisonNights} noite(s). Os valores são os totais devolvidos pelo fornecedor para os critérios pesquisados.</p>
+              </div>
+              <div className="trip-form-grid">
+                {comparisonOffers.map((offer) => (
+                  <article key={offer.id}>
+                    <h4>{offer.hotel_name}</h4>
+                    <p><strong>Preço total:</strong> {formatPrice(offer.price_total, offer.currency)}</p>
+                    <p><strong>Média por noite:</strong> {formatPrice((Number(offer.price_total) / comparisonNights).toFixed(2), offer.currency)}</p>
+                    <p><strong>Quarto:</strong> {offer.room_description || "Não indicado pelo fornecedor"}</p>
+                    <p><strong>Regime:</strong> {offer.board_type || "Não indicado pelo fornecedor"}</p>
+                    <p><strong>Localização:</strong> {offer.location || "Não indicada"}</p>
+                    <button className="secondary-button" type="button" onClick={() => toggleComparison(offer.id)}>Retirar</button>
+                  </article>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
       )}
     </section>
