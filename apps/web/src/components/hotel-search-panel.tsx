@@ -14,6 +14,9 @@ type HotelOffer = {
   currency: string;
   room_description: string | null;
   board_type: string | null;
+  payment_type: string | null;
+  cancellation_deadline: string | null;
+  cancellation_description: string | null;
 };
 
 type SavedAccommodation = {
@@ -158,6 +161,9 @@ export default function HotelSearchPanel({ tripId, canEdit, onAccommodationSaved
                 <p>{offer.location} · {offer.check_in} — {offer.check_out}</p>
                 {offer.room_description && <p>{offer.room_description}</p>}
                 {offer.board_type && <p>Regime: {offer.board_type}</p>}
+                {offer.payment_type && <p>Pagamento: {offer.payment_type}</p>}
+                {offer.cancellation_description && <p>Cancelamento: {offer.cancellation_description}</p>}
+                {offer.cancellation_deadline && <p>Prazo de cancelamento indicado: {offer.cancellation_deadline}</p>}
                 <strong>{formatPrice(offer.price_total, offer.currency)}</strong>
               </div>
               <div className="trip-card-actions">
@@ -188,6 +194,9 @@ export default function HotelSearchPanel({ tripId, canEdit, onAccommodationSaved
                     <p><strong>Média por noite:</strong> {formatPrice((Number(offer.price_total) / comparisonNights).toFixed(2), offer.currency)}</p>
                     <p><strong>Quarto:</strong> {offer.room_description || "Não indicado pelo fornecedor"}</p>
                     <p><strong>Regime:</strong> {offer.board_type || "Não indicado pelo fornecedor"}</p>
+                    <p><strong>Pagamento:</strong> {offer.payment_type || "Não indicado pelo fornecedor"}</p>
+                    <p><strong>Cancelamento:</strong> {offer.cancellation_description || "Condições não indicadas pelo fornecedor"}</p>
+                    {offer.cancellation_deadline && <p><strong>Prazo indicado:</strong> {offer.cancellation_deadline}</p>}
                     <p><strong>Localização:</strong> {offer.location || "Não indicada"}</p>
                     <button className="secondary-button" type="button" onClick={() => toggleComparison(offer.id)}>Retirar</button>
                   </article>
