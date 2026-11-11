@@ -73,10 +73,15 @@ export default function DashboardPage() {
   }, [router]);
 
   useEffect(() => {
-    if (loading) return;
-    if (trips.length === 0) { setFinancialTrips([]); setFinancialError(""); return; }
     let active = true;
     async function loadFinancialOverview() {
+      if (loading) return;
+      if (trips.length === 0) {
+        setFinancialTrips([]);
+        setFinancialError("");
+        setFinancialLoading(false);
+        return;
+      }
       setFinancialLoading(true);
       setFinancialError("");
       const results = await Promise.all(trips.map(async (trip) => {
@@ -102,12 +107,13 @@ export default function DashboardPage() {
         const valid = results.filter((item): item is FinancialTrip => item !== null);
         setFinancialTrips(valid);
         if (valid.length < trips.length) setFinancialError("Alguns custos não puderam ser carregados. Os totais apresentados são parciais.");
+        setFinancialLoading(false);
       }
-      if (active) setFinancialLoading(false);
     }
     void loadFinancialOverview();
     return () => { active = false; };
   }, [loading, trips]);
+
   async function handleSaveTrip(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
