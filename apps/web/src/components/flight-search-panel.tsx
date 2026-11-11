@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import PriceHistoryPanel from "./price-history-panel";
 
 type FlightSegment = {
   carrier: string;
@@ -266,6 +267,16 @@ export default function FlightSearchPanel({
               </div>
             </article>
           ))}
+          {results.offers.length > 0 && (
+            <PriceHistoryPanel
+              searchType="flight"
+              searchKey={results.search_key}
+              items={results.offers.map((offer) => ({
+                key: offer.id,
+                label: offer.itineraries[0]?.map((segment) => segment.origin + "–" + segment.destination).join(" / ") || offer.id,
+              }))}
+            />
+          )}
           {saveMessage && <p className="notice" role="status">{saveMessage}</p>}
         </div>
       )}
