@@ -33,7 +33,7 @@ A visão de longo prazo é uma plataforma integral de viagens. O princípio cent
 | Pesquisa externa de alojamentos, recomendações e favoritos | Por implementar |
 | Reservas e pagamentos | Fase futura |
 
-As páginas de autenticação e dashboard estão implementadas no código, mas ainda precisam de validação funcional em Docker e testes de ponta a ponta. Existe agora um adaptador inicial de pesquisa de voos Amadeus no backend; a consulta real depende de credenciais sandbox e ainda não está ligada ao frontend. Os convites podem ser criados e aceites por link; o envio por email está disponível quando o SMTP é configurado através das variáveis `SMTP_*` no ficheiro `.env.example`. Sem SMTP, o link pode ser partilhado manualmente.
+As páginas de autenticação e dashboard estão implementadas no código, mas ainda precisam de validação funcional em Docker e testes de ponta a ponta. A pesquisa de voos Amadeus já tem um adaptador no backend e um formulário integrado na página de detalhe da viagem. A consulta real depende de credenciais sandbox configuradas no servidor; a interface apresenta ofertas, segmentos, escalas e preços, mas ainda não reserva nem emite bilhetes. Os convites podem ser criados e aceites por link; o envio por email está disponível quando o SMTP é configurado através das variáveis `SMTP_*` no ficheiro `.env.example`. Sem SMTP, o link pode ser partilhado manualmente.
 
 ## Produto e roadmap funcional
 
@@ -113,7 +113,7 @@ Requisitos: Docker Desktop com Docker Compose e Git.
 
 Parar: `docker compose down`. Para remover também os dados da base de dados: `docker compose down -v` (ação destrutiva).
 
-**Nota:** o dashboard permite gerir viagens, voos, alojamentos e despesas, incluindo partilhas, balanços e acesso colaborativo por proprietário/editor/leitor. As operações usam a API através do BFF autenticado. A última execução de CI anteriormente confirmada concluiu com sucesso os testes API, migrações, ESLint e TypeScript; os novos commits de pesquisa de voos aguardam confirmação da respetiva execução. A validação funcional ponta a ponta em Docker/browser ainda não está confirmada. A pesquisa de voos tem agora um adaptador Amadeus em sandbox no backend, mas ainda depende de credenciais e não está validada ponta a ponta nem integrada no frontend. A pesquisa de alojamentos, reservas e pagamentos não estão implementadas. O envio de convites por email requer configuração SMTP.
+**Nota:** o dashboard permite gerir viagens, voos, alojamentos e despesas, incluindo partilhas, balanços e acesso colaborativo por proprietário/editor/leitor. As operações usam a API através do BFF autenticado. A última execução de CI anteriormente confirmada concluiu com sucesso os testes API, migrações, ESLint e TypeScript; os novos commits de pesquisa de voos aguardam confirmação da respetiva execução. A validação funcional ponta a ponta em Docker/browser ainda não está confirmada. A pesquisa de voos tem um adaptador Amadeus no backend e interface integrada no detalhe da viagem; depende de credenciais sandbox e a validação ponta a ponta continua pendente. A pesquisa de alojamentos, reservas e pagamentos não estão implementadas. O envio de convites por email requer configuração SMTP.
 
 ## Documentação
 
