@@ -133,3 +133,13 @@ def test_amadeus_offer_is_normalized_for_comparison() -> None:
     assert offer.currency == "EUR"
     assert offer.number_of_stops == 1
     assert offer.itineraries[0][0].origin == "OPO"
+
+
+def test_flight_search_returns_422_for_invalid_route(client: TestClient) -> None:
+    token = register_and_login(client)
+    response = client.get(
+        "/api/v1/flights/search",
+        headers={"Authorization": f"Bearer {token}"},
+        params={"origin": "OPO", "destination": "opo", "departure_date": "2027-08-10"},
+    )
+    assert response.status_code == 422
