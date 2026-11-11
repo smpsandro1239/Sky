@@ -100,3 +100,39 @@ def test_trip_activity_requires_authentication(client: TestClient) -> None:
         "/api/v1/trips/00000000-0000-4000-8000-000000000000/activity"
     )
     assert response.status_code == 401
+
+def test_participant_changes_are_recorded_without_exposing_email(client: TestClient) -> None:
+    token = register_and_login(client, "activity-participant-owner@example.com")
+    headers = {"Authorization": f"Bearer {token}"}
+    trip = client.post(
+        "/api/v1/trips",
+        headers=headers,
+        json={"name": "Viagem de grupo", "destination": "Madeira"},
+    ).json()
+    trip_id = trip["id"]
+
+    created = client.post(
+        f"/api/v1/trips/{trip_id}/participants",
+        headers=headers,
+        json={"name": "Convidado", "email": "guest@example.com"},
+    )
+    assert created.status_code == 201
+    participant_id = created.json()["id"]
+
+    updated = client.patch(
+        f"/api/v1/trips/{trip_id}/participants/{participant_id}",
+        headers=headers,
+        json={"role": "editor"},
+    )
+    assert updated.status_code == 200
+    assert updated.json()["role"] == "editor"
+
+    history = client.get(
+        f"/api/v1/trips/{trip_id}/activity?limit=20",
+        headers=headers,
+    )
+    assert history.status_code == 200
+    events = history.json()["items"]
+    assert any(item["entity_type"] == "participant" and item["action"] == "created" for item in events)
+    assert any(item["entity_type"] == "participant" and item["action"] == "updated" for item in events)
+    assert all("guest@example.com" not in item["summary"] for item in events)
