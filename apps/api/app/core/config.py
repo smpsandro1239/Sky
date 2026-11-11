@@ -43,6 +43,12 @@ class Settings:
             raise RuntimeError("SMTP_PORT tem de estar entre 1 e 65535.")
         if self.smtp_starttls and self.smtp_use_ssl:
             raise RuntimeError("SMTP_STARTTLS e SMTP_USE_SSL não podem estar ativos em simultâneo.")
+        if bool(self.smtp_host) != bool(self.smtp_from_email):
+            raise RuntimeError("SMTP_HOST e SMTP_FROM_EMAIL têm de ser configurados em conjunto.")
+        if self.smtp_host and not (self.smtp_starttls or self.smtp_use_ssl):
+            raise RuntimeError("O SMTP tem de utilizar STARTTLS ou SSL para proteger as credenciais e o convite.")
+        if bool(self.smtp_username) != bool(self.smtp_password):
+            raise RuntimeError("SMTP_USERNAME e SMTP_PASSWORD têm de ser configurados em conjunto.")
         if self.access_token_minutes < 1:
             raise RuntimeError("ACCESS_TOKEN_MINUTES tem de ser superior a zero.")
 
