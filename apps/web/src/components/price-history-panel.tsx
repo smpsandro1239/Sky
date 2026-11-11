@@ -226,7 +226,13 @@ export default function PriceHistoryPanel({
       </div>
       <label>
         Oferta a acompanhar
-        <select value={selectedKey} onChange={(event) => setSelectedKey(event.target.value)}>
+        <select value={selectedKey} onChange={(event) => {
+          setSelectedKey(event.target.value);
+          setHistory(null);
+          setTargetPrice("");
+          setAlertError("");
+          setAlertMessage("");
+        }}>
           {items.map((item) => (
             <option key={item.key} value={item.key}>{item.label}</option>
           ))}
@@ -242,7 +248,7 @@ export default function PriceHistoryPanel({
             <input type="number" min="0.01" step="0.01" value={targetPrice} onChange={(event) => setTargetPrice(event.target.value)} placeholder="Ex.: 150.00" />
           </label>
           <div className="trip-form-actions">
-            <button className="secondary-button" type="button" disabled={alertBusy || !history?.observations.length || !targetPrice || Number(targetPrice) <= 0} onClick={() => void createAlert()}>
+            <button className="secondary-button" type="button" disabled={alertBusy || loading || !history?.observations.length || !targetPrice || Number(targetPrice) <= 0} onClick={() => void createAlert()}>
               {alertBusy ? "A guardar..." : "Criar alerta"}
             </button>
           </div>
