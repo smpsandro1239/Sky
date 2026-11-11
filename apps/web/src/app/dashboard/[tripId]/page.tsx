@@ -945,6 +945,25 @@ export default function TripDetailPage() {
               </section>
             )}
 
+            {Object.keys(expenseTimeline).length > 0 && (
+              <section className="expense-breakdown" aria-labelledby="expense-timeline-title">
+                <div><p className="eyebrow">EVOLUÇÃO TEMPORAL</p><h2 id="expense-timeline-title">Despesas por mês</h2><p className="budget-description">Evolução das despesas no período selecionado. Os meses e as moedas são apresentados separadamente.</p></div>
+                <div className="expense-breakdown-groups">
+                  {Object.entries(expenseTimeline).sort(([a], [b]) => a.localeCompare(b)).map(([currency, months]) => {
+                    const maxAmount = Math.max(...Object.values(months));
+                    return <div className="expense-breakdown-group" key={currency}>
+                      <div className="expense-breakdown-heading"><strong>{currency}</strong><span>{Object.keys(months).length} meses</span></div>
+                      {Object.entries(months).sort(([a], [b]) => a.localeCompare(b)).map(([month, amount]) => (
+                        <div className="expense-category-row" key={month}>
+                          <div className="expense-category-label"><span>{new Date(month + "-01T12:00:00").toLocaleDateString("pt-PT", { month: "long", year: "numeric" })}</span><strong>{(amount / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}</strong></div>
+                          <div className="expense-category-track" aria-label={(amount / 100).toFixed(2) + " " + currency + " em " + month}><span style={{ width: (maxAmount > 0 ? Math.max(0, Math.min(100, amount / maxAmount * 100)) : 0) + "%" }} /></div>
+                        </div>
+                      ))}
+                    </div>;
+                  })}
+                </div>
+              </section>
+            )}
             <section className="participants-panel" aria-labelledby="participants-title">
               <div>
                 <p className="eyebrow">VIAGEM EM GRUPO</p>
