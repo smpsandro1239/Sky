@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
+from app.core.activity import record_trip_activity
 from app.api.routes.trips import get_accessible_trip, get_user_trip, require_trip_editor
 from app.models.accommodation import Accommodation
 from app.models.user import User
@@ -42,6 +43,8 @@ def create_accommodation(
     trip = require_trip_editor(db, trip_id, user.id)
     accommodation = Accommodation(trip_id=trip.id, **payload.model_dump())
     db.add(accommodation)
+    db.flush()
+    record_trip_activity(db, trip_id=trip.id, actor=user, action="created", entity_type="accommodation", entity_id=accommodation.id, summary="adicionou um alojamento")
     db.commit()
     db.refresh(accommodation)
     return accommodation
@@ -83,6 +86,7 @@ def update_accommodation(
 
     for field, value in validated.model_dump().items():
         setattr(accommodation, field, value)
+    record_trip_activity(db, trip_id=trip.id, actor=user, action="updated", entity_type="accommodation", entity_id=accommodation.id, summary="atualizou um alojamento")
     db.commit()
     db.refresh(accommodation)
     return accommodation
@@ -97,6 +101,7 @@ def delete_accommodation(
 ) -> Response:
     trip = require_trip_editor(db, trip_id, user.id)
     accommodation = get_trip_accommodation(db, trip.id, accommodation_id)
+    record_trip_activity(db, trip_id=trip.id, actor=user, action="deleted", entity_type="accommodation", entity_id=accommodation.id, summary="eliminou um alojamento")
     db.delete(accommodation)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
