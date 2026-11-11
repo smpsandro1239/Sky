@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
+from app.core.activity import record_trip_activity
 from app.api.routes.trips import get_accessible_trip, get_user_trip
 from app.models.expense import Expense
 from app.models.expense_share import ExpenseShare
@@ -33,6 +34,10 @@ def create_participant(
         raise HTTPException(status_code=409, detail="Já existe um participante com este email nesta viagem.")
     participant = TripParticipant(trip_id=trip.id, **payload.model_dump())
     db.add(participant)
+    db.flush()
+    record_trip_activity(db, trip_id=trip.id, actor=user, action="created", entity_type="participant", entity_id=participant.id, summary="adicionou um participante")
+    if previous_role != participant.role:
+        record_trip_activity(db, trip_id=trip.id, actor=user, action="updated", entity_type="participant", entity_id=participant.id, summary="alterou a permissão de um participante")
     db.commit()
     db.refresh(participant)
     return ParticipantResponse.model_validate(participant).model_copy(
@@ -76,6 +81,7 @@ def update_participant(
     )
     if participant is None:
         raise HTTPException(status_code=404, detail="Participante não encontrado.")
+    previous_role = participant.role
     participant.role = payload.role
     if participant.email:
         pending_invitations = db.scalars(
@@ -121,6 +127,7 @@ def delete_participant(
             status_code=409,
             detail="Não é possível remover este participante enquanto estiver associado a despesas como pagador ou participante.",
         )
+    record_trip_activity(db, trip_id=trip.id, actor=user, action="deleted", entity_type="participant", entity_id=participant.id, summary="removeu um participante")
     db.delete(participant)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
