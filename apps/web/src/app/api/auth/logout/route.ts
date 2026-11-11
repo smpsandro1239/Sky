@@ -1,4 +1,4 @@
-import { isSameOriginMutation } from "../../../../lib/security/csrf";
+import { isSameOriginMutation } from "../../../../lib/security/csrf.ts";
 
 export async function POST(request: Request) {
   if (!isSameOriginMutation(request)) {
