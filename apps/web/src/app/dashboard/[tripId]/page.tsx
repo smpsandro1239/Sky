@@ -157,6 +157,33 @@ export default function TripDetailPage() {
     currencyA.localeCompare(currencyB),
   );
 
+  const costTypeBreakdown = [...flights.map((item) => ({
+    currency: item.price_currency,
+    type: "flights",
+    amount: item.price_amount,
+  })), ...accommodations.map((item) => ({
+    currency: item.price_currency,
+    type: "accommodations",
+    amount: item.price_amount,
+  })), ...expenses.map((item) => ({
+    currency: item.currency,
+    type: "additional",
+    amount: item.amount,
+  }))].reduce<Record<string, Record<string, number>>>((totals, item) => {
+    if (item.amount === null) return totals;
+    const amount = Number(item.amount);
+    if (!Number.isFinite(amount)) return totals;
+    totals[item.currency] ??= {};
+    totals[item.currency][item.type] = (totals[item.currency][item.type] ?? 0) + Math.round(amount * 100);
+    return totals;
+  }, {});
+
+  const costTypeLabels: Record<string, string> = {
+    flights: "Voos",
+    accommodations: "Alojamentos",
+    additional: "Despesas adicionais",
+  };
+
   const expenseBreakdown = expenses.reduce<Record<string, Record<string, number>>>(
     (totals, expense) => {
       const amount = Number(expense.amount);
@@ -830,6 +857,40 @@ export default function TripDetailPage() {
                 ) : (
                   <p className="notice">Ainda não existem preços registados.</p>
                 )}
+              </section>
+            )}
+
+            {Object.keys(costTypeBreakdown).length > 0 && (
+              <section className="expense-breakdown" aria-labelledby="cost-type-breakdown-title">
+                <div>
+                  <p className="eyebrow">COMPOSIÇÃO DOS CUSTOS</p>
+                  <h2 id="cost-type-breakdown-title">Onde está o orçamento</h2>
+                  <p className="budget-description">Distribuição dos valores registados por tipo de custo. Cada moeda é apresentada separadamente, sem conversões cambiais.</p>
+                </div>
+                <div className="expense-breakdown-groups">
+                  {Object.entries(costTypeBreakdown).sort(([a], [b]) => a.localeCompare(b)).map(([currency, types]) => {
+                    const total = Object.values(types).reduce((sum, amount) => sum + amount, 0);
+                    return (
+                      <div className="expense-breakdown-group" key={currency}>
+                        <div className="expense-breakdown-heading">
+                          <strong>{currency}</strong>
+                          <span>{(total / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}</span>
+                        </div>
+                        {Object.entries(types).sort(([, a], [, b]) => b - a).map(([type, amount]) => (
+                          <div className="expense-category-row" key={type}>
+                            <div className="expense-category-label">
+                              <span>{costTypeLabels[type] ?? type}</span>
+                              <strong>{(amount / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency} · {Math.round((amount / total) * 100)}%</strong>
+                            </div>
+                            <div className="expense-category-track" aria-label={`${Math.round((amount / total) * 100)}% do total em ${currency}`}>
+                              <span style={{ width: `${Math.max(0, Math.min(100, (amount / total) * 100))}%` }} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
               </section>
             )}
 
