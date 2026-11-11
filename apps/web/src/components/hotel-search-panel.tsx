@@ -59,6 +59,8 @@ export default function HotelSearchPanel({ tripId, canEdit, onAccommodationSaved
   const [message, setMessage] = useState("");
   const [savedOfferIds, setSavedOfferIds] = useState<string[]>([]);
   const [comparisonIds, setComparisonIds] = useState<string[]>([]);
+  const [minimumPrice, setMinimumPrice] = useState("");
+  const [maximumPrice, setMaximumPrice] = useState("");
 
   async function search(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -96,6 +98,14 @@ export default function HotelSearchPanel({ tripId, canEdit, onAccommodationSaved
     });
   }
 
+  const priceRangeInvalid = minimumPrice !== "" && maximumPrice !== "" && Number(minimumPrice) > Number(maximumPrice);
+  const filteredOffers = (results?.offers ?? []).filter((offer) => {
+    const price = Number(offer.price_total);
+    if (!Number.isFinite(price) || priceRangeInvalid) return false;
+    if (minimumPrice !== "" && price < Number(minimumPrice)) return false;
+    if (maximumPrice !== "" && price > Number(maximumPrice)) return false;
+    return true;
+  });
   const comparisonOffers = (results?.offers ?? []).filter((offer) => comparisonIds.includes(offer.id));
   const comparisonNights = comparisonOffers.length > 0
     ? Math.max(1, Math.round((new Date(comparisonOffers[0].check_out + "T00:00:00Z").getTime() - new Date(comparisonOffers[0].check_in + "T00:00:00Z").getTime()) / 86_400_000))
@@ -153,8 +163,16 @@ export default function HotelSearchPanel({ tripId, canEdit, onAccommodationSaved
       {message && <p className="notice" role="status">{message}</p>}
       {results && (
         <div className="trip-list" aria-live="polite">
-          <p className="budget-description">{results.results_count === 0 ? "Não foram encontradas ofertas disponíveis para estes critérios." : results.results_count + " ofertas disponíveis, ordenadas por preço."} Pesquisa para {adults} adulto(s), {roomQuantity} quarto(s), num raio de {radius} km.</p>
-          {results.offers.map((offer) => (
+          <p className="budget-description">{results.results_count === 0 ? "Não foram encontradas ofertas disponíveis para estes critérios." : results.results_count + " ofertas recebidas do fornecedor, ordenadas por preço."} Pesquisa para {adults} adulto(s), {roomQuantity} quarto(s), num raio de {radius} km.</p>
+          {results.results_count > 0 && (
+            <div className="trip-form-grid" aria-label="Filtrar ofertas por preço">
+              <label>Preço mínimo ({currency})<input type="number" min="0" step="0.01" inputMode="decimal" value={minimumPrice} onChange={(event) => setMinimumPrice(event.target.value)} placeholder="Sem mínimo" /></label>
+              <label>Preço máximo ({currency})<input type="number" min="0" step="0.01" inputMode="decimal" value={maximumPrice} onChange={(event) => setMaximumPrice(event.target.value)} placeholder="Sem máximo" /></label>
+              <p className="budget-description">{priceRangeInvalid ? "O preço mínimo não pode ser superior ao preço máximo." : `A mostrar ${filteredOffers.length} de ${results.results_count} ofertas.`}</p>
+              <div className="trip-form-actions"><button className="secondary-button" type="button" onClick={() => { setMinimumPrice(""); setMaximumPrice(""); }}>Limpar filtros</button></div>
+            </div>
+          )}
+          {filteredOffers.map((offer) => (
             <article className="trip-card" key={offer.id}>
               <div>
                 <h3>{offer.hotel_name}</h3>
