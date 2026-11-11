@@ -90,6 +90,7 @@ def test_invitation_acceptance_links_existing_participant_to_account(client: Tes
         client, owner, trip_id, "guest-invitation@example.com"
     )
     assert invitation["status"] == "pending"
+    assert invitation["email_sent"] is False
     assert len(invitation["invitation_token"]) >= 32
 
     listed = client.get(
