@@ -269,6 +269,8 @@ footer { border-top: 1px solid #1c3043; padding: 25px 28px; text-align: center; 
 .participant-item div { display: grid; gap: 4px; }
 .participant-item strong { font-size: 13px; }
 .participant-item span { color: var(--muted); font-size: 12px; }
+.participant-role-control { display: grid; gap: 5px; color: var(--muted); font-size: 11px; }
+.participant-role-control select { min-width: 110px; padding: 8px 10px; border: 1px solid #30465b; border-radius: 8px; background: #091625; color: var(--text); font: inherit; }
 @media (max-width: 700px) {
   .participants-panel { grid-template-columns: 1fr; padding: 20px; }
   .participant-form { grid-template-columns: 1fr; }
