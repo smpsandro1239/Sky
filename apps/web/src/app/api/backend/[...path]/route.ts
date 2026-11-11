@@ -32,7 +32,7 @@ async function proxyRequest(
   const allowed =
     (method === "GET" && (isProfile || isCollection || isTripItem || isTripAccess || isTripBalances || isFlightCollection || isAccommodationCollection || isExpenseCollection || isExpenseSharesCollection || isParticipantCollection || isInvitationCollection)) ||
     (method === "POST" && (isCollection || isFlightCollection || isAccommodationCollection || isExpenseCollection || isParticipantCollection || isInvitationCollection || isInvitationAccept)) ||
-    (method === "PATCH" && (isTripItem || isFlightItem || isAccommodationItem || isExpenseItem || isExpenseSharesCollection)) ||
+    (method === "PATCH" && (isTripItem || isParticipantItem || isFlightItem || isAccommodationItem || isExpenseItem || isExpenseSharesCollection)) ||
     (method === "DELETE" && (isTripItem || isFlightItem || isAccommodationItem || isExpenseItem || isParticipantItem || isInvitationItem));
 
   if (!allowed) {
