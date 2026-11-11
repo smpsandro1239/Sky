@@ -25,8 +25,8 @@ Definir a linha de base de segurança e documentar os controlos já implementado
 - O JWT é guardado num cookie `HttpOnly`, `SameSite=Lax`, com `Secure` em produção e expiração limitada ao tempo de vida do token.
 - O token não é exposto ao JavaScript do browser nem guardado em localStorage.
 - O BFF tem uma allowlist explícita de recursos e métodos autorizados.
-- As operações mutáveis encaminhadas pelo BFF exigem um cabeçalho `Origin` igual à origem do pedido; quando `Sec-Fetch-Site` existe, tem de ser `same-origin`.
-- Pedidos mutáveis sem `Origin`, com origem diferente ou identificados pelo browser como cross-site/same-site são rejeitados com HTTP 403.
+- As operações mutáveis encaminhadas pelo BFF, incluindo login e logout, exigem um cabeçalho `Origin` igual à origem do pedido; quando `Sec-Fetch-Site` existe, tem de ser `same-origin`.
+- Pedidos mutáveis sem `Origin`, com origem diferente ou identificados pelo browser como cross-site/same-site são rejeitados com HTTP 403, antes de executar a operação ou alterar cookies de sessão.
 
 Pendências antes de produção:
 - Testes de integração e E2E do ciclo completo de autenticação e do envio SMTP num ambiente de teste controlado.
