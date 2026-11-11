@@ -124,3 +124,33 @@ def test_smtp_credentials_must_be_configured_as_a_pair() -> None:
         assert "SMTP_USERNAME" in str(exc)
     else:
         raise AssertionError("Credenciais SMTP incompletas devem ser rejeitadas.")
+
+
+def test_neon_postgres_url_is_normalized_for_psycopg() -> None:
+    from app.core.config import normalize_database_url
+
+    source = "postgresql://sky-user:secret@ep-example.eu-central-1.aws.neon.tech/sky?sslmode=require"
+    assert normalize_database_url(source) == (
+        "postgresql+psycopg://sky-user:secret@ep-example.eu-central-1.aws.neon.tech/sky?sslmode=require"
+    )
+
+
+def test_legacy_postgres_url_is_normalized_for_psycopg() -> None:
+    from app.core.config import normalize_database_url
+
+    source = "postgres://sky-user:secret@host.example/sky"
+    assert normalize_database_url(source) == "postgresql+psycopg://sky-user:secret@host.example/sky"
+
+
+def test_explicit_sqlalchemy_driver_is_preserved() -> None:
+    from app.core.config import normalize_database_url
+
+    source = "postgresql+psycopg://sky-user:secret@host.example/sky"
+    assert normalize_database_url(source) == source
+
+
+def test_non_postgres_database_url_is_preserved() -> None:
+    from app.core.config import normalize_database_url
+
+    source = "sqlite+pysqlite:///./migration-test.db"
+    assert normalize_database_url(source) == source
