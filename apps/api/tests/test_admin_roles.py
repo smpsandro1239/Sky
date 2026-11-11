@@ -80,6 +80,17 @@ def test_platform_role_permissions_and_admin_management() -> None:
 
             support_listed = client.get("/api/v1/admin/users", headers=support_headers)
             assert support_listed.status_code == 200
+            assert len(support_listed.json()) == 3
+            assert all("password_hash" not in item for item in support_listed.json())
+
+            first_page = client.get("/api/v1/admin/users?limit=1&offset=0", headers=admin_headers)
+            second_page = client.get("/api/v1/admin/users?limit=1&offset=1", headers=admin_headers)
+            assert first_page.status_code == 200
+            assert second_page.status_code == 200
+            assert len(first_page.json()) == 1
+            assert len(second_page.json()) == 1
+            assert first_page.json()[0]["id"] != second_page.json()[0]["id"]
+
             support_change_denied = client.patch(
                 f"/api/v1/admin/users/{traveler_id}/role",
                 json={"role": "admin"},
