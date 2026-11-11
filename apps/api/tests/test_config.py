@@ -71,3 +71,15 @@ def test_conflicting_smtp_tls_modes_are_rejected() -> None:
         assert "SMTP_STARTTLS" in str(exc)
     else:
         raise AssertionError("STARTTLS e SSL não podem estar ativos em simultâneo.")
+
+
+def test_production_rejects_documentation_placeholder_secret() -> None:
+    settings = Settings()
+    settings.environment = "production"
+    settings.secret_key = "replace-with-a-random-secret-of-at-least-32-characters"
+    try:
+        settings.validate_security()
+    except RuntimeError as exc:
+        assert "SKY_SECRET_KEY" in str(exc)
+    else:
+        raise AssertionError("A chave de exemplo não pode ser aceite em produção.")
