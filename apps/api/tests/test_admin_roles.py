@@ -40,7 +40,13 @@ def test_platform_role_permissions_and_admin_management() -> None:
                 password_hash=hash_password("Correct-Horse-Battery-2026!"),
                 role="traveler",
             )
-            db.add_all([admin, traveler])
+            support = User(
+                email="support@sky.example",
+                display_name="SKY Support",
+                password_hash=hash_password("Correct-Horse-Battery-2026!"),
+                role="support",
+            )
+            db.add_all([admin, traveler, support])
             db.commit()
             admin_id = str(admin.id)
             traveler_id = str(traveler.id)
@@ -54,10 +60,16 @@ def test_platform_role_permissions_and_admin_management() -> None:
                 "/api/v1/auth/login",
                 json={"email": "admin@sky.example", "password": "Correct-Horse-Battery-2026!"},
             )
+            support_login = client.post(
+                "/api/v1/auth/login",
+                json={"email": "support@sky.example", "password": "Correct-Horse-Battery-2026!"},
+            )
             assert traveler_login.status_code == 200
             assert admin_login.status_code == 200
+            assert support_login.status_code == 200
             traveler_headers = {"Authorization": f"Bearer {traveler_login.json()['access_token']}"}
             admin_headers = {"Authorization": f"Bearer {admin_login.json()['access_token']}"}
+            support_headers = {"Authorization": f"Bearer {support_login.json()['access_token']}"}
 
             profile = client.get("/api/v1/auth/me", headers=traveler_headers)
             assert profile.status_code == 200
@@ -66,11 +78,21 @@ def test_platform_role_permissions_and_admin_management() -> None:
             denied = client.get("/api/v1/admin/users", headers=traveler_headers)
             assert denied.status_code == 403
 
+            support_listed = client.get("/api/v1/admin/users", headers=support_headers)
+            assert support_listed.status_code == 200
+            support_change_denied = client.patch(
+                f"/api/v1/admin/users/{traveler_id}/role",
+                json={"role": "admin"},
+                headers=support_headers,
+            )
+            assert support_change_denied.status_code == 403
+
             listed = client.get("/api/v1/admin/users", headers=admin_headers)
             assert listed.status_code == 200
             assert {item["email"] for item in listed.json()} == {
                 "admin@sky.example",
                 "traveler@sky.example",
+                "support@sky.example",
             }
             assert all("password_hash" not in item for item in listed.json())
 
