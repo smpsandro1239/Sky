@@ -60,6 +60,8 @@ Formato: JSON. A aplicação disponibiliza documentação OpenAPI em `/docs` e R
 | POST | `/trips/{trip_id}/settlements` | Bearer (editor) | Registar um pagamento entre participantes |
 | PATCH | `/trips/{trip_id}/expenses/{expense_id}/shares` | Bearer | Substituir a divisão da despesa (lista de partes); lista vazia limpa a divisão |
 
+As alterações às partilhas, aos valores das despesas e aos acertos financeiros bloqueiam a linha da viagem com `SELECT FOR UPDATE` durante a transação. Em PostgreSQL, isto serializa mutações financeiras concorrentes da mesma viagem e evita que dois pagamentos validem simultaneamente contra o mesmo saldo anterior. O bloqueio é mantido até `commit` ou `rollback`; SQLite não implementa este bloqueio e é usado apenas nos testes automatizados.
+
 ### Recomendações de voos e alojamentos
 
 A pesquisa de voos devolve `duration_minutes`, `recommendation_score` e `recommendation_reasons`. O score de voos é relativo ao conjunto da mesma pesquisa: preço (50%), duração total dos itinerários (30%) e número de escalas (20%). Dimensões sem dados válidos são excluídas e os pesos disponíveis são normalizados.
