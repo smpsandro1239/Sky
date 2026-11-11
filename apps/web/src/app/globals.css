@@ -452,3 +452,13 @@ footer { border-top: 1px solid #1c3043; padding: 25px 28px; text-align: center; 
   .expense-filters { grid-template-columns: 1fr; }
   .expense-filters > div { justify-content: space-between; flex-wrap: wrap; }
 }
+
+
+/* Budget usage comparison */
+.budget-usage { display: grid; gap: 10px; margin-top: 18px; }
+.budget-usage-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--text); }
+.budget-usage-heading span { color: var(--muted); font-size: 12px; text-align: right; }
+.budget-usage-track { height: 12px; overflow: hidden; border-radius: 999px; background: #24364a; }
+.budget-usage-track > span { display: block; height: 100%; border-radius: inherit; background: #36a879; transition: width .2s ease; }
+.budget-usage-track > span.budget-usage-over { background: #d97757; }
+@media (max-width: 520px) { .budget-usage-heading { align-items: flex-start; flex-direction: column; gap: 4px; } }
