@@ -15,7 +15,7 @@ class FlightSearchRequest(BaseModel):
     non_stop: bool = False
     max_results: int = Field(default=20, ge=1, le=50)
 
-    @field_validator("origin", "destination", "currency")
+    @field_validator("origin", "destination", "currency", mode="before")
     @classmethod
     def normalize_code(cls, value: str) -> str:
         normalized = value.strip().upper()
