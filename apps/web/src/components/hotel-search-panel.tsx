@@ -69,6 +69,8 @@ export default function HotelSearchPanel({ tripId, canEdit, onAccommodationSaved
     setMessage("");
     setResults(null);
     setComparisonIds([]);
+    setMinimumPrice("");
+    setMaximumPrice("");
     const params = new URLSearchParams({
       city_code: cityCode.trim().toUpperCase(),
       check_in: checkIn,
@@ -98,12 +100,17 @@ export default function HotelSearchPanel({ tripId, canEdit, onAccommodationSaved
     });
   }
 
-  const priceRangeInvalid = minimumPrice !== "" && maximumPrice !== "" && Number(minimumPrice) > Number(maximumPrice);
+  const parsedMinimumPrice = minimumPrice === "" ? null : Number(minimumPrice);
+  const parsedMaximumPrice = maximumPrice === "" ? null : Number(maximumPrice);
+  const minimumPriceInvalid = parsedMinimumPrice !== null && (!Number.isFinite(parsedMinimumPrice) || parsedMinimumPrice < 0);
+  const maximumPriceInvalid = parsedMaximumPrice !== null && (!Number.isFinite(parsedMaximumPrice) || parsedMaximumPrice < 0);
+  const priceRangeInvalid = minimumPriceInvalid || maximumPriceInvalid
+    || (parsedMinimumPrice !== null && parsedMaximumPrice !== null && parsedMinimumPrice > parsedMaximumPrice);
   const filteredOffers = (results?.offers ?? []).filter((offer) => {
     const price = Number(offer.price_total);
     if (!Number.isFinite(price) || priceRangeInvalid) return false;
-    if (minimumPrice !== "" && price < Number(minimumPrice)) return false;
-    if (maximumPrice !== "" && price > Number(maximumPrice)) return false;
+    if (parsedMinimumPrice !== null && price < parsedMinimumPrice) return false;
+    if (parsedMaximumPrice !== null && price > parsedMaximumPrice) return false;
     return true;
   });
   const comparisonOffers = (results?.offers ?? []).filter((offer) => comparisonIds.includes(offer.id));
@@ -168,9 +175,16 @@ export default function HotelSearchPanel({ tripId, canEdit, onAccommodationSaved
             <div className="trip-form-grid" aria-label="Filtrar ofertas por preço">
               <label>Preço mínimo ({currency})<input type="number" min="0" step="0.01" inputMode="decimal" value={minimumPrice} onChange={(event) => setMinimumPrice(event.target.value)} placeholder="Sem mínimo" /></label>
               <label>Preço máximo ({currency})<input type="number" min="0" step="0.01" inputMode="decimal" value={maximumPrice} onChange={(event) => setMaximumPrice(event.target.value)} placeholder="Sem máximo" /></label>
-              <p className="budget-description">{priceRangeInvalid ? "O preço mínimo não pode ser superior ao preço máximo." : `A mostrar ${filteredOffers.length} de ${results.results_count} ofertas.`}</p>
+              <p className="budget-description">{priceRangeInvalid
+                ? minimumPriceInvalid || maximumPriceInvalid
+                  ? "Os preços têm de ser números válidos iguais ou superiores a zero."
+                  : "O preço mínimo não pode ser superior ao preço máximo."
+                : `A mostrar ${filteredOffers.length} de ${results.results_count} ofertas.`}</p>
               <div className="trip-form-actions"><button className="secondary-button" type="button" onClick={() => { setMinimumPrice(""); setMaximumPrice(""); }}>Limpar filtros</button></div>
             </div>
+          )}
+          {results.results_count > 0 && filteredOffers.length === 0 && !priceRangeInvalid && (
+            <p className="notice" role="status">Não existem ofertas dentro deste intervalo de preços. Altera os valores ou limpa os filtros.</p>
           )}
           {filteredOffers.map((offer) => (
             <article className="trip-card" key={offer.id}>
