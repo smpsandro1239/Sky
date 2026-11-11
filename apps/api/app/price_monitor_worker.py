@@ -6,7 +6,7 @@ Cada pesquisa activa é limitada por uma chave Redis com TTL para evitar chamada
 import asyncio
 import logging
 import time
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Any
 from uuid import UUID
 
@@ -106,10 +106,30 @@ async def _fetch_observations(search: dict[str, Any]) -> list[dict[str, Any]]:
     raise ValueError(f"Tipo de pesquisa não suportado: {search_type}")
 
 
+def _search_has_expired(search: dict[str, Any], today: date | None = None) -> bool:
+    """Evita consumir quota do fornecedor para viagens que já terminaram."""
+    current_date = today or datetime.now(timezone.utc).date()
+    criteria = search["criteria"]
+    if search["search_type"] == "flight":
+        request = FlightSearchRequest.model_validate(criteria)
+        return request.departure_date < current_date
+    if search["search_type"] == "hotel":
+        request = HotelSearchRequest.model_validate(criteria)
+        return request.check_out <= current_date
+    return False
+
+
 def monitor_once(client: redis.Redis, db: Session) -> int:
     searches = _active_searches(db)
     completed = 0
     for search in searches:
+        if _search_has_expired(search):
+            logger.info(
+                "Monitorização ignorada: datas da viagem ultrapassadas (%s, %s)",
+                search["search_type"],
+                search["search_key"],
+            )
+            continue
         lock_key = (
             f"sky:price-monitor:{search['user_id']}:"
             f"{search['search_type']}:{search['search_key']}"
