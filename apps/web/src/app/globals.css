@@ -600,3 +600,23 @@ footer { border-top: 1px solid #1c3043; padding: 25px 28px; text-align: center; 
 
 .budget-alert-near { color: #e8bd69 !important; font-weight: 700; }
 .budget-alert-over { color: #e58a78 !important; font-weight: 800; }
+
+
+/* Private in-app notification centre */
+.notifications-root { position: relative; }
+.notifications-trigger { display: inline-flex; align-items: center; gap: 8px; }
+.notifications-count { display: inline-grid; min-width: 19px; height: 19px; padding: 0 5px; place-items: center; border-radius: 99px; background: var(--accent); color: #081522; font-size: 10px; font-weight: 800; }
+.notifications-panel { position: absolute; z-index: 50; top: calc(100% + 12px); right: 0; width: min(420px, calc(100vw - 32px)); max-height: min(620px, 75vh); overflow: auto; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: 0 18px 50px rgba(0,0,0,.35); }
+.notifications-panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.notifications-panel-heading strong { font-size: 15px; }
+.notifications-panel-heading button { font-size: 11px; }
+.notifications-list { display: grid; }
+.notification-item { display: grid; gap: 10px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.notification-item > div:first-child { display: grid; gap: 5px; }
+.notification-item strong { font-size: 13px; }
+.notification-item p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.notification-item small { color: var(--muted); font-size: 10px; }
+.notification-unread { border-left: 3px solid var(--accent); padding-left: 10px; }
+.notification-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.notification-actions button, .notification-actions a { font-size: 11px; padding: 6px 9px; }
+@media (max-width: 700px) { .notifications-panel { position: fixed; top: 72px; right: 12px; } }
