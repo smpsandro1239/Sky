@@ -17,7 +17,7 @@ type Trip = {
   budget_amount?: string | null;
   budget_currency?: string;
 };
-type FinancialTrip = { id: string; name: string; destination: string; budgetAmount: number | null; budgetCurrency: string; totals: Record<string, number>; plannedTotals: Record<string, { planned: number; actual: number }>; };
+type FinancialTrip = { id: string; name: string; destination: string; budgetAmount: number | null; budgetCurrency: string; totals: Record<string, number>; plannedTotals: Record<string, { planned: number; actual: number }>; planLoadFailed?: boolean; };
 
 export default function DashboardPage() {
   const router = useRouter();
