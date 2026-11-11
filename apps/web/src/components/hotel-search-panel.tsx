@@ -71,25 +71,36 @@ export default function HotelSearchPanel({ tripId, canEdit, onAccommodationSaved
   const [minimumPrice, setMinimumPrice] = useState("");
   const [maximumPrice, setMaximumPrice] = useState("");
   const [favorites, setFavorites] = useState<HotelFavorite[]>([]);
+  const [favoritesLoading, setFavoritesLoading] = useState(true);
+  const [favoritesError, setFavoritesError] = useState("");
   const [favoriteActionId, setFavoriteActionId] = useState<string | null>(null);
 
+  async function loadFavorites() {
+    setFavoritesLoading(true);
+    setFavoritesError("");
+    try {
+      const response = await fetch("/api/backend/hotels/favorites", { cache: "no-store" });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        const detail = payload && typeof payload.detail === "string" ? payload.detail : "Não foi possível carregar os hotéis favoritos.";
+        throw new Error(detail);
+      }
+      if (!Array.isArray(payload) || !payload.every((item) =>
+        item && typeof item.id === "string" && typeof item.hotel_id === "string"
+        && typeof item.hotel_name === "string" && typeof item.location === "string"
+      )) {
+        throw new Error("A resposta dos favoritos tem um formato inválido.");
+      }
+      setFavorites(payload as HotelFavorite[]);
+    } catch (cause) {
+      setFavoritesError(cause instanceof Error ? cause.message : "Ocorreu um erro ao carregar os favoritos.");
+    } finally {
+      setFavoritesLoading(false);
+    }
+  }
+
   useEffect(() => {
-    let active = true;
-    fetch("/api/backend/hotels/favorites", { cache: "no-store" })
-      .then(async (response) => {
-        if (!response.ok) return [];
-        const payload = await response.json().catch(() => []);
-        return Array.isArray(payload) ? payload as HotelFavorite[] : [];
-      })
-      .then((items) => {
-        if (active) setFavorites(items);
-      })
-      .catch(() => {
-        if (active) setFavorites([]);
-      });
-    return () => {
-      active = false;
-    };
+    void loadFavorites();
   }, []);
 
   async function search(event: FormEvent<HTMLFormElement>) {
@@ -251,24 +262,32 @@ export default function HotelSearchPanel({ tripId, canEdit, onAccommodationSaved
           <button className="primary-button trip-submit" type="submit" disabled={loading}>{loading ? "A pesquisar..." : "Pesquisar alojamentos"}</button>
         </div>
       </form>
-      {favorites.length > 0 && (
-        <section className="trip-list" aria-labelledby="hotel-favorites-title">
+      <section className="trip-list" aria-labelledby="hotel-favorites-title">
+        <div className="activity-heading">
           <h4 id="hotel-favorites-title">Os meus hotéis favoritos ({favorites.length})</h4>
-          {favorites.map((favorite) => (
-            <article className="trip-card" key={favorite.id}>
-              <div>
-                <h4>{favorite.hotel_name}</h4>
-                <p>{favorite.location}</p>
-              </div>
-              <div className="trip-card-actions">
-                <button className="secondary-button" type="button" disabled={favoriteActionId !== null} onClick={() => void removeFavorite(favorite)}>
-                  {favoriteActionId === favorite.hotel_id ? "A remover..." : "Retirar dos favoritos"}
-                </button>
-              </div>
-            </article>
-          ))}
-        </section>
-      )}
+          <button className="secondary-button" type="button" onClick={() => void loadFavorites()} disabled={favoritesLoading}>
+            {favoritesLoading ? "A carregar..." : "Atualizar favoritos"}
+          </button>
+        </div>
+        {favoritesError && <p className="notice" role="alert">{favoritesError}</p>}
+        {favoritesLoading && favorites.length === 0 && <p className="budget-description" role="status">A carregar hotéis favoritos...</p>}
+        {!favoritesLoading && !favoritesError && favorites.length === 0 && (
+          <p className="budget-description">Ainda não guardaste hotéis. Podes adicioná-los a partir dos resultados da pesquisa.</p>
+        )}
+        {favorites.map((favorite) => (
+          <article className="trip-card" key={favorite.id}>
+            <div>
+              <h4>{favorite.hotel_name}</h4>
+              <p>{favorite.location}</p>
+            </div>
+            <div className="trip-card-actions">
+              <button className="secondary-button" type="button" disabled={favoriteActionId !== null} onClick={() => void removeFavorite(favorite)}>
+                {favoriteActionId === favorite.hotel_id ? "A remover..." : "Retirar dos favoritos"}
+              </button>
+            </div>
+          </article>
+        ))}
+      </section>
       {error && <p className="notice" role="alert">{error}</p>}
       {message && <p className="notice" role="status">{message}</p>}
       {results && (
