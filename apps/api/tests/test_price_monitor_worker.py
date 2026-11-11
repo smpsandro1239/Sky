@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from uuid import uuid4
 
 import pytest
@@ -127,3 +127,35 @@ def test_monitor_once_rolls_back_and_sets_retry_after_provider_error(monkeypatch
     assert worker.monitor_once(client, db) == 0
     assert db.rollbacks == 1
     assert client.expirations[next(iter(client.values))] == 600
+
+
+
+def test_monitor_skips_flights_after_departure_date():
+    search = _search()
+    search["criteria"]["departure_date"] = "2020-01-01"
+
+    assert worker._search_has_expired(search, today=date(2026, 11, 11))
+
+
+def test_monitor_skips_hotels_after_checkout_date():
+    search = _search()
+    search["search_type"] = "hotel"
+    search["criteria"] = {
+        "city_code": "LIS",
+        "check_in": "2020-01-01",
+        "check_out": "2020-01-05",
+        "adults": 2,
+        "room_quantity": 1,
+        "currency": "EUR",
+        "radius": 20,
+        "max_hotels": 20,
+    }
+
+    assert worker._search_has_expired(search, today=date(2026, 11, 11))
+
+
+def test_monitor_keeps_future_travel_dates():
+    search = _search()
+    search["criteria"]["departure_date"] = "2027-01-01"
+
+    assert not worker._search_has_expired(search, today=date(2026, 11, 11))
