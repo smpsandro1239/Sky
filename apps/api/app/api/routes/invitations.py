@@ -1,13 +1,16 @@
 import hashlib
 import secrets
 from datetime import datetime, timedelta, timezone
-from urllib.parse import quote\nfrom uuid import UUID
+from urllib.parse import quote
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user, get_db\nfrom app.core.config import settings\nfrom app.core.email import send_trip_invitation_email
+from app.api.deps import get_current_user, get_db
+from app.core.config import settings
+from app.core.email import send_trip_invitation_email
 from app.api.routes.trips import get_user_trip
 from app.models.invitation import TripInvitation
 from app.models.participant import TripParticipant
@@ -77,8 +80,22 @@ def create_invitation(
     db.add(invitation)
     db.commit()
     db.refresh(invitation)
+    accept_url = (
+        f"{settings.frontend_url.rstrip('/')}/invitations/accept?token={quote(raw_token, safe='')}"
+    )
+    email_sent = send_trip_invitation_email(
+        to_email=email,
+        trip_name=trip.name,
+        inviter_name=user.display_name or user.email,
+        role=invitation.role,
+        accept_url=accept_url,
+    )
     data = InvitationResponse.model_validate(invitation).model_dump()
-    return InvitationCreated(**data, invitation_token=raw_token)
+    return InvitationCreated(
+        **data,
+        invitation_token=raw_token,
+        email_sent=email_sent,
+    )
 
 
 @router.get(
