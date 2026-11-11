@@ -491,3 +491,15 @@ footer { border-top: 1px solid #1c3043; padding: 25px 28px; text-align: center; 
   .balance-analysis-metrics { width: 100%; grid-template-columns: 1fr 1fr; }
   .balance-analysis-row { flex-wrap: wrap; }
 }
+
+
+/* Chronological financial movement history */
+.financial-movement { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.financial-movement > div, .financial-movement-values { display: grid; gap: 4px; }
+.financial-movement span, .financial-movement small { color: var(--muted); font-size: 12px; }
+.financial-movement-values { text-align: right; white-space: nowrap; }
+.financial-movement-values b { font-size: 14px; }
+@media (max-width: 600px) {
+  .financial-movement { align-items: flex-start; flex-direction: column; }
+  .financial-movement-values { text-align: left; white-space: normal; }
+}
