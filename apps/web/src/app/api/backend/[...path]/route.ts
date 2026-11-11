@@ -14,6 +14,8 @@ async function proxyRequest(
   const resource = path.join("/");
   const isCollection = resource === "trips";
   const isProfile = resource === "auth/me";
+  const isAdminUsers = resource === "admin/users";
+  const isAdminRoleUpdate = new RegExp("^admin/users/" + UUID_PATTERN + "/role$").test(resource);
   const isTripItem = new RegExp("^trips/" + UUID_PATTERN + "$").test(resource);
   const isTripAccess = new RegExp("^trips/" + UUID_PATTERN + "/access$").test(resource);
   const isTripBalances = new RegExp("^trips/" + UUID_PATTERN + "/balances$").test(resource);
@@ -43,9 +45,9 @@ async function proxyRequest(
   const isNotificationReadAll = resource === "notifications/read-all";
 
   const allowed =
-    (method === "GET" && (isFlightSearch || isHotelSearch || isHotelFavorites || isPriceHistory || isPriceAlerts || isNotifications || isProfile || isCollection || isTripItem || isTripAccess || isTripBalances || isTripSettlements || isTripActivity || isFlightCollection || isAccommodationCollection || isExpenseCollection || isExpenseSharesCollection || isParticipantCollection || isInvitationCollection)) ||
+    (method === "GET" && (isFlightSearch || isHotelSearch || isHotelFavorites || isPriceHistory || isPriceAlerts || isNotifications || isProfile || isAdminUsers || isCollection || isTripItem || isTripAccess || isTripBalances || isTripSettlements || isTripActivity || isFlightCollection || isAccommodationCollection || isExpenseCollection || isExpenseSharesCollection || isParticipantCollection || isInvitationCollection)) ||
     (method === "POST" && (isCollection || isHotelFavorites || isPriceAlerts || isNotificationReadAll || isFlightCollection || isAccommodationCollection || isExpenseCollection || isTripSettlements || isParticipantCollection || isInvitationCollection || isInvitationAccept)) ||
-    (method === "PATCH" && (isTripItem || isParticipantItem || isPriceAlertItem || isNotificationRead || isFlightItem || isAccommodationItem || isExpenseItem || isExpenseSharesCollection)) ||
+    (method === "PATCH" && (isAdminRoleUpdate || isTripItem || isParticipantItem || isPriceAlertItem || isNotificationRead || isFlightItem || isAccommodationItem || isExpenseItem || isExpenseSharesCollection)) ||
     (method === "DELETE" && (isTripItem || isHotelFavoriteItem || isPriceAlertItem || isFlightItem || isAccommodationItem || isExpenseItem || isParticipantItem || isInvitationItem));
 
   if (!allowed) {
