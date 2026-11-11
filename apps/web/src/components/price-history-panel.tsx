@@ -43,7 +43,7 @@ export default function PriceHistoryPanel({
 }) {
   const [selectedKey, setSelectedKey] = useState(items[0]?.key ?? "");
   const [history, setHistory] = useState<PriceHistoryResponse | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [alerts, setAlerts] = useState<PriceAlert[]>([]);
   const [targetPrice, setTargetPrice] = useState("");
@@ -54,8 +54,6 @@ export default function PriceHistoryPanel({
   useEffect(() => {
     if (!searchKey || !selectedKey) return;
     const controller = new AbortController();
-    setLoading(true);
-    setError("");
     fetch(
       "/api/backend/prices/history?" +
         new URLSearchParams({
@@ -99,10 +97,7 @@ export default function PriceHistoryPanel({
 
 
   useEffect(() => {
-    if (!searchKey || !selectedKey) {
-      setAlerts([]);
-      return;
-    }
+    if (!searchKey || !selectedKey) return;
     const controller = new AbortController();
     fetch("/api/backend/prices/alerts", { cache: "no-store", signal: controller.signal })
       .then(async (response) => {
@@ -228,6 +223,8 @@ export default function PriceHistoryPanel({
         Oferta a acompanhar
         <select value={selectedKey} onChange={(event) => {
           setSelectedKey(event.target.value);
+          setLoading(true);
+          setError("");
           setHistory(null);
           setTargetPrice("");
           setAlertError("");
