@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
@@ -32,14 +33,14 @@ def create_price_alert(
     user: User = Depends(get_current_user),
 ) -> PriceAlert:
     observed = db.scalar(
-        select(PriceObservation.id).where(
+        select(PriceObservation).where(
             PriceObservation.user_id == user.id,
             PriceObservation.search_type == payload.search_type,
             PriceObservation.search_key == payload.search_key,
             PriceObservation.item_key == payload.item_key,
             PriceObservation.currency == payload.currency,
             PriceObservation.is_available.is_(True),
-        ).limit(1)
+        ).order_by(PriceObservation.captured_at.desc()).limit(1)
     )
     if observed is None:
         raise HTTPException(
@@ -48,6 +49,10 @@ def create_price_alert(
         )
 
     alert = PriceAlert(user_id=user.id, **payload.model_dump())
+    if observed.amount <= payload.target_price:
+        alert.is_active = False
+        alert.triggered_price = observed.amount
+        alert.triggered_at = datetime.now(timezone.utc)
     db.add(alert)
     db.commit()
     db.refresh(alert)
