@@ -2,7 +2,7 @@
 
 ## Estado
 
-A API FastAPI disponibiliza saúde, autenticação, gestão de viagens, voos, alojamentos, despesas, participantes, partilhas e balanços de despesas. Pesquisa externa, favoritos, recomendações e alertas continuam por implementar. A execução da CI e dos testes deve ser consultada no GitHub Actions.
+A API FastAPI disponibiliza saúde, autenticação, gestão de viagens, voos, alojamentos, despesas, participantes, partilhas e balanços de despesas. A pesquisa externa de voos tem um adaptador Amadeus em modo sandbox, condicionado à configuração de credenciais. Pesquisa externa de alojamentos, favoritos, recomendações e alertas continuam por implementar. A execução da CI e dos testes deve ser consultada no GitHub Actions.
 
 ## Base path
 
@@ -24,7 +24,7 @@ Formato: JSON. A aplicação disponibiliza documentação OpenAPI em `/docs` e R
 | GET | `/trips/{trip_id}/access` | Bearer | Consultar o papel do utilizador na viagem (owner, editor ou viewer) |
 | PATCH | `/trips/{trip_id}` | Bearer | Atualizar uma viagem própria |
 | DELETE | `/trips/{trip_id}` | Bearer | Eliminar uma viagem própria |
-| GET | `/trips/{trip_id}/flights` | Bearer | Listar voos associados à viagem |
+| GET | `/flights/search` | Bearer | Pesquisar ofertas externas Amadeus por rota, data, passageiros e moeda (requer credenciais) |\n| GET | `/trips/{trip_id}/flights` | Bearer | Listar voos associados à viagem |
 | POST | `/trips/{trip_id}/flights` | Bearer | Associar um voo à viagem |
 | PATCH | `/trips/{trip_id}/flights/{flight_id}` | Bearer | Atualizar um voo |
 | DELETE | `/trips/{trip_id}/flights/{flight_id}` | Bearer | Eliminar um voo |
@@ -199,3 +199,38 @@ Os futuros pedidos de pesquisa deverão validar origem/destino ou localização,
 ## Compatibilidade
 
 Mudanças incompatíveis devem exigir nova versão ou política explícita de descontinuação. A API deve documentar unidades, moedas, fusos horários, campos opcionais e semântica de disponibilidade.
+
+
+### Pesquisa externa de voos (Amadeus)
+
+O endpoint `GET /flights/search` consulta ofertas de voo no fornecedor Amadeus. Requer autenticação Bearer e credenciais de API configuradas no ambiente da API:
+
+- `AMADEUS_CLIENT_ID`
+- `AMADEUS_CLIENT_SECRET`
+- `AMADEUS_BASE_URL` (predefinição: `https://test.api.amadeus.com`)
+
+O endereço predefinido utiliza o ambiente de testes da Amadeus. Para produção, a conta e o acesso ao ambiente de produção têm de ser aprovados pelo fornecedor e a variável de ambiente deve ser alterada deliberadamente. Nunca colocar credenciais no frontend ou no repositório.
+
+Parâmetros:
+
+| Parâmetro | Obrigatório | Predefinição | Descrição |
+|---|---|---|---|
+| `origin` | Sim | — | Código IATA de três letras, por exemplo OPO |
+| `destination` | Sim | — | Código IATA de três letras, diferente da origem |
+| `departure_date` | Sim | — | Data de partida em YYYY-MM-DD |
+| `return_date` | Não | — | Data de regresso posterior à partida |
+| `adults` | Não | 1 | Passageiros adultos, entre 1 e 9 |
+| `currency` | Não | EUR | Código de moeda de três letras |
+| `non_stop` | Não | false | Limitar a voos diretos |
+| `max_results` | Não | 20 | Número máximo de ofertas, entre 1 e 50 |
+
+Exemplo:
+
+```http
+GET /api/v1/flights/search?origin=OPO&destination=LIS&departure_date=2027-08-10&adults=2&currency=EUR
+Authorization: Bearer <access_token>
+```
+
+A resposta normaliza o preço total, moeda, número de escalas e segmentos de cada itinerário. As ofertas são ordenadas por preço total e, em caso de empate, pelo número de escalas. Esta integração apenas pesquisa ofertas: não reserva, não emite bilhetes e não garante disponibilidade após a resposta. A pesquisa de ida e volta utiliza a mesma quantidade de adultos para ambos os segmentos.
+
+Sem credenciais, a API responde `503`; falhas do fornecedor são traduzidas em `502`; critérios inválidos são rejeitados com `422`. O adaptador mantém o token OAuth em memória durante a validade indicada pelo fornecedor. A cache é local ao processo da API.
