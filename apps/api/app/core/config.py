@@ -27,6 +27,11 @@ class Settings:
     price_monitor_retry_seconds: int = int(os.getenv("PRICE_MONITOR_RETRY_SECONDS", "600"))
     secret_key: str = os.getenv("SKY_SECRET_KEY", "dev-only-change-this-secret-key-rotate-before-production")
     access_token_minutes: int = int(os.getenv("ACCESS_TOKEN_MINUTES", "20"))
+    admin_emails: set[str] = {
+        email.strip().lower()
+        for email in os.getenv("SKY_ADMIN_EMAILS", "").split(",")
+        if email.strip()
+    }
     frontend_url: str = os.getenv("FRONTEND_URL", "http://localhost:3000")
     cors_origins: list[str] = [
         origin.strip()
