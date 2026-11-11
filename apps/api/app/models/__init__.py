@@ -1,6 +1,7 @@
 from app.models.accommodation import Accommodation
 from app.models.activity import TripActivity
 from app.models.auth_identity import AuthIdentity
+from app.models.auth_session import AuthSession
 from app.models.expense import Expense
 from app.models.expense_share import ExpenseShare
 from app.models.flight import Flight
@@ -18,5 +19,7 @@ from app.models.user import User
 
 __all__ = [
     "User", "Trip", "Flight", "Accommodation", "Expense", "TripActivity",
-    "ExpenseShare", "TripParticipant", "ParticipantBudget", "TripInvitation", "AuthIdentity", "TripSettlement", "HotelFavorite", "TripBudgetPlan", "PriceObservation", "PriceAlert", "Notification",
+    "ExpenseShare", "TripParticipant", "ParticipantBudget", "TripInvitation",
+    "AuthIdentity", "AuthSession", "TripSettlement", "HotelFavorite",
+    "TripBudgetPlan", "PriceObservation", "PriceAlert", "Notification",
 ]
