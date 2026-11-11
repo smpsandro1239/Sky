@@ -85,7 +85,7 @@ export default function DashboardPage() {
       }
       setFinancialLoading(true);
       setFinancialError("");
-      const results = await Promise.all(trips.map(async (trip) => {
+      const results: (FinancialTrip | null)[] = await Promise.all(trips.map(async (trip) => {
         try {
           const [flightResponse, accommodationResponse, expenseResponse] = await Promise.all([
             fetch(`/api/backend/trips/${trip.id}/flights`, { cache: "no-store" }),
