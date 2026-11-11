@@ -20,6 +20,7 @@ def test_initial_models_are_registered() -> None:
         "trip_budget_plans",
         "price_observations",
         "price_alerts",
+        "notifications",
     }
 
 
@@ -56,6 +57,9 @@ def test_trip_relationships_are_defined() -> None:
     assert budgets.c.participant_id.foreign_keys
     assert {"amount", "currency", "created_at", "updated_at"} <= set(budgets.c.keys())
     assert "uq_participant_budgets_participant_currency" in {constraint.name for constraint in budgets.constraints}
+    notifications = Base.metadata.tables["notifications"]
+    assert notifications.c.user_id.foreign_keys
+    assert {"notification_type", "title", "message", "metadata", "read_at", "created_at"} <= set(notifications.c.keys())
     price_observations = Base.metadata.tables["price_observations"]
     assert price_observations.c.user_id.foreign_keys
     assert {"capture_id", "search_type", "search_key", "item_key", "amount", "currency", "captured_at"} <= set(price_observations.c.keys())
