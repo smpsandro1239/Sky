@@ -15,6 +15,7 @@ def test_initial_models_are_registered() -> None:
         "trip_invitations",
         "trip_activity",
         "trip_settlements",
+        "hotel_favorites",
     }
 
 
@@ -38,6 +39,10 @@ def test_trip_relationships_are_defined() -> None:
     assert activity.c.trip_id.foreign_keys
     assert activity.c.actor_user_id.foreign_keys
     assert {"actor_name", "action", "entity_type", "summary", "created_at"} <= set(activity.c.keys())
+    favorites = Base.metadata.tables["hotel_favorites"]
+    assert favorites.c.user_id.foreign_keys
+    assert {"hotel_id", "hotel_name", "location", "provider"} <= set(favorites.c.keys())
+    assert "uq_hotel_favorites_user_hotel" in {constraint.name for constraint in favorites.constraints}
     shares = Base.metadata.tables["expense_shares"]
     assert shares.c.expense_id.foreign_keys
     assert shares.c.participant_id.foreign_keys
