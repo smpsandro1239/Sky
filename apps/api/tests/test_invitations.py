@@ -250,3 +250,105 @@ def test_member_roles_control_trip_visibility_and_writes(client: TestClient) -> 
         json={"name": "Alteração não autorizada"},
     ).status_code == 404
     assert client.delete(f"/api/v1/trips/{trip_id}", headers=auth(editor)).status_code == 404
+
+
+def test_editor_and_viewer_permissions_cover_financial_and_accommodation_resources(client: TestClient) -> None:
+    owner = register_and_login(client, "owner-resource-roles@example.com")
+    editor = register_and_login(client, "editor-resource-roles@example.com")
+    viewer = register_and_login(client, "viewer-resource-roles@example.com")
+    trip_id = create_trip(client, owner)
+
+    participant = client.post(
+        f"/api/v1/trips/{trip_id}/participants",
+        headers=auth(owner),
+        json={"name": "Ana", "email": "ana-resource-roles@example.com"},
+    )
+    assert participant.status_code == 201
+    participant_id = participant.json()["id"]
+
+    editor_invite = client.post(
+        f"/api/v1/trips/{trip_id}/invitations",
+        headers=auth(owner),
+        json={"email": "editor-resource-roles@example.com", "role": "editor"},
+    ).json()
+    viewer_invite = client.post(
+        f"/api/v1/trips/{trip_id}/invitations",
+        headers=auth(owner),
+        json={"email": "viewer-resource-roles@example.com", "role": "viewer"},
+    ).json()
+    for token, invitation in [(editor, editor_invite), (viewer, viewer_invite)]:
+        accepted = client.post(
+            "/api/v1/invitations/accept",
+            headers=auth(token),
+            json={"token": invitation["invitation_token"]},
+        )
+        assert accepted.status_code == 200
+
+    expense_url = f"/api/v1/trips/{trip_id}/expenses"
+    expense_payload = {
+        "category": "alimentacao",
+        "description": "Jantar partilhado",
+        "expense_date": "2027-08-02",
+        "amount": "24.00",
+        "currency": "EUR",
+        "paid_by_participant_id": participant_id,
+    }
+    created_expense = client.post(expense_url, headers=auth(editor), json=expense_payload)
+    assert created_expense.status_code == 201
+    expense_id = created_expense.json()["id"]
+
+    accommodation_url = f"/api/v1/trips/{trip_id}/accommodations"
+    accommodation_payload = {
+        "name": "Hotel de teste",
+        "location": "Funchal",
+        "check_in": "2027-08-01",
+        "check_out": "2027-08-05",
+        "price_amount": "300.00",
+        "price_currency": "EUR",
+    }
+    created_accommodation = client.post(
+        accommodation_url, headers=auth(editor), json=accommodation_payload
+    )
+    assert created_accommodation.status_code == 201
+
+    shares_url = f"{expense_url}/{expense_id}/shares"
+    saved_shares = client.patch(
+        shares_url,
+        headers=auth(editor),
+        json=[{"participant_id": participant_id, "amount": "24.00"}],
+    )
+    assert saved_shares.status_code == 200
+
+    # Both shared roles can read trip resources, including financial data.
+    for token in (editor, viewer):
+        assert client.get(expense_url, headers=auth(token)).status_code == 200
+        assert client.get(accommodation_url, headers=auth(token)).status_code == 200
+        assert client.get(shares_url, headers=auth(token)).status_code == 200
+        assert client.get(f"/api/v1/trips/{trip_id}/balances", headers=auth(token)).status_code == 200
+        assert client.get(f"/api/v1/trips/{trip_id}/participants", headers=auth(token)).status_code == 200
+
+    # Viewers cannot create or alter expenses, accommodation, or shares.
+    assert client.post(expense_url, headers=auth(viewer), json=expense_payload).status_code == 403
+    assert client.patch(
+        shares_url, headers=auth(viewer),
+        json=[{"participant_id": participant_id, "amount": "24.00"}],
+    ).status_code == 403
+    accommodation_id = created_accommodation.json()["id"]
+    assert client.patch(
+        f"{accommodation_url}/{accommodation_id}",
+        headers=auth(viewer),
+        json={"name": "Alteração não autorizada"},
+    ).status_code == 403
+    assert client.delete(
+        f"{accommodation_url}/{accommodation_id}", headers=auth(viewer)
+    ).status_code == 403
+
+    # Editors cannot manage invitations or membership.
+    assert client.get(
+        f"/api/v1/trips/{trip_id}/invitations", headers=auth(editor)
+    ).status_code == 404
+    assert client.post(
+        f"/api/v1/trips/{trip_id}/invitations",
+        headers=auth(editor),
+        json={"email": "another@example.com"},
+    ).status_code == 404
