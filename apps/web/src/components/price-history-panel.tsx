@@ -52,14 +52,7 @@ export default function PriceHistoryPanel({
   const [alertError, setAlertError] = useState("");
 
   useEffect(() => {
-    setSelectedKey(items[0]?.key ?? "");
-  }, [searchKey, items]);
-
-  useEffect(() => {
-    if (!searchKey || !selectedKey) {
-      setHistory(null);
-      return;
-    }
+    if (!searchKey || !selectedKey) return;
     const controller = new AbortController();
     setLoading(true);
     setError("");
