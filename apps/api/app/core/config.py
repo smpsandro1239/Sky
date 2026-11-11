@@ -6,9 +6,16 @@ class Settings:
 
     app_name: str = "SKY API"
     environment: str = os.getenv("SKY_ENV", "development")
-    database_url: str = os.getenv(
+    _raw_database_url: str = os.getenv(
         "DATABASE_URL",
         "postgresql+psycopg://sky:change-me-local-only@localhost:5432/sky",
+    )
+    database_url: str = (
+        "postgresql+psycopg://" + _raw_database_url.removeprefix("postgres://")
+        if _raw_database_url.startswith("postgres://")
+        else "postgresql+psycopg://" + _raw_database_url.removeprefix("postgresql://")
+        if _raw_database_url.startswith("postgresql://")
+        else _raw_database_url
     )
     secret_key: str = os.getenv("SKY_SECRET_KEY", "dev-only-change-this-secret-key-rotate-before-production")
     access_token_minutes: int = int(os.getenv("ACCESS_TOKEN_MINUTES", "20"))
