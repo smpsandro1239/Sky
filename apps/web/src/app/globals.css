@@ -462,3 +462,20 @@ footer { border-top: 1px solid #1c3043; padding: 25px 28px; text-align: center; 
 .budget-usage-track > span { display: block; height: 100%; border-radius: inherit; background: #36a879; transition: width .2s ease; }
 .budget-usage-track > span.budget-usage-over { background: #d97757; }
 @media (max-width: 520px) { .budget-usage-heading { align-items: flex-start; flex-direction: column; gap: 4px; } }
+
+
+/* Global trip finance overview */
+.global-finance-trips { grid-column: 1 / -1; display: grid; gap: 12px; margin-top: 8px; }
+.global-finance-trips h3 { margin: 0; font-size: 16px; }
+.global-finance-trip { display: flex; justify-content: space-between; align-items: center; gap: 18px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; background: rgba(7,17,31,.42); }
+.global-finance-trip > div { display: grid; gap: 5px; }
+.global-finance-trip > div:last-child { justify-items: end; }
+.global-finance-trip strong { font-size: 14px; }
+.global-finance-trip span { color: var(--muted); font-size: 12px; }
+.global-finance-amount { color: var(--accent) !important; font-weight: 700; }
+.global-finance-trip small { text-align: right; }
+@media (max-width: 700px) {
+  .global-finance-trip { align-items: flex-start; flex-direction: column; }
+  .global-finance-trip > div:last-child { justify-items: start; }
+  .global-finance-trip small { text-align: left; }
+}
