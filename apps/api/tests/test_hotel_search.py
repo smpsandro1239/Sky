@@ -78,3 +78,67 @@ def test_amadeus_mapper_uses_stable_sort_for_equal_prices():
         {"hotel": {"hotelId": "A", "name": "Hotel A"}, "offers": [{"id": "a", "price": {"total": "100", "currency": "EUR"}}]},
     ]
     assert [offer.id for offer in _map_offers(results, criteria)] == ["a", "z"]
+
+
+
+def test_amadeus_mapper_exposes_only_returned_cancellation_and_payment_terms():
+    criteria = HotelSearchRequest(city_code="LIS", check_in="2027-08-10", check_out="2027-08-12")
+    results = [
+        {
+            "hotel": {"hotelId": "HOTEL004", "name": "Hotel D"},
+            "offers": [
+                {
+                    "id": "with-policies",
+                    "price": {"total": "250.00", "currency": "EUR"},
+                    "policies": {
+                        "paymentType": "GUARANTEE",
+                        "cancellation": {
+                            "deadline": "2027-08-08T23:59:00+01:00",
+                            "description": {"text": "Cancelamento gratuito até à data indicada."},
+                        },
+                    },
+                },
+                {
+                    "id": "without-policies",
+                    "price": {"total": "260.00", "currency": "EUR"},
+                },
+            ],
+        }
+    ]
+
+    offers = _map_offers(results, criteria)
+
+    assert offers[0].payment_type == "GUARANTEE"
+    assert offers[0].cancellation_deadline == "2027-08-08T23:59:00+01:00"
+    assert offers[0].cancellation_description == "Cancelamento gratuito até à data indicada."
+    assert offers[1].payment_type is None
+    assert offers[1].cancellation_deadline is None
+    assert offers[1].cancellation_description is None
+
+
+def test_amadeus_mapper_ignores_malformed_policy_values():
+    criteria = HotelSearchRequest(city_code="LIS", check_in="2027-08-10", check_out="2027-08-12")
+    results = [
+        {
+            "hotel": {"hotelId": "HOTEL005", "name": "Hotel E"},
+            "offers": [
+                {
+                    "id": "malformed-policies",
+                    "price": {"total": "180.00", "currency": "EUR"},
+                    "policies": {
+                        "paymentType": {"unexpected": "object"},
+                        "cancellation": {
+                            "deadline": 12345,
+                            "description": "not-an-object",
+                        },
+                    },
+                }
+            ],
+        }
+    ]
+
+    offer = _map_offers(results, criteria)[0]
+
+    assert offer.payment_type is None
+    assert offer.cancellation_deadline is None
+    assert offer.cancellation_description is None
