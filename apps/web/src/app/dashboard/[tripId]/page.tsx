@@ -85,6 +85,13 @@ function dateTimeInput(value: string | null) {
   return localDate.toISOString().slice(0, 16);
 }
 
+function accommodationNights(checkIn: string, checkOut: string) {
+  const start = Date.parse(`${checkIn}T00:00:00Z`);
+  const end = Date.parse(`${checkOut}T00:00:00Z`);
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return null;
+  return Math.round((end - start) / 86_400_000);
+}
+
 export default function TripDetailPage() {
   const params = useParams<{ tripId: string }>();
   const tripId = params.tripId;
@@ -1065,8 +1072,25 @@ export default function TripDetailPage() {
             <div className="trip-list">
               {accommodations.length === 0 ? <div className="empty-state"><p>Ainda não existem alojamentos associados a esta viagem.</p></div> : accommodations.map((item) => (
                 <article className="trip-card" key={item.id}>
-                  <div><h3>{item.name}</h3><p>{item.location} · {item.check_in} — {item.check_out}</p></div>
-                  <div className="trip-card-actions"><span>{item.price_amount ? `${item.price_amount} ${item.price_currency}` : "Preço por definir"}</span>{accessRole !== "viewer" && <div className="trip-action-buttons"><button className="edit-button" type="button" onClick={() => editAccommodation(item)}>Editar</button><button className="delete-button" type="button" onClick={() => void deleteItem("accommodations", item.id)}>Eliminar</button></div>}</div>
+                  <div>
+                    <h3>{item.name}</h3>
+                    <p>{item.location} · {item.check_in} — {item.check_out}</p>
+                    {item.provider && <p>Fornecedor: {item.provider}</p>}
+                    {accommodationNights(item.check_in, item.check_out) !== null && <p>{accommodationNights(item.check_in, item.check_out)} {accommodationNights(item.check_in, item.check_out) === 1 ? "noite" : "noites"}</p>}
+                  </div>
+                  <div className="trip-card-actions">
+                    <span>
+                      {item.price_amount !== null && Number.isFinite(Number(item.price_amount))
+                        ? `${Number(item.price_amount).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${item.price_currency}`
+                        : "Preço por definir"}
+                      {item.price_amount !== null && accommodationNights(item.check_in, item.check_out) !== null && (
+                        <small className="accommodation-nightly-price">
+                          Média: {(Number(item.price_amount) / accommodationNights(item.check_in, item.check_out)!).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {item.price_currency}/noite
+                        </small>
+                      )}
+                    </span>
+                    {accessRole !== "viewer" && <div className="trip-action-buttons"><button className="edit-button" type="button" onClick={() => editAccommodation(item)}>Editar</button><button className="delete-button" type="button" onClick={() => void deleteItem("accommodations", item.id)}>Eliminar</button></div>}
+                  </div>
                 </article>
               ))}
             </div>
