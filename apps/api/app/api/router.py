@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.api.routes.accommodations import router as accommodations_router
+from app.api.routes.activity import router as activity_router
 from app.api.routes.balances import router as balances_router
 from app.api.routes.auth import router as auth_router
 from app.api.routes.expense_shares import router as expense_shares_router
@@ -15,6 +16,7 @@ api_router = APIRouter()
 api_router.include_router(health_router, tags=["health"])
 api_router.include_router(auth_router)
 api_router.include_router(trips_router)
+api_router.include_router(activity_router)
 api_router.include_router(flights_router)
 api_router.include_router(accommodations_router)
 api_router.include_router(expenses_router)
