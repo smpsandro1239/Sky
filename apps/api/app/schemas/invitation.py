@@ -34,4 +34,4 @@ class InvitationResponse(BaseModel):
 
 
 class InvitationCreated(InvitationResponse):
-    invitation_token: str
+    invitation_token: str\n    email_sent: bool = False
