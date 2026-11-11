@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, get_db
 from app.models.price_alert import PriceAlert
 from app.models.price_observation import PriceObservation
+from app.models.notification import Notification
 from app.models.user import User
 from app.schemas.price_alert import PriceAlertCreate, PriceAlertResponse, PriceAlertUpdate
 
@@ -54,6 +55,25 @@ def create_price_alert(
         alert.triggered_price = observed.amount
         alert.triggered_at = datetime.now(timezone.utc)
     db.add(alert)
+    db.flush()
+    if alert.triggered_at is not None:
+        db.add(
+            Notification(
+                user_id=user.id,
+                notification_type="price_alert_triggered",
+                title="Alerta de preço já atingido",
+                message=f"{alert.item_name}: {observed.amount:.2f} {observed.currency} (objetivo: {alert.target_price:.2f} {alert.currency}).",
+                link="/dashboard",
+                metadata_json={
+                    "alert_id": str(alert.id),
+                    "search_type": alert.search_type,
+                    "search_key": alert.search_key,
+                    "item_key": alert.item_key,
+                    "observed_price": str(observed.amount),
+                    "currency": observed.currency,
+                },
+            )
+        )
     db.commit()
     db.refresh(alert)
     return alert
