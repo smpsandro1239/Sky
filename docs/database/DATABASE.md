@@ -12,7 +12,7 @@
 
 ## Entidades previstas para o MVP
 
-As tabelas atualmente implementadas são `users`, `auth_identities`, `trips`, `trip_flights` e `trip_accommodations`. As restantes entidades abaixo continuam conceptuais/planeadas.
+As tabelas implementadas incluem `users`, `auth_identities`, `trips`, `trip_flights`, `trip_accommodations`, despesas, participantes, convites, histórico de atividade, acertos e `hotel_favorites`. Pesquisas e ofertas externas não são persistidas como reservas.
 
 | Entidade | Responsabilidade |
 |---|---|
@@ -24,7 +24,7 @@ As tabelas atualmente implementadas são `users`, `auth_identities`, `trips`, `t
 | flight_offers | Ofertas de voo normalizadas |
 | hotel_offers | Ofertas de alojamento normalizadas |
 | price_observations | Observações de preço ao longo do tempo |
-| favorites | Itens guardados pelo utilizador |
+| hotel_favorites | Hotéis guardados por utilizador, com unicidade por conta e referência do hotel |
 | price_alerts | Regras de alerta |
 | trips | Viagens planeadas |
 | trip_items | Elementos de um itinerário |
@@ -39,7 +39,7 @@ erDiagram
   SEARCH_SESSIONS ||--o{ HOTEL_OFFERS : returns
   PROVIDERS ||--o{ FLIGHT_OFFERS : supplies
   PROVIDERS ||--o{ HOTEL_OFFERS : supplies
-  USERS ||--o{ FAVORITES : saves
+  USERS ||--o{ HOTEL_FAVORITES : saves
   USERS ||--o{ PRICE_ALERTS : configures
   USERS ||--o{ TRIPS : plans
   TRIPS ||--o{ TRIP_ITEMS : contains
@@ -82,8 +82,6 @@ Não armazenar números completos de cartões nem códigos de segurança. Guarda
 
 As alterações ao esquema devem ser versionadas por migrações. Evitar alterações manuais não reproduzíveis em ambientes partilhados. Definir índices com base em consultas reais e medir antes de otimizar.
 
-## Esquema inicial implementado
+## Esquema e migrações implementados
 
-A migração Alembic `0001_initial` cria as tabelas `users`, `auth_identities`, `trips`, `trip_flights` e `trip_accommodations`, com chaves UUID, relações e índices iniciais. O serviço API executa `alembic upgrade head` antes de arrancar no contentor. A migração inicial não significa que as funcionalidades de pesquisa, ofertas ou reservas estejam implementadas.
-
-O CRUD da API está disponível para `trips`. A gestão de voos e alojamentos associados a uma viagem ainda está por implementar.
+As migrações Alembic versionam o esquema relacional, incluindo contas, viagens, voos, alojamentos, despesas, participantes, convites, histórico, acertos e favoritos de hotéis. A migração `0011_hotel_favorites` cria `hotel_favorites`, ligada a `users` com eliminação em cascata e restrição única sobre `(user_id, hotel_id)`. O serviço API executa `alembic upgrade head` antes de arrancar no contentor. Os favoritos guardam apenas a referência e os dados de identificação do hotel; não guardam uma oferta, preço ou reserva.
