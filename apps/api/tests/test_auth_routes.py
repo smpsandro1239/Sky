@@ -7,7 +7,7 @@ from sqlalchemy.pool import StaticPool
 from app.api.deps import get_db
 from app.database.base import Base
 from app.main import app
-from app.models import Accommodation, AuthIdentity, Flight, Trip, User  # noqa: F401
+from app.models import Accommodation, AuthIdentity, AuthSession, Flight, Trip, User  # noqa: F401
 
 TEST_DATABASE_URL = "sqlite+pysqlite:///:memory:"
 
@@ -77,6 +77,28 @@ def test_register_login_and_get_current_user(client: TestClient) -> None:
     assert profile.json()["email"] == user["email"]
 
 
+def test_logout_revokes_only_the_current_session(client: TestClient) -> None:
+    client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "sessions@example.com",
+            "password": "Correct-Horse-Battery-2026!",
+            "display_name": "Session User",
+        },
+    )
+    credentials = {"email": "sessions@example.com", "password": "Correct-Horse-Battery-2026!"}
+    first_token = client.post("/api/v1/auth/login", json=credentials).json()["access_token"]
+    second_token = client.post("/api/v1/auth/login", json=credentials).json()["access_token"]
+
+    first_headers = {"Authorization": f"Bearer {first_token}"}
+    second_headers = {"Authorization": f"Bearer {second_token}"}
+
+    logout = client.post("/api/v1/auth/logout", headers=first_headers)
+    assert logout.status_code == 204
+    assert client.get("/api/v1/auth/me", headers=first_headers).status_code == 401
+    assert client.get("/api/v1/auth/me", headers=second_headers).status_code == 200
+
+
 def test_register_rejects_duplicate_email(client: TestClient) -> None:
     payload = {
         "email": "duplicate@example.com",
@@ -125,7 +147,6 @@ def test_profile_requires_valid_access_token(
     response = client.get("/api/v1/auth/me", headers=headers)
 
     assert response.status_code == 401
-
 
 
 def test_register_normalizes_display_name(client: TestClient) -> None:
