@@ -34,6 +34,7 @@ A visão de longo prazo é uma plataforma integral de viagens. O princípio cent
 | Hotel Intelligence — alojamentos | Ranking explicável por preço/noite (70%) e condições de cancelamento explicitamente reconhecidas (30%); preço/noite, noites, score e motivos apresentados na interface; testes unitários adicionados; falta validação CI/E2E |
 | Pesquisa externa de alojamentos e favoritos | Adaptador Amadeus sandbox, endpoint autenticado, pesquisa integrada, favoritos e comparação de até três ofertas; requer credenciais e validação CI/E2E |
 | Recommendation Engine — hotéis | Ranking explicável, preço médio por noite e condições de cancelamento; testes unitários adicionados; falta validação CI/E2E |
+| SKY Price Intelligence — histórico observado | Captura automática dos preços devolvidos nas pesquisas Amadeus de voos e hotéis, chave de pesquisa SHA-256, persistência por utilizador e endpoint autenticado de histórico; sem dados retroativos; falta validação CI/migração e integração gráfica |
 | Reservas e pagamentos | Fase futura |
 
 As páginas de autenticação e dashboard estão implementadas no código, mas ainda precisam de validação funcional em Docker e testes de ponta a ponta. A pesquisa de voos Amadeus já tem um adaptador no backend e um formulário integrado na página de detalhe da viagem. A consulta real depende de credenciais sandbox configuradas no servidor; a interface apresenta ofertas, segmentos, escalas e preços, mas ainda não reserva nem emite bilhetes. Os convites podem ser criados e aceites por link; o envio por email está disponível quando o SMTP é configurado através das variáveis `SMTP_*` no ficheiro `.env.example`. Sem SMTP, o link pode ser partilhado manualmente.
@@ -145,6 +146,6 @@ Parar: `docker compose down`. Para remover também os dados da base de dados: `d
 - [x] **Fase 3 — fundações:** Docker, API, autenticação, CRUD de viagens/voos/alojamentos/despesas, orçamento, participantes, convites e permissões colaborativas. Falta validação funcional Docker/E2E.
 - [x] **Fase 4 — gestão frontend (primeira entrega):** gestão de viagens, voos, alojamentos, despesas, orçamento, participantes, convites e balanços integrada no dashboard/planeador através do BFF. Falta validação E2E e refinamento de UX.
 - [ ] **Fase 5 — pesquisa e fornecedores:** adaptador inicial Amadeus para pesquisa de voos publicado; falta validar CI, configurar credenciais sandbox e integrar pesquisa no frontend. Pesquisa de alojamentos e respetivo fornecedor continuam por implementar.
-- [ ] **Fase 6 — inteligência:** primeira versão do ranking explicável de voos publicada; falta personalização por preferências, recomendação de alojamentos e Price Intelligence.
+- [ ] **Fase 6 — inteligência:** ranking explicável de voos e alojamentos publicado; primeira versão do Price Intelligence com recolha e API de histórico publicada; falta validação CI/E2E, gráficos de evolução, alertas e personalização por preferências.
 - [ ] **Fase 7 — qualidade e operação:** testes E2E, CI/CD, observabilidade e preparação para produção.
 - [ ] **Fase futura — transações:** reservas e pagamentos.
