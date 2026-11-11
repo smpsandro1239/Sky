@@ -62,4 +62,5 @@ def notify_trip_members(
             title=title,
             message=message,
             metadata={**metadata, "trip_id": str(trip.id)},
+            link=f"/dashboard/{trip.id}",
         )
