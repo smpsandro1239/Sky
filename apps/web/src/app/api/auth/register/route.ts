@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-const API_URL = process.env.API_INTERNAL_URL ?? "http://localhost:8000";
+const API_URL = process.env.API_INTERNAL_URL ?? "https://sky-api-cmm2.onrender.com";
 
 export async function POST(request: Request) {
   let payload: { email?: string; password?: string; display_name?: string };
