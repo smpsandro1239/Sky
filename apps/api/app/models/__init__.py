@@ -1,4 +1,5 @@
 from app.models.accommodation import Accommodation
+from app.models.activity import TripActivity
 from app.models.auth_identity import AuthIdentity
 from app.models.expense import Expense
 from app.models.expense_share import ExpenseShare
@@ -9,6 +10,6 @@ from app.models.trip import Trip
 from app.models.user import User
 
 __all__ = [
-    "User", "Trip", "Flight", "Accommodation", "Expense",
+    "User", "Trip", "Flight", "Accommodation", "Expense", "TripActivity",
     "ExpenseShare", "TripParticipant", "TripInvitation", "AuthIdentity",
 ]
