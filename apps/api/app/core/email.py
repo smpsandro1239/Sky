@@ -24,7 +24,10 @@ def send_trip_invitation_email(
 
     role_label = "editor" if role == "editor" else "leitor"
     message = EmailMessage()
-    safe_trip_name = " ".join(trip_name.replace("\r", " ").replace("\n", " ").split())
+    # O assunto só utiliza a primeira linha do nome da viagem. Assim, texto
+    # acrescentado após CR/LF não pode ser apresentado como cabeçalho injetado.
+    first_trip_name_line = trip_name.replace("\r", "\n").split("\n", 1)[0]
+    safe_trip_name = " ".join(first_trip_name_line.split())
     message["Subject"] = f"Convite para a viagem {safe_trip_name} no SKY"
     message["From"] = settings.smtp_from_email
     message["To"] = to_email
