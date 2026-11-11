@@ -136,3 +136,71 @@ def test_participant_changes_are_recorded_without_exposing_email(client: TestCli
     assert any(item["entity_type"] == "participant" and item["action"] == "created" for item in events)
     assert any(item["entity_type"] == "participant" and item["action"] == "updated" for item in events)
     assert all("guest@example.com" not in item["summary"] for item in events)
+
+
+def test_shared_members_can_read_activity_and_viewers_cannot_write(client: TestClient) -> None:
+    owner = register_and_login(client, "activity-shared-owner@example.com")
+    editor = register_and_login(client, "activity-shared-editor@example.com")
+    viewer = register_and_login(client, "activity-shared-viewer@example.com")
+    owner_headers = {"Authorization": f"Bearer {owner}"}
+    trip = client.post(
+        "/api/v1/trips",
+        headers=owner_headers,
+        json={"name": "Viagem partilhada", "destination": "Açores"},
+    )
+    assert trip.status_code == 201
+    trip_id = trip.json()["id"]
+
+    invitations = []
+    for email, role in [
+        ("activity-shared-editor@example.com", "editor"),
+        ("activity-shared-viewer@example.com", "viewer"),
+    ]:
+        response = client.post(
+            f"/api/v1/trips/{trip_id}/invitations",
+            headers=owner_headers,
+            json={"email": email, "role": role},
+        )
+        assert response.status_code == 201
+        invitations.append(response.json())
+
+    for token, invitation in [(editor, invitations[0]), (viewer, invitations[1])]:
+        accepted = client.post(
+            "/api/v1/invitations/accept",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"token": invitation["invitation_token"]},
+        )
+        assert accepted.status_code == 200
+
+    flight_payload = {
+        "origin": "OPO",
+        "destination": "PDL",
+        "departure_at": "2027-08-01T08:00:00Z",
+    }
+    editor_headers = {"Authorization": f"Bearer {editor}"}
+    created_flight = client.post(
+        f"/api/v1/trips/{trip_id}/flights",
+        headers=editor_headers,
+        json=flight_payload,
+    )
+    assert created_flight.status_code == 201
+
+    activity_url = f"/api/v1/trips/{trip_id}/activity"
+    for token in (editor, viewer):
+        history = client.get(
+            activity_url,
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert history.status_code == 200
+        assert any(
+            item["entity_type"] == "flight" and item["action"] == "created"
+            for item in history.json()["items"]
+        )
+
+    denied = client.post(
+        f"/api/v1/trips/{trip_id}/flights",
+        headers={"Authorization": f"Bearer {viewer}"},
+        json=flight_payload,
+    )
+    assert denied.status_code == 403
+
