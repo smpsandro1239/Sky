@@ -7,7 +7,7 @@ from sqlalchemy.pool import StaticPool
 from app.api.deps import get_db
 from app.database.base import Base
 from app.main import app
-from app.models import TripSettlement  # noqa: F401
+from app.models import ExpenseShare, TripSettlement  # noqa: F401
 
 PASSWORD = "Correct-Horse-Battery-2026!"
 
@@ -202,3 +202,17 @@ def test_settlements_reduce_outstanding_balances_and_reject_overpayment(client: 
     history = client.get(f"/api/v1/trips/{trip_id}/activity", headers=headers)
     assert history.status_code == 200
     assert any(item["entity_type"] == "settlement" for item in history.json()["items"])
+
+    db = next(app.dependency_overrides[get_db]())
+    try:
+        db.query(ExpenseShare).filter(ExpenseShare.participant_id == UUID(rui)).delete()
+        db.commit()
+    finally:
+        db.close()
+
+    protected_participant = client.delete(
+        f"/api/v1/trips/{trip_id}/participants/{rui}",
+        headers=headers,
+    )
+    assert protected_participant.status_code == 409
+    assert "acertos financeiros" in protected_participant.json()["detail"]
