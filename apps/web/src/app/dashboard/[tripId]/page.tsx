@@ -39,7 +39,7 @@ type Expense = { id: string; category: string; description: string; expense_date
 type TripBalances = { currencies: { currency: string; participants: { participant_id: string; name: string; paid: string; owed: string; net: string }[]; suggested_transfers: { from_participant_id: string; from_name: string; to_participant_id: string; to_name: string; amount: string }[] }[] };
 type Participant = { id: string; trip_id: string; name: string; email: string | null; role: "editor" | "viewer"; is_linked: boolean; created_at: string };
 type Invitation = { id: string; trip_id: string; email: string; status: string; expires_at: string; accepted_at: string | null; created_at: string };
-type CreatedInvitation = Invitation & { invitation_token: string };
+type CreatedInvitation = Invitation & { invitation_token: string; email_sent: boolean };
 type ExpenseShare = { id: string; expense_id: string; participant_id: string; amount: string };
 type ExpenseForm = { category: string; description: string; expense_date: string; amount: string; currency: string; paid_by_participant_id: string; notes: string; };
 type FlightForm = {
@@ -97,6 +97,7 @@ export default function TripDetailPage() {
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [invitationEmail, setInvitationEmail] = useState("");
   const [invitationLink, setInvitationLink] = useState("");
+  const [invitationEmailSent, setInvitationEmailSent] = useState(false);
   const [activeShareExpenseId, setActiveShareExpenseId] = useState<string | null>(null);
   const [shareDraft, setShareDraft] = useState<Record<string, string>>({});
   const [expenseForm, setExpenseForm] = useState<ExpenseForm>(emptyExpense);
@@ -287,6 +288,7 @@ export default function TripDetailPage() {
       const created = data as CreatedInvitation;
       setInvitations((current) => [created, ...current]);
       setInvitationLink(`${window.location.origin}/invitations/accept?token=${encodeURIComponent(created.invitation_token)}`);
+      setInvitationEmailSent(created.email_sent);
       setInvitationEmail("");
     } catch {
       setError("Não foi possível contactar a API. Tenta novamente.");
@@ -750,7 +752,7 @@ export default function TripDetailPage() {
               {accessRole === "owner" && invitationLink && (
                 <div className="invitation-link-panel">
                   <strong>Convite criado</strong>
-                  <p>O link é apresentado apenas agora. Copia-o e envia-o à pessoa convidada; o SKY ainda não envia emails automaticamente.</p>
+                  <p>{invitationEmailSent ? "O convite foi enviado por email. O link também fica disponível para partilha manual." : "O envio por email não está configurado ou falhou. Copia o link e envia-o manualmente à pessoa convidada."} O link é apresentado apenas agora.</p>
                   <input readOnly value={invitationLink} aria-label="Link do convite" />
                   <button className="secondary-button" type="button" onClick={() => void navigator.clipboard.writeText(invitationLink)}>Copiar link</button>
                 </div>
