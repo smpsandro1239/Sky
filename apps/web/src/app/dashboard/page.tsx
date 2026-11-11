@@ -223,6 +223,7 @@ export default function DashboardPage() {
       <header className="dashboard-header">
         <Link className="brand" href="/">SKY<span>.</span></Link>
         <nav aria-label="Navegação da conta">
+          <NotificationsBell />
           <Link className="text-button" href="/dashboard/favorites">Hotéis favoritos</Link>
           <button className="text-button" onClick={logout}>Terminar sessão</button>
         </nav>
