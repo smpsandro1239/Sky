@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.api.deps import get_current_user, get_db
 from app.core.activity import record_trip_activity
-from app.core.financial_lock import lock_trip_financials, trip_has_settlements
+from app.core.financial_lock import expense_has_prior_settlement, lock_trip_financials
 from app.core.notifications import notify_trip_members
 from app.api.routes.expenses import get_trip_expense
 from app.api.routes.trips import get_accessible_trip, get_user_trip, require_trip_editor
@@ -50,7 +50,7 @@ def replace_expense_shares(
     lock_trip_financials(db, trip.id)
     expense = get_trip_expense(db, trip.id, expense_id)
 
-    if trip_has_settlements(db, trip.id):
+    if expense_has_prior_settlement(db, expense):
         raise HTTPException(
             status_code=409,
             detail=(
