@@ -35,7 +35,9 @@ def create_participant(
     db.add(participant)
     db.commit()
     db.refresh(participant)
-    return participant
+    return ParticipantResponse.model_validate(participant).model_copy(
+        update={"is_linked": participant.user_id is not None}
+    )
 
 
 @router.get("", response_model=list[ParticipantResponse])
@@ -43,12 +45,18 @@ def list_participants(
     trip_id: UUID,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
-) -> list[TripParticipant]:
+ ) -> list[ParticipantResponse]:
     trip = get_accessible_trip(db, trip_id, user.id)
     statement = select(TripParticipant).where(
         TripParticipant.trip_id == trip.id
     ).order_by(TripParticipant.created_at, TripParticipant.name)
-    return list(db.scalars(statement).all())
+    participants = list(db.scalars(statement).all())
+    return [
+        ParticipantResponse.model_validate(participant).model_copy(
+            update={"is_linked": participant.user_id is not None}
+        )
+        for participant in participants
+    ]
 
 
 @router.patch("/{participant_id}", response_model=ParticipantResponse)
@@ -81,7 +89,9 @@ def update_participant(
             invitation.role = payload.role
     db.commit()
     db.refresh(participant)
-    return participant
+    return ParticipantResponse.model_validate(participant).model_copy(
+        update={"is_linked": participant.user_id is not None}
+    )
 
 
 @router.delete("/{participant_id}", status_code=status.HTTP_204_NO_CONTENT)
