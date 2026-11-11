@@ -18,7 +18,7 @@ def list_platform_users(
     _: User = Depends(require_roles("support", "admin")),
     db: Session = Depends(get_db),
 ) -> list[User]:
-    statement = select(User).order_by(User.created_at.desc()).offset(offset).limit(limit)
+    statement = select(User).order_by(User.created_at.desc(), User.id.desc()).offset(offset).limit(limit)
     return list(db.scalars(statement).all())
 
 
