@@ -57,7 +57,7 @@ def create_notification(client, token, title="Preço atingido"):
     db = next(app.dependency_overrides[get_db]())
     try:
         db.add(Notification(
-            user_id=user_id,
+            user_id=UUID(user_id),
             notification_type="price_alert_triggered",
             title=title,
             message="O voo OPO-LHR atingiu o preço definido.",
