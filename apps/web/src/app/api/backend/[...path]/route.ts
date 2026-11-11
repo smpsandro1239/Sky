@@ -54,7 +54,8 @@ async function proxyRequest(
     body = await request.text();
   }
 
-  const apiResponse = await fetch(API_URL + "/api/v1/" + resource, {
+  const query = new URL(request.url).search;
+  const apiResponse = await fetch(API_URL + "/api/v1/" + resource + query, {
     method,
     headers,
     body,
