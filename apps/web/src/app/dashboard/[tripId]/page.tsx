@@ -489,6 +489,14 @@ export default function TripDetailPage() {
       if (!expense || !participant || !Number.isFinite(amount)) return;
       rows.push(["Despesa por participante e categoria", expense.currency, expenseCategoryLabels[expense.category] ?? expense.category, participant.name, amount.toFixed(2), expense.description]);
     });
+    participantBudgets.forEach((budget) => {
+      const participant = participants.find((item) => item.id === budget.participant_id);
+      if (!participant) return;
+      const spent = movementsWithBalance.filter((movement) => movement.participant_id === budget.participant_id && movement.currency === budget.currency && movement.kind === "owed").reduce((sum, movement) => sum + movement.amount, 0);
+      rows.push(["Orçamento individual", budget.currency, "Orçamento previsto", participant.name, Number(budget.amount).toFixed(2), "Limite definido para o participante"]);
+      rows.push(["Orçamento individual", budget.currency, "Quota efetiva", participant.name, spent.toFixed(2), "Soma das quotas das despesas com divisão guardada"]);
+      rows.push(["Orçamento individual", budget.currency, "Disponível / excedido", participant.name, (Number(budget.amount) - spent).toFixed(2), "Orçamento previsto menos quota efetiva"]);
+    });
     balances.currencies.forEach((group) => {
       group.participants.forEach((participant) => {
         rows.push(["Resumo por participante", group.currency, "", participant.name, (Number(participant.paid) || 0).toFixed(2), "Total pago"]);
@@ -1291,6 +1299,20 @@ export default function TripDetailPage() {
                 {balances.currencies.length === 0 ? <p>Não existem balanços calculados.</p> : balances.currencies.map((group) => (
                   <div key={group.currency}><h3>{group.currency}</h3><table><thead><tr><th>Participante</th><th>Pago</th><th>Quota</th><th>Acertos enviados</th><th>Acertos recebidos</th><th>Saldo líquido</th></tr></thead><tbody>{group.participants.map((participant) => <tr key={participant.participant_id}><th>{participant.name}</th><td>{Number(participant.paid).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td><td>{Number(participant.owed).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td><td>{Number(participant.settled_sent ?? "0").toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td><td>{Number(participant.settled_received ?? "0").toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td><td>{Number(participant.net).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td></tr>)}</tbody></table></div>
                 ))}
+              </section>
+              <section>
+                <h2>Orçamentos individuais</h2>
+                {participantBudgets.length === 0 ? <p>Não existem orçamentos individuais definidos.</p> : participantBudgets.map((budget) => {
+                  const participant = participants.find((item) => item.id === budget.participant_id);
+                  const spent = movementsWithBalance.filter((movement) => movement.participant_id === budget.participant_id && movement.currency === budget.currency && movement.kind === "owed").reduce((sum, movement) => sum + movement.amount, 0);
+                  const planned = Number(budget.amount);
+                  const remaining = planned - spent;
+                  return <div key={budget.id}><h3>{participant?.name ?? "Participante"} · {budget.currency}</h3><table><tbody>
+                    <tr><th>Orçamento previsto</th><td>{planned.toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {budget.currency}</td></tr>
+                    <tr><th>Quota efetiva</th><td>{spent.toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {budget.currency}</td></tr>
+                    <tr><th>{remaining >= 0 ? "Disponível" : "Excedido"}</th><td>{Math.abs(remaining).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {budget.currency}</td></tr>
+                  </tbody></table></div>;
+                })}
               </section>
               <footer>Relatório gerado a partir dos registos atuais da viagem. As moedas são apresentadas separadamente, sem conversão cambial. O histórico financeiro é reconstruído a partir dos dados atuais e não constitui um registo de auditoria imutável.</footer>
             </section>
