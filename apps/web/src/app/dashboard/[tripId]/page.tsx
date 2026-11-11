@@ -1363,6 +1363,19 @@ export default function TripDetailPage() {
                 ))}
               </section>
               <section>
+                <h2>Planeamento mensal por categoria</h2>
+                {budgetPlans.length === 0 ? <p>Não existem previsões mensais definidas.</p> : budgetPlans.map((plan) => {
+                  const actual = expenses.filter((expense) => expense.expense_date.slice(0, 7) === plan.month && expense.category === plan.category && expense.currency === plan.currency).reduce((sum, expense) => sum + Number(expense.amount), 0);
+                  const planned = Number(plan.amount);
+                  const variance = planned - actual;
+                  return <div key={plan.id}><h3>{plan.month} · {expenseCategoryLabels[plan.category] ?? plan.category} · {plan.currency}</h3><table><tbody>
+                    <tr><th>Previsto</th><td>{planned.toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {plan.currency}</td></tr>
+                    <tr><th>Efetivo</th><td>{actual.toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {plan.currency}</td></tr>
+                    <tr><th>{variance >= 0 ? "Disponível" : "Excedido"}</th><td>{Math.abs(variance).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {plan.currency}</td></tr>
+                  </tbody></table></div>;
+                })}
+              </section>
+              <section>
                 <h2>Orçamentos individuais</h2>
                 {participantBudgets.length === 0 ? <p>Não existem orçamentos individuais definidos.</p> : participantBudgets.map((budget) => {
                   const participant = participants.find((item) => item.id === budget.participant_id);
