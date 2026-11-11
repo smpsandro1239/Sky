@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -7,7 +9,7 @@ import pytest
 from app.api.deps import get_db
 from app.database.base import Base
 from app.main import app
-from app.models import Accommodation, AuthIdentity, Flight, HotelFavorite, Trip, User  # noqa: F401
+from app.models import Accommodation, AuthIdentity, Flight, HotelFavorite, Trip, TripParticipant, User  # noqa: F401
 
 TEST_DATABASE_URL = "sqlite+pysqlite:///:memory:"
 PASSWORD = "Correct-Horse-Battery-2026!"
@@ -338,3 +340,89 @@ def test_hotel_favorite_text_fields_are_trimmed(client: TestClient) -> None:
     assert created.json()["hotel_id"] == "HOTEL-LIS-003"
     assert created.json()["hotel_name"] == "Hotel Exemplo"
     assert created.json()["location"] == "Lisboa, PT"
+
+
+def test_shared_resource_creation_notifies_only_other_trip_members(client: TestClient) -> None:
+    owner_token, trip_id = create_trip(client, "shared-resources-owner@example.com")
+    member_token, _ = create_trip(client, "shared-resources-member@example.com")
+    unrelated_token, _ = create_trip(client, "shared-resources-unrelated@example.com")
+    member_profile = client.get("/api/v1/auth/me", headers=headers(member_token))
+    assert member_profile.status_code == 200
+
+    # Associate the second registered account with this trip as a read-only member.
+    db = next(app.dependency_overrides[get_db]())
+    try:
+        db.add(
+            TripParticipant(
+                trip_id=UUID(trip_id),
+                user_id=UUID(member_profile.json()["id"]),
+                name="Shared Member",
+                email="shared-resources-member@example.com",
+                role="viewer",
+            )
+        )
+        db.commit()
+    finally:
+        db.close()
+
+    expense = client.post(
+        f"/api/v1/trips/{trip_id}/expenses",
+        headers=headers(owner_token),
+        json={
+            "category": "alimentacao",
+            "description": "Jantar de grupo",
+            "expense_date": "2027-08-01",
+            "amount": "85.00",
+            "currency": "EUR",
+        },
+    )
+    assert expense.status_code == 201
+
+    flight = client.post(
+        f"/api/v1/trips/{trip_id}/flights",
+        headers=headers(owner_token),
+        json={
+            "origin": "OPO",
+            "destination": "FNC",
+            "departure_at": "2027-08-01T08:00:00Z",
+            "price_amount": "89.90",
+            "price_currency": "EUR",
+        },
+    )
+    assert flight.status_code == 201
+
+    accommodation = client.post(
+        f"/api/v1/trips/{trip_id}/accommodations",
+        headers=headers(owner_token),
+        json={
+            "name": "Hotel Atlântico",
+            "location": "Funchal",
+            "check_in": "2027-08-01",
+            "check_out": "2027-08-05",
+            "price_amount": "420.00",
+            "price_currency": "EUR",
+        },
+    )
+    assert accommodation.status_code == 201
+
+    member_notifications = client.get(
+        "/api/v1/notifications", headers=headers(member_token)
+    )
+    assert member_notifications.status_code == 200
+    member_types = {
+        item["notification_type"] for item in member_notifications.json()["items"]
+    }
+    assert member_types == {
+        "trip_expense_created",
+        "trip_flight_created",
+        "trip_accommodation_created",
+    }
+    assert member_notifications.json()["unread_count"] == 3
+
+    # The actor and accounts outside this trip receive no notifications.
+    assert client.get(
+        "/api/v1/notifications", headers=headers(owner_token)
+    ).json()["items"] == []
+    assert client.get(
+        "/api/v1/notifications", headers=headers(unrelated_token)
+    ).json()["items"] == []
