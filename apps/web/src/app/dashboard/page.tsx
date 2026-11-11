@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import NotificationsBell from "@/components/notifications-bell";
 
 type User = { id: string; email: string; display_name: string | null };
 type Trip = {
