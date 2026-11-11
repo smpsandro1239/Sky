@@ -1,4 +1,4 @@
-import { isSameOriginMutation } from "../../../../lib/security/csrf";
+import { isSameOriginMutation } from "../../../../lib/security/csrf.ts";
 
 const API_URL = process.env.API_INTERNAL_URL ?? "http://localhost:8000";
 
