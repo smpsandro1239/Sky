@@ -6,6 +6,7 @@ def test_initial_models_are_registered() -> None:
     assert set(Base.metadata.tables) == {
         "users",
         "auth_identities",
+        "auth_sessions",
         "trips",
         "trip_flights",
         "trip_accommodations",
@@ -57,6 +58,9 @@ def test_trip_relationships_are_defined() -> None:
     assert budgets.c.participant_id.foreign_keys
     assert {"amount", "currency", "created_at", "updated_at"} <= set(budgets.c.keys())
     assert "uq_participant_budgets_participant_currency" in {constraint.name for constraint in budgets.constraints}
+    sessions = Base.metadata.tables["auth_sessions"]
+    assert sessions.c.user_id.foreign_keys
+    assert {"token_hash", "expires_at", "revoked_at", "created_at"} <= set(sessions.c.keys())
     notifications = Base.metadata.tables["notifications"]
     assert notifications.c.user_id.foreign_keys
     assert {"notification_type", "title", "message", "metadata", "read_at", "created_at"} <= set(notifications.c.keys())
