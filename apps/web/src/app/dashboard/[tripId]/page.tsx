@@ -187,11 +187,10 @@ export default function TripDetailPage() {
     if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) return null;
     const now = new Date();
     const todayString = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-    if (todayString < trip.start_date) return null;
     const today = Date.parse(`${todayString}T00:00:00Z`);
     const dayMs = 86_400_000;
     const totalDays = Math.floor((end - start) / dayMs) + 1;
-    const elapsedDays = Math.min(totalDays, Math.floor((today - start) / dayMs) + 1);
+    const elapsedDays = today < start ? 0 : Math.min(totalDays, Math.floor((today - start) / dayMs) + 1);
     const fixedCosts: Record<string, number> = {};
     [...flights, ...accommodations].forEach((item) => {
       if (item.price_amount === null) return;
@@ -208,8 +207,21 @@ export default function TripDetailPage() {
     return { totalDays, elapsedDays, rows: [...currencies].sort().map((currency) => {
       const fixed = fixedCosts[currency] ?? 0;
       const variable = variableCosts[currency] ?? 0;
-      const projectedVariable = Math.round((variable / elapsedDays) * totalDays);
-      return { currency, fixed, variable, projectedVariable, projectedTotal: fixed + projectedVariable, hasDailyData: variable > 0 };
+      const projectedVariable = elapsedDays > 0 && variable > 0 ? Math.round((variable / elapsedDays) * totalDays) : 0;
+      const projectedTotal = fixed + projectedVariable;
+      const tripBudget = trip.budget_currency === currency && trip.budget_amount !== null
+        ? Number(trip.budget_amount)
+        : null;
+      const budgetCents = tripBudget !== null && Number.isFinite(tripBudget) && tripBudget >= 0
+        ? Math.round(tripBudget * 100)
+        : null;
+      return {
+        currency, fixed, variable, projectedVariable, projectedTotal,
+        hasDailyData: variable > 0,
+        budgetCents,
+        budgetDifference: budgetCents === null ? null : budgetCents - projectedTotal,
+        budgetUsage: budgetCents !== null && budgetCents > 0 ? projectedTotal / budgetCents * 100 : null,
+      };
     }) };
   })();
   const monthlyPlanSummary = (() => {
@@ -1303,13 +1315,14 @@ export default function TripDetailPage() {
             )}
             {costForecast && costForecast.rows.length > 0 && (
               <section className="budget-summary" aria-labelledby="cost-forecast-title">
-                <div><p className="eyebrow">PREVISÃO FINANCEIRA</p><h2 id="cost-forecast-title">Estimativa até ao fim da viagem</h2><p className="budget-description">Projeção dos custos conhecidos de voos e alojamentos, acrescidos da estimativa de despesas diárias. Baseia-se em {costForecast.elapsedDays} de {costForecast.totalDays} dias de viagem e nos registos até hoje. Não é uma reserva nem um custo confirmado.</p></div>
+                <div><p className="eyebrow">PREVISÃO FINANCEIRA</p><h2 id="cost-forecast-title">Estimativa até ao fim da viagem</h2><p className="budget-description">Projeção dos custos conhecidos de voos e alojamentos, acrescidos da estimativa de despesas diárias. Baseia-se em {costForecast.elapsedDays} de {costForecast.totalDays} dias de viagem e nos registos até hoje. Para viagens futuras, apresenta apenas os custos já conhecidos. Não é uma reserva nem um custo confirmado.</p></div>
                 <div className="budget-total-list">
                   {costForecast.rows.map((row) => (
                     <div className="budget-total" key={row.currency}>
                       <span>{row.currency} · {row.hasDailyData ? "estimativa total" : "custos conhecidos"}</span>
                       <strong>{(row.projectedTotal / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {row.currency}</strong>
                       <small className="budget-description">Voos e alojamentos: {(row.fixed / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {row.currency} · Despesas registadas: {(row.variable / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {row.currency} · Despesas projetadas: {(row.projectedVariable / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {row.currency}</small>
+                      {row.budgetCents !== null && <small className="budget-description">Orçamento: {(row.budgetCents / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {row.currency} · {row.budgetDifference! >= 0 ? "Margem prevista" : "Excesso previsto"}: {(Math.abs(row.budgetDifference!) / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {row.currency}{row.budgetUsage !== null ? " · " + row.budgetUsage.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + "% do orçamento" : ""}</small>}
                     </div>
                   ))}
                 </div>
