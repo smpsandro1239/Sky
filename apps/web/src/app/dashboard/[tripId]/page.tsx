@@ -422,7 +422,7 @@ export default function TripDetailPage() {
       let offset = 0;
       let hasMore = true;
       while (hasMore) {
-        const response = await fetch(\`/api/backend/trips/\${tripId}/activity?limit=\${pageSize}&offset=\${offset}\`, { cache: "no-store" });
+        const response = await fetch("/api/backend/trips/" + tripId + "/activity?limit=" + pageSize + "&offset=" + offset, { cache: "no-store" });
         if (!response.ok) throw new Error("Não foi possível exportar o histórico completo.");
         const page = await response.json() as TripActivityPage;
         allItems.push(...page.items);
@@ -443,7 +443,7 @@ export default function TripDetailPage() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = \`sky-historico-\${tripId}.csv\`;
+      link.download = "sky-historico-" + tripId + ".csv";
       document.body.appendChild(link);
       link.click();
       link.remove();
