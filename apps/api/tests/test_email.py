@@ -112,7 +112,7 @@ def test_invitation_subject_sanitizes_newlines_in_trip_name(monkeypatch) -> None
 
     sent = email_service.send_trip_invitation_email(
         to_email="guest@example.com",
-        trip_name="Férias\\r\\nBcc: attacker@example.com",
+        trip_name="Férias\r\nBcc: attacker@example.com",
         inviter_name="Organizador",
         role="viewer",
         accept_url="https://sky.example/invitations/accept?token=secret-token",
@@ -120,5 +120,5 @@ def test_invitation_subject_sanitizes_newlines_in_trip_name(monkeypatch) -> None
 
     assert sent is True
     subject = smtp.send_message.call_args.args[0]["Subject"]
-    assert "\\r" not in subject and "\\n" not in subject
+    assert "\r" not in subject and "\n" not in subject
     assert "attacker@example.com" not in subject
