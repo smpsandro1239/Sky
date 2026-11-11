@@ -19,13 +19,14 @@ def upgrade() -> None:
         "users",
         sa.Column("role", sa.String(length=20), server_default="traveler", nullable=False),
     )
-    op.create_check_constraint(
-        "ck_users_role",
-        "users",
-        "role IN ('traveler', 'support', 'admin')",
-    )
+    with op.batch_alter_table("users") as batch_op:
+        batch_op.create_check_constraint(
+            "ck_users_role",
+            "role IN ('traveler', 'support', 'admin')",
+        )
 
 
 def downgrade() -> None:
-    op.drop_constraint("ck_users_role", "users", type_="check")
+    with op.batch_alter_table("users") as batch_op:
+        batch_op.drop_constraint("ck_users_role", type_="check")
     op.drop_column("users", "role")
