@@ -95,3 +95,30 @@ def test_invitation_email_supports_implicit_tls(monkeypatch) -> None:
     assert sent is True
     smtp.starttls.assert_not_called()
     smtp.send_message.assert_called_once()
+
+
+def test_invitation_subject_sanitizes_newlines_in_trip_name(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "smtp_host", "smtp.example.com")
+    monkeypatch.setattr(settings, "smtp_port", 587)
+    monkeypatch.setattr(settings, "smtp_from_email", "sky@example.com")
+    monkeypatch.setattr(settings, "smtp_username", None)
+    monkeypatch.setattr(settings, "smtp_password", None)
+    monkeypatch.setattr(settings, "smtp_starttls", True)
+    monkeypatch.setattr(settings, "smtp_use_ssl", False)
+
+    smtp = MagicMock()
+    smtp.__enter__.return_value = smtp
+    monkeypatch.setattr(email_service.smtplib, "SMTP", MagicMock(return_value=smtp))
+
+    sent = email_service.send_trip_invitation_email(
+        to_email="guest@example.com",
+        trip_name="Férias\\r\\nBcc: attacker@example.com",
+        inviter_name="Organizador",
+        role="viewer",
+        accept_url="https://sky.example/invitations/accept?token=secret-token",
+    )
+
+    assert sent is True
+    subject = smtp.send_message.call_args.args[0]["Subject"]
+    assert "\\r" not in subject and "\\n" not in subject
+    assert "attacker@example.com" not in subject
