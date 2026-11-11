@@ -44,6 +44,7 @@ type Participant = { id: string; trip_id: string; name: string; email: string | 
 type Invitation = { id: string; trip_id: string; email: string; status: string; expires_at: string; accepted_at: string | null; created_at: string };
 type CreatedInvitation = Invitation & { invitation_token: string; email_sent: boolean };
 type ExpenseShare = { id: string; expense_id: string; participant_id: string; amount: string };
+type FinancialMovement = { id: string; date: string; participant_id: string; participant_name: string; currency: string; kind: "paid" | "owed" | "sent" | "received"; amount: number; description: string };
 type TripActivity = { id: string; actor_name: string; action: string; entity_type: string; summary: string; created_at: string };
 type TripActivityPage = { items: TripActivity[]; limit: number; offset: number; has_more: boolean };
 type ExpenseForm = { category: string; description: string; expense_date: string; amount: string; currency: string; paid_by_participant_id: string; notes: string; };
@@ -125,6 +126,9 @@ export default function TripDetailPage() {
   const [invitationEmailSent, setInvitationEmailSent] = useState(false);
   const [activeShareExpenseId, setActiveShareExpenseId] = useState<string | null>(null);
   const [shareDraft, setShareDraft] = useState<Record<string, string>>({});
+  const [expenseShares, setExpenseShares] = useState<ExpenseShare[]>([]);
+  const [movementParticipant, setMovementParticipant] = useState("all");
+  const [movementCurrency, setMovementCurrency] = useState("all");
   const [expenseForm, setExpenseForm] = useState<ExpenseForm>(emptyExpense);
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -254,6 +258,37 @@ export default function TripDetailPage() {
     {},
   );
 
+  const financialMovements: FinancialMovement[] = [
+    ...expenses.flatMap((expense) => {
+      const payer = participants.find((participant) => participant.id === expense.paid_by_participant_id);
+      const paid = payer ? [{ id: "expense-paid-" + expense.id, date: expense.expense_date, participant_id: payer.id, participant_name: payer.name, currency: expense.currency, kind: "paid" as const, amount: Number(expense.amount), description: expense.description }] : [];
+      const shares = expenseShares.filter((share) => share.expense_id === expense.id).flatMap((share) => {
+        const participant = participants.find((item) => item.id === share.participant_id);
+        const amount = Number(share.amount);
+        return participant && Number.isFinite(amount) ? [{ id: "expense-share-" + share.id, date: expense.expense_date, participant_id: participant.id, participant_name: participant.name, currency: expense.currency, kind: "owed" as const, amount, description: expense.description }] : [];
+      });
+      return [...paid, ...shares];
+    }),
+    ...settlements.flatMap((settlement) => {
+      const sender = participants.find((participant) => participant.id === settlement.from_participant_id);
+      const receiver = participants.find((participant) => participant.id === settlement.to_participant_id);
+      const amount = Number(settlement.amount);
+      if (!Number.isFinite(amount)) return [];
+      return [
+        ...(sender ? [{ id: "settlement-sent-" + settlement.id, date: settlement.paid_at, participant_id: sender.id, participant_name: sender.name, currency: settlement.currency, kind: "sent" as const, amount, description: settlement.notes || "Transferência registada" }] : []),
+        ...(receiver ? [{ id: "settlement-received-" + settlement.id, date: settlement.paid_at, participant_id: receiver.id, participant_name: receiver.name, currency: settlement.currency, kind: "received" as const, amount, description: settlement.notes || "Transferência registada" }] : []),
+      ];
+    }),
+  ].filter((movement) => Number.isFinite(movement.amount) && movement.amount >= 0).sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
+  const movementRunningBalances = new Map<string, number>();
+  const movementsWithBalance = financialMovements.map((movement) => {
+    const key = movement.participant_id + ":" + movement.currency;
+    const signedAmount = movement.kind === "paid" || movement.kind === "sent" ? movement.amount : -movement.amount;
+    const balance = (movementRunningBalances.get(key) ?? 0) + Math.round(signedAmount * 100);
+    movementRunningBalances.set(key, balance);
+    return { ...movement, runningBalance: balance / 100 };
+  });
+  const filteredFinancialMovements = movementsWithBalance.filter((movement) => (movementParticipant === "all" || movement.participant_id === movementParticipant) && (movementCurrency === "all" || movement.currency === movementCurrency)).reverse();
   const selectedSettlementBalance = balances.currencies.find((group) => group.currency === settlementCurrency);
 
   const [accommodationFrom, setAccommodationFrom] = useState("");
@@ -316,6 +351,12 @@ export default function TripDetailPage() {
           : null;
         if (invitationResponse && !invitationResponse.ok) throw new Error("Não foi possível carregar os convites.");
         const invitationData = invitationResponse ? await invitationResponse.json() : [];
+        const shareResults = await Promise.all((expenseData as Expense[]).map(async (expense) => {
+          const response = await fetch("/api/backend/trips/" + tripId + "/expenses/" + expense.id + "/shares", { cache: "no-store" });
+          if (!response.ok) throw new Error("Não foi possível carregar as divisões das despesas para o histórico financeiro.");
+          return await response.json() as ExpenseShare[];
+        }));
+        if (cancelled) return;
         setTrip({ ...tripData, role: accessData.role });
         setAccessRole(accessData.role);
         setBudgetAmount(tripData.budget_amount ?? "");
@@ -323,6 +364,7 @@ export default function TripDetailPage() {
         setFlights(flightData);
         setAccommodations(accommodationData);
         setExpenses(expenseData);
+        setExpenseShares(shareResults.flat());
         setParticipants(participantData);
         setBalances(balanceData);
         setSettlements(settlementData);
@@ -1080,6 +1122,27 @@ export default function TripDetailPage() {
               </div>
             </section>
 
+            <section className="balances-panel" aria-labelledby="movement-history-title">
+              <div>
+                <p className="eyebrow">REGISTO CRONOLÓGICO</p>
+                <h2 id="movement-history-title">Histórico de movimentos financeiros</h2>
+                <p className="budget-description">Mostra despesas pagas, quotas atribuídas e transferências registadas. O saldo acumulado é reconstruído a partir dos registos atuais; alterações ou eliminações anteriores não constituem um histórico de auditoria.</p>
+              </div>
+              <div className="expense-filters">
+                <label>Participante<select value={movementParticipant} onChange={(event) => setMovementParticipant(event.target.value)}><option value="all">Todos os participantes</option>{participants.map((participant) => <option key={participant.id} value={participant.id}>{participant.name}</option>)}</select></label>
+                <label>Moeda<select value={movementCurrency} onChange={(event) => setMovementCurrency(event.target.value)}><option value="all">Todas as moedas</option>{[...new Set(financialMovements.map((movement) => movement.currency))].sort().map((currency) => <option key={currency} value={currency}>{currency}</option>)}</select></label>
+                <span className="notice">{filteredFinancialMovements.length} movimentos</span>
+              </div>
+              {filteredFinancialMovements.length === 0 ? <p className="notice">Ainda não existem movimentos financeiros para os filtros selecionados.</p> : (
+                <div className="settlement-list">
+                  {filteredFinancialMovements.map((movement) => {
+                    const labels = { paid: "Despesa paga", owed: "Quota atribuída", sent: "Acerto enviado", received: "Acerto recebido" };
+                    const signs = { paid: "+", owed: "−", sent: "+", received: "−" };
+                    return <article className="financial-movement" key={movement.id}><div><strong>{movement.participant_name}</strong><span>{labels[movement.kind]} · {movement.description}</span><small>{new Date(movement.date).toLocaleDateString("pt-PT")}</small></div><div className="financial-movement-values"><b>{signs[movement.kind]}{movement.amount.toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {movement.currency}</b><small>Saldo acumulado: {movement.runningBalance.toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {movement.currency}</small></div></article>;
+                  })}
+                </div>
+              )}
+            </section>
             {balances.currencies.length > 0 && (
               <section className="balances-panel" aria-labelledby="balances-title">
                 <div><p className="eyebrow">ACERTO DE CONTAS</p><h2 id="balances-title">Saldo entre participantes</h2><p className="budget-description">Só inclui despesas com pagador identificado e divisão guardada. Valores positivos indicam a receber; valores negativos indicam a pagar.</p></div>
