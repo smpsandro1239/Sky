@@ -1,4 +1,5 @@
 import pytest
+from decimal import Decimal
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -128,7 +129,7 @@ def test_amadeus_offer_is_normalized_for_comparison() -> None:
             ],
         }
     )
-    assert offer.price_total == "149.90"
+    assert offer.price_total == Decimal("149.90")
     assert offer.currency == "EUR"
     assert offer.number_of_stops == 1
     assert offer.itineraries[0][0].origin == "OPO"
