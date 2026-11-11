@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import PriceHistoryPanel from "./price-history-panel";
 
 type HotelOffer = {
   id: string;
@@ -390,6 +391,16 @@ export default function HotelSearchPanel({ tripId, canEdit, onAccommodationSaved
                 ))}
               </div>
             </section>
+          )}
+          {results.offers.length > 0 && (
+            <PriceHistoryPanel
+              searchType="hotel"
+              searchKey={results.search_key}
+              items={results.offers.map((offer) => ({
+                key: offer.hotel_id + ":" + offer.id,
+                label: offer.hotel_name + " · " + offer.id,
+              }))}
+            />
           )}
         </div>
       )}
