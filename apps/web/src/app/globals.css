@@ -360,3 +360,62 @@ footer { border-top: 1px solid #1c3043; padding: 25px 28px; text-align: center; 
 .invitation-link-panel input { width: 100%; min-width: 0; padding: 12px; border: 1px solid #30465b; border-radius: 8px; background: #07111f; color: var(--text); }
 .invitation-list h3 { margin: 0 0 12px; font-size: 15px; }
 .invitation-success { padding: 12px 14px; border: 1px solid #397b70; border-radius: 9px; color: #a9eee0; background: rgba(57,123,112,.13); font-size: 13px; line-height: 1.5; }
+
+
+/* Trip activity timeline */
+.activity-panel {
+  display: grid;
+  gap: 18px;
+  margin: 34px 0 48px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(16, 30, 48, .72);
+}
+.activity-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+}
+.activity-heading h2 { margin: 8px 0; font-size: 25px; }
+.activity-heading p { margin-bottom: 0; }
+.activity-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.activity-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr);
+  gap: 12px;
+  padding: 0 0 18px;
+}
+.activity-item:not(:last-child)::before {
+  position: absolute;
+  top: 12px;
+  bottom: 0;
+  left: 5px;
+  width: 1px;
+  background: var(--line);
+  content: "";
+}
+.activity-dot {
+  z-index: 1;
+  width: 11px;
+  height: 11px;
+  margin-top: 4px;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  background: #102038;
+}
+.activity-item div { display: grid; gap: 5px; }
+.activity-item strong { font-size: 13px; font-weight: 600; }
+.activity-item span:not(.activity-dot) { color: var(--muted); font-size: 12px; }
+@media (max-width: 700px) {
+  .activity-panel { padding: 18px; }
+  .activity-heading { flex-direction: column; }
+}
