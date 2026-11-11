@@ -1,8 +1,9 @@
 from datetime import date
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import ValidationError
 
 from app.api.deps import get_current_user
 from app.models.user import User
@@ -67,16 +68,19 @@ async def search_flights(
     max_results: int = Query(default=20, ge=1, le=50),
     _: User = Depends(get_current_user),
 ) -> FlightSearchResponse:
-    criteria = FlightSearchRequest(
-        origin=origin,
-        destination=destination,
-        departure_date=departure_date,
-        return_date=return_date,
-        adults=adults,
-        currency=currency,
-        non_stop=non_stop,
-        max_results=max_results,
-    )
+    try:
+        criteria = FlightSearchRequest(
+            origin=origin,
+            destination=destination,
+            departure_date=departure_date,
+            return_date=return_date,
+            adults=adults,
+            currency=currency,
+            non_stop=non_stop,
+            max_results=max_results,
+        )
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=exc.errors()) from exc
 
     try:
         raw_offers = await amadeus_flight_provider.search(criteria.model_dump())
@@ -91,7 +95,7 @@ async def search_flights(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=str(exc),
         ) from exc
-    except (KeyError, ValueError, TypeError) as exc:
+    except (KeyError, ValueError, TypeError, AttributeError, InvalidOperation) as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="O fornecedor devolveu uma oferta inválida.",
