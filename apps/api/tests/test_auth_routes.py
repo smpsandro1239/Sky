@@ -5,6 +5,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.api.deps import get_db
+from app.core.config import settings
 from app.database.base import Base
 from app.main import app
 from app.models import Accommodation, AuthIdentity, AuthSession, Flight, Trip, User  # noqa: F401
@@ -174,3 +175,38 @@ def test_register_rejects_blank_display_name(client: TestClient) -> None:
     )
 
     assert response.status_code == 422
+
+
+def test_allowlisted_email_does_not_receive_admin_before_verification(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "admin_emails", {"admin@example.com"})
+    registration = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "admin@example.com",
+            "password": "Correct-Horse-Battery-2026!",
+            "display_name": "Unverified Admin",
+        },
+    )
+
+    assert registration.status_code == 201
+    assert registration.json()["is_verified"] is False
+    assert registration.json()["role"] == "traveler"
+
+    login = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": "admin@example.com",
+            "password": "Correct-Horse-Battery-2026!",
+        },
+    )
+    assert login.status_code == 200
+
+    profile = client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {login.json()['access_token']}"},
+    )
+    assert profile.status_code == 200
+    assert profile.json()["role"] == "traveler"
