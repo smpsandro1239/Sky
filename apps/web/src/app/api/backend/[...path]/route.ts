@@ -35,12 +35,14 @@ async function proxyRequest(
   const isHotelFavorites = resource === "hotels/favorites";
   const isHotelFavoriteItem = new RegExp("^hotels/favorites/" + UUID_PATTERN + "$").test(resource);
   const isPriceHistory = resource === "prices/history";
+  const isPriceAlerts = resource === "prices/alerts";
+  const isPriceAlertItem = new RegExp("^prices/alerts/" + UUID_PATTERN + "$").test(resource);
 
   const allowed =
-    (method === "GET" && (isFlightSearch || isHotelSearch || isHotelFavorites || isPriceHistory || isProfile || isCollection || isTripItem || isTripAccess || isTripBalances || isTripSettlements || isTripActivity || isFlightCollection || isAccommodationCollection || isExpenseCollection || isExpenseSharesCollection || isParticipantCollection || isInvitationCollection)) ||
-    (method === "POST" && (isCollection || isHotelFavorites || isFlightCollection || isAccommodationCollection || isExpenseCollection || isTripSettlements || isParticipantCollection || isInvitationCollection || isInvitationAccept)) ||
-    (method === "PATCH" && (isTripItem || isParticipantItem || isFlightItem || isAccommodationItem || isExpenseItem || isExpenseSharesCollection)) ||
-    (method === "DELETE" && (isTripItem || isHotelFavoriteItem || isFlightItem || isAccommodationItem || isExpenseItem || isParticipantItem || isInvitationItem));
+    (method === "GET" && (isFlightSearch || isHotelSearch || isHotelFavorites || isPriceHistory || isPriceAlerts || isProfile || isCollection || isTripItem || isTripAccess || isTripBalances || isTripSettlements || isTripActivity || isFlightCollection || isAccommodationCollection || isExpenseCollection || isExpenseSharesCollection || isParticipantCollection || isInvitationCollection)) ||
+    (method === "POST" && (isCollection || isHotelFavorites || isPriceAlerts || isFlightCollection || isAccommodationCollection || isExpenseCollection || isTripSettlements || isParticipantCollection || isInvitationCollection || isInvitationAccept)) ||
+    (method === "PATCH" && (isTripItem || isParticipantItem || isPriceAlertItem || isFlightItem || isAccommodationItem || isExpenseItem || isExpenseSharesCollection)) ||
+    (method === "DELETE" && (isTripItem || isHotelFavoriteItem || isPriceAlertItem || isFlightItem || isAccommodationItem || isExpenseItem || isParticipantItem || isInvitationItem));
 
   if (!allowed) {
     return NextResponse.json({ detail: "Recurso ou operação não permitido." }, { status: 404 });
