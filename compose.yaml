@@ -27,6 +27,14 @@ services:
       SKY_SECRET_KEY: ${SKY_SECRET_KEY:-dev-only-change-this-secret-key}
       ACCESS_TOKEN_MINUTES: ${ACCESS_TOKEN_MINUTES:-20}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
+      SMTP_USE_SSL: ${SMTP_USE_SSL:-false}
       DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://sky:change-me-local-only@db:5432/sky}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
     ports: ["${API_PORT:-8000}:8000"]
