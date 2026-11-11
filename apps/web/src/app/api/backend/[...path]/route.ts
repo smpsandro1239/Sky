@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { isSameOriginMutation } from "../../../../lib/security/csrf";
 
-const API_URL = process.env.API_INTERNAL_URL ?? "http://localhost:8000";
+const API_URL = process.env.API_INTERNAL_URL ?? "https://sky-api-cmm2.onrender.com";
 const UUID_PATTERN = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}";
 
 async function proxyRequest(
