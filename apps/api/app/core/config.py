@@ -1,6 +1,15 @@
 import os
 
 
+def normalize_database_url(database_url: str) -> str:
+    """Normaliza URLs PostgreSQL comuns para o driver psycopg 3 do SQLAlchemy."""
+    if database_url.startswith("postgres://"):
+        return "postgresql+psycopg://" + database_url.removeprefix("postgres://")
+    if database_url.startswith("postgresql://"):
+        return "postgresql+psycopg://" + database_url.removeprefix("postgresql://")
+    return database_url
+
+
 class Settings:
     """Configuração da aplicação obtida através das variáveis de ambiente."""
 
@@ -10,13 +19,7 @@ class Settings:
         "DATABASE_URL",
         "postgresql+psycopg://sky:change-me-local-only@localhost:5432/sky",
     )
-    database_url: str = (
-        "postgresql+psycopg://" + _raw_database_url.removeprefix("postgres://")
-        if _raw_database_url.startswith("postgres://")
-        else "postgresql+psycopg://" + _raw_database_url.removeprefix("postgresql://")
-        if _raw_database_url.startswith("postgresql://")
-        else _raw_database_url
-    )
+    database_url: str = normalize_database_url(_raw_database_url)
     secret_key: str = os.getenv("SKY_SECRET_KEY", "dev-only-change-this-secret-key-rotate-before-production")
     access_token_minutes: int = int(os.getenv("ACCESS_TOKEN_MINUTES", "20"))
     frontend_url: str = os.getenv("FRONTEND_URL", "http://localhost:3000")
