@@ -110,30 +110,34 @@ def test_last_active_admin_cannot_be_demoted() -> None:
     app.dependency_overrides[get_db] = override_get_db
     try:
         with testing_session() as db:
-            admin = User(
+            sole_admin = User(
                 email="sole-admin@sky.example",
                 display_name="Sole Admin",
                 password_hash=hash_password("Correct-Horse-Battery-2026!"),
                 role="admin",
             )
-            db.add(admin)
+            acting_admin = User(
+                email="second-admin@sky.example",
+                display_name="Second Admin",
+                password_hash=hash_password("Correct-Horse-Battery-2026!"),
+                role="admin",
+            )
+            db.add_all([sole_admin, acting_admin])
             db.commit()
+            sole_admin_id = str(sole_admin.id)
 
         with TestClient(app) as client:
             login = client.post(
                 "/api/v1/auth/login",
-                json={"email": "sole-admin@sky.example", "password": "Correct-Horse-Battery-2026!"},
+                json={"email": "second-admin@sky.example", "password": "Correct-Horse-Battery-2026!"},
             )
             headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
-            user_id = login.json()["access_token"]
-            profile = client.get("/api/v1/auth/me", headers=headers)
             response = client.patch(
-                f"/api/v1/admin/users/{profile.json()['id']}/role",
+                f"/api/v1/admin/users/{sole_admin_id}/role",
                 json={"role": "support"},
                 headers=headers,
             )
             assert response.status_code == 409
-            assert user_id
     finally:
         app.dependency_overrides.clear()
         Base.metadata.drop_all(bind=engine)
