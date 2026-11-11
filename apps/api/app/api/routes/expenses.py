@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
 from app.core.activity import record_trip_activity
+from app.core.financial_lock import lock_trip_financials
 from app.core.notifications import notify_trip_members
 from app.api.routes.trips import get_accessible_trip, get_user_trip, require_trip_editor
 from app.models.expense import Expense
@@ -84,6 +85,7 @@ def update_expense(
     user: User = Depends(get_current_user),
 ) -> Expense:
     trip = require_trip_editor(db, trip_id, user.id)
+    lock_trip_financials(db, trip.id)
     expense = get_trip_expense(db, trip.id, expense_id)
     changes = payload.model_dump(exclude_unset=True)
     values = {field: getattr(expense, field) for field in ExpenseCreate.model_fields}
@@ -122,6 +124,7 @@ def delete_expense(
     user: User = Depends(get_current_user),
 ) -> Response:
     trip = require_trip_editor(db, trip_id, user.id)
+    lock_trip_financials(db, trip.id)
     expense = get_trip_expense(db, trip.id, expense_id)
     record_trip_activity(db, trip_id=trip.id, actor=user, action="deleted", entity_type="expense", entity_id=expense.id, summary="eliminou uma despesa")
     notify_trip_members(db, trip=trip, actor_user_id=user.id, notification_type="trip_expense_deleted", title="Despesa eliminada", message=f"A despesa {expense.description} foi eliminada.", metadata={"expense_id": str(expense.id), "description": expense.description})
