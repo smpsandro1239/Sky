@@ -25,7 +25,7 @@ Formato: JSON. A aplicação disponibiliza documentação OpenAPI em `/docs` e R
 | PATCH | `/trips/{trip_id}` | Bearer | Atualizar uma viagem própria |
 | DELETE | `/trips/{trip_id}` | Bearer | Eliminar uma viagem própria |
 | GET | `/flights/search` | Bearer | Pesquisar ofertas externas Amadeus por rota, data, passageiros e moeda (requer credenciais) |
-| GET | `/hotels/search` | Bearer | Pesquisar alojamentos e ofertas Amadeus por cidade IATA, datas, ocupação e moeda (requer credenciais) |
+| GET | `/hotels/search` | Bearer | Pesquisar alojamentos e ofertas Amadeus por cidade IATA, datas, ocupação, raio e moeda (requer credenciais) |
 | GET | `/trips/{trip_id}/flights` | Bearer | Listar voos associados à viagem |
 | POST | `/trips/{trip_id}/flights` | Bearer | Associar um voo à viagem |
 | PATCH | `/trips/{trip_id}/flights/{flight_id}` | Bearer | Atualizar um voo |
@@ -191,6 +191,22 @@ A pesquisa Amadeus de alojamentos consulta hotéis por código de cidade IATA e 
 ## Pesquisa — requisitos de validação
 
 Os futuros pedidos de pesquisa deverão validar origem/destino ou localização, datas e flexibilidade, composição dos viajantes, moeda, preferências, filtros e limites de paginação. Não confiar em preços calculados pelo cliente.
+
+
+Parâmetros de pesquisa de alojamentos:
+
+| Parâmetro | Obrigatório | Predefinição | Descrição |
+|---|---|---|---|
+| `city_code` | Sim | — | Código IATA de três letras da cidade, por exemplo LIS |
+| `check_in` | Sim | — | Data de entrada em YYYY-MM-DD |
+| `check_out` | Sim | — | Data de saída posterior à entrada; máximo de 30 noites |
+| `adults` | Não | 2 | Número de adultos, entre 1 e 9 |
+| `room_quantity` | Não | 1 | Número de quartos, entre 1 e 8 |
+| `radius` | Não | 20 | Raio da pesquisa em quilómetros, entre 1 e 50 |
+| `max_hotels` | Não | 20 | Máximo de hotéis consultados, entre 1 e 40 |
+| `currency` | Não | EUR | Código de moeda de três letras |
+
+A resposta contém ofertas normalizadas e ordenadas por preço total. A aplicação permite escolher adultos, quartos, raio e moeda. O botão de gravação cria um alojamento na viagem; não cria uma reserva no fornecedor. O identificador de oferta não é persistido como reserva e os preços podem deixar de estar disponíveis após a pesquisa.
 
 ## Segurança e operação
 
