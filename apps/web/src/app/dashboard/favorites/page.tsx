@@ -50,6 +50,8 @@ export default function HotelFavoritesPage() {
   const [selectedTripId, setSelectedTripId] = useState("");
   const [stayCheckIn, setStayCheckIn] = useState("");
   const [stayCheckOut, setStayCheckOut] = useState("");
+  const [stayPrice, setStayPrice] = useState("");
+  const [stayCurrency, setStayCurrency] = useState("EUR");
   const [addingToTripId, setAddingToTripId] = useState<string | null>(null);
 
   async function loadFavorites() {
@@ -139,8 +141,9 @@ export default function HotelFavoritesPage() {
   }, [favorites, search, sort]);
 
   async function addFavoriteToTrip(favorite: HotelFavorite) {
-    if (!selectedTripId || !stayCheckIn || !stayCheckOut || stayCheckOut <= stayCheckIn) {
-      setError("Seleciona uma viagem e datas válidas para o alojamento.");
+    if (!selectedTripId || !stayCheckIn || !stayCheckOut || stayCheckOut <= stayCheckIn
+      || (stayPrice !== "" && (!Number.isFinite(Number(stayPrice)) || Number(stayPrice) <= 0))) {
+      setError("Seleciona uma viagem, datas válidas e, se indicares um preço, um valor superior a zero.");
       return;
     }
     setAddingToTripId(favorite.id);
@@ -156,6 +159,8 @@ export default function HotelFavoritesPage() {
           location: favorite.location,
           check_in: stayCheckIn,
           check_out: stayCheckOut,
+          price_amount: stayPrice === "" ? null : Number(stayPrice),
+          price_currency: stayCurrency,
         }),
       });
       if (response.status === 401) {
@@ -223,7 +228,7 @@ export default function HotelFavoritesPage() {
 
         <section className="trip-create-form" aria-label="Adicionar favoritos a uma viagem">
           <h3>Reutilizar um hotel numa viagem</h3>
-          <p className="budget-description">Escolhe uma viagem e as datas da estadia. O hotel será adicionado como alojamento manual, sem preço, porque o favorito não guarda tarifas nem disponibilidade atualizadas.</p>
+          <p className="budget-description">Escolhe uma viagem e as datas da estadia. Podes indicar o preço que confirmaste externamente; o favorito não guarda tarifas nem disponibilidade atualizadas.</p>
           <div className="trip-form-grid">
             <label>Viagem
               <select value={selectedTripId} onChange={(event) => setSelectedTripId(event.target.value)} disabled={tripsLoading || trips.length === 0}>
@@ -233,6 +238,8 @@ export default function HotelFavoritesPage() {
             </label>
             <label>Check-in<input type="date" value={stayCheckIn} onChange={(event) => setStayCheckIn(event.target.value)} /></label>
             <label>Check-out<input type="date" min={stayCheckIn || undefined} value={stayCheckOut} onChange={(event) => setStayCheckOut(event.target.value)} /></label>
+            <label>Preço total (opcional)<input type="number" min="0.01" step="0.01" value={stayPrice} onChange={(event) => setStayPrice(event.target.value)} placeholder="Por definir" /></label>
+            <label>Moeda<select value={stayCurrency} onChange={(event) => setStayCurrency(event.target.value)}><option value="EUR">EUR</option><option value="USD">USD</option><option value="GBP">GBP</option></select></label>
           </div>
           <p className="budget-description">{tripsLoading ? "A carregar viagens..." : trips.length === 0 ? "Não existem viagens em que tenhas permissões para adicionar alojamentos." : "As viagens em que tens permissões de proprietário ou editor estão disponíveis."}</p>
         </section>
@@ -279,7 +286,7 @@ export default function HotelFavoritesPage() {
                 </div>
                 <div className="trip-card-actions">
                   <div className="trip-action-buttons">
-                    <button className="edit-button" type="button" disabled={!selectedTripId || !stayCheckIn || !stayCheckOut || stayCheckOut <= stayCheckIn || addingToTripId !== null || tripsLoading} onClick={() => void addFavoriteToTrip(favorite)}>
+                    <button className="edit-button" type="button" disabled={!selectedTripId || !stayCheckIn || !stayCheckOut || stayCheckOut <= stayCheckIn || (stayPrice !== "" && (!Number.isFinite(Number(stayPrice)) || Number(stayPrice) <= 0)) || addingToTripId !== null || tripsLoading} onClick={() => void addFavoriteToTrip(favorite)}>
                       {addingToTripId === favorite.id ? "A adicionar..." : "Adicionar à viagem"}
                     </button>
                     <button className="delete-button" type="button" disabled={removingId !== null || addingToTripId !== null} onClick={() => void removeFavorite(favorite)}>
