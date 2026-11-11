@@ -13,12 +13,18 @@ type Trip = {
   end_date: string | null;
   notes: string | null;
   role: "owner" | "editor" | "viewer";
+  budget_amount?: string | null;
+  budget_currency?: string;
 };
+type FinancialTrip = { id: string; name: string; destination: string; budgetAmount: number | null; budgetCurrency: string; totals: Record<string, number>; };
 
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [trips, setTrips] = useState<Trip[]>([]);
+  const [financialTrips, setFinancialTrips] = useState<FinancialTrip[]>([]);
+  const [financialLoading, setFinancialLoading] = useState(false);
+  const [financialError, setFinancialError] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -66,6 +72,42 @@ export default function DashboardPage() {
     return () => { active = false; };
   }, [router]);
 
+  useEffect(() => {
+    if (loading) return;
+    if (trips.length === 0) { setFinancialTrips([]); setFinancialError(""); return; }
+    let active = true;
+    async function loadFinancialOverview() {
+      setFinancialLoading(true);
+      setFinancialError("");
+      const results = await Promise.all(trips.map(async (trip) => {
+        try {
+          const [flightResponse, accommodationResponse, expenseResponse] = await Promise.all([
+            fetch(`/api/backend/trips/${trip.id}/flights`, { cache: "no-store" }),
+            fetch(`/api/backend/trips/${trip.id}/accommodations`, { cache: "no-store" }),
+            fetch(`/api/backend/trips/${trip.id}/expenses`, { cache: "no-store" }),
+          ]);
+          if (![flightResponse, accommodationResponse, expenseResponse].every((response) => response.ok)) throw new Error("Falha ao obter custos");
+          const [flights, accommodations, expenses] = await Promise.all([flightResponse.json(), accommodationResponse.json(), expenseResponse.json()]);
+          const totals: Record<string, number> = {};
+          [...flights.map((item: { price_amount: string | null; price_currency: string }) => ({ amount: item.price_amount, currency: item.price_currency })), ...accommodations.map((item: { price_amount: string | null; price_currency: string }) => ({ amount: item.price_amount, currency: item.price_currency })), ...expenses.map((item: { amount: string; currency: string }) => ({ amount: item.amount, currency: item.currency }))].forEach((item) => {
+            if (item.amount === null) return;
+            const amount = Number(item.amount);
+            if (Number.isFinite(amount)) totals[item.currency] = (totals[item.currency] ?? 0) + Math.round(amount * 100);
+          });
+          const budget = trip.budget_amount === null || trip.budget_amount === undefined ? null : Number(trip.budget_amount);
+          return { id: trip.id, name: trip.name, destination: trip.destination, budgetAmount: budget !== null && Number.isFinite(budget) && budget >= 0 ? Math.round(budget * 100) : null, budgetCurrency: trip.budget_currency ?? "EUR", totals };
+        } catch { return null; }
+      }));
+      if (active) {
+        const valid = results.filter((item): item is FinancialTrip => item !== null);
+        setFinancialTrips(valid);
+        if (valid.length < trips.length) setFinancialError("Alguns custos não puderam ser carregados. Os totais apresentados são parciais.");
+      }
+      if (active) setFinancialLoading(false);
+    }
+    void loadFinancialOverview();
+    return () => { active = false; };
+  }, [loading, trips]);
   async function handleSaveTrip(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
@@ -171,6 +213,15 @@ export default function DashboardPage() {
           <article className="stat-card"><span>Viagens guardadas</span><strong>{loading ? "—" : trips.length}</strong></article>
           <article className="stat-card"><span>Conta</span><strong>{loading ? "—" : "Ativa"}</strong></article>
         </div>
+
+        <section className="budget-summary global-finance" aria-labelledby="global-finance-title">
+          <div><p className="eyebrow">VISÃO FINANCEIRA</p><h2 id="global-finance-title">Resumo financeiro global</h2><p className="budget-description">Custos registados em todas as viagens a que tens acesso. Os valores são agrupados por moeda, sem conversões.</p></div>
+          <div className="budget-total-list">
+            {financialLoading ? <p className="notice">A calcular os custos das viagens...</p> : financialTrips.length === 0 ? <p className="notice">Ainda não existem custos disponíveis para apresentar.</p> : Object.entries(financialTrips.reduce<Record<string, number>>((totals, trip) => { Object.entries(trip.totals).forEach(([currency, amount]) => { totals[currency] = (totals[currency] ?? 0) + amount; }); return totals; }, {})).sort(([a], [b]) => a.localeCompare(b)).map(([currency, amount]) => <div className="budget-total" key={currency}><span>Total registado · {currency}</span><strong>{(amount / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}</strong></div>)}
+          </div>
+          {financialError && <p className="notice" role="status">{financialError}</p>}
+          {!financialLoading && financialTrips.length > 0 && <div className="global-finance-trips"><h3>Custos por viagem</h3>{financialTrips.map((trip) => { const currencies = Object.entries(trip.totals).sort(([a], [b]) => a.localeCompare(b)); const budgetSpent = trip.budgetAmount === null ? null : trip.totals[trip.budgetCurrency] ?? 0; return <article className="global-finance-trip" key={trip.id}><div><strong>{trip.name}</strong><span>{trip.destination}</span></div><div>{currencies.length ? currencies.map(([currency, amount]) => <span className="global-finance-amount" key={currency}>{(amount / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}</span>) : <span className="budget-description">Sem custos registados</span>}{trip.budgetAmount !== null && <small className="budget-description">{budgetSpent! <= trip.budgetAmount ? "Dentro do orçamento" : "Orçamento excedido"} · {Math.abs(trip.budgetAmount - budgetSpent!) / 100 .toLocaleString?.("pt-PT")}</small>}</div></article>; })}</div>}
+        </section>
 
         <div className="section-heading"><div><p className="eyebrow">PLANEAMENTO</p><h2>As minhas viagens</h2></div></div>
         {error && <p className="form-error" role="alert">{error}</p>}
