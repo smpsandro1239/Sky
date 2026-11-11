@@ -40,7 +40,7 @@ type Props = {
   onAccommodationSaved: (accommodation: SavedAccommodation) => void;
 };
 
-type SearchResponse = { results_count: number; offers: HotelOffer[] };
+type SearchResponse = { results_count: number; search_key: string; offers: HotelOffer[] };
 
 type HotelFavorite = {
   id: string;
