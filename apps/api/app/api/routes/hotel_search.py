@@ -2,12 +2,16 @@ from datetime import date
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from fastapi.encoders import jsonable_encoder
 from pydantic import ValidationError
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_db
 from app.models.user import User
+from app.models.hotel_favorite import HotelFavorite
+from app.schemas.hotel_favorite import HotelFavoriteCreate, HotelFavoriteResponse
 from app.schemas.hotel_search import HotelSearchRequest, HotelSearchOffer, HotelSearchResponse
 from app.services.amadeus_hotels import (
     HotelProviderError,
@@ -132,3 +136,58 @@ async def search_hotels(
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
 
     return HotelSearchResponse(provider="amadeus", results_count=len(offers), offers=offers)
+
+
+
+@router.get("/favorites", response_model=list[HotelFavoriteResponse])
+def list_hotel_favorites(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> list[HotelFavorite]:
+    statement = (
+        select(HotelFavorite)
+        .where(HotelFavorite.user_id == user.id)
+        .order_by(HotelFavorite.hotel_name)
+    )
+    return list(db.scalars(statement).all())
+
+
+@router.post("/favorites", response_model=HotelFavoriteResponse)
+def create_hotel_favorite(
+    payload: HotelFavoriteCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> HotelFavorite:
+    existing = db.scalar(
+        select(HotelFavorite).where(
+            HotelFavorite.user_id == user.id,
+            HotelFavorite.hotel_id == payload.hotel_id,
+        )
+    )
+    if existing is not None:
+        return existing
+
+    favorite = HotelFavorite(user_id=user.id, **payload.model_dump())
+    db.add(favorite)
+    db.commit()
+    db.refresh(favorite)
+    return favorite
+
+
+@router.delete("/favorites/{favorite_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_hotel_favorite(
+    favorite_id: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> Response:
+    favorite = db.scalar(
+        select(HotelFavorite).where(
+            HotelFavorite.id == favorite_id,
+            HotelFavorite.user_id == user.id,
+        )
+    )
+    if favorite is None:
+        raise HTTPException(status_code=404, detail="Favorito não encontrado.")
+    db.delete(favorite)
+    db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
