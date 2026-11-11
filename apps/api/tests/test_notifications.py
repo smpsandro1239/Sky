@@ -57,15 +57,17 @@ def create_notification(client, token, title="Preço atingido"):
     # The test uses the same dependency-overridden SQLite database as the API.
     db = next(app.dependency_overrides[get_db]())
     try:
-        db.add(Notification(
+        notification = Notification(
             user_id=UUID(user_id),
             notification_type="price_alert_triggered",
             title=title,
             message="O voo OPO-LHR atingiu o preço definido.",
             link="/dashboard",
             metadata_json={"alert_id": "test-alert"},
-        ))
+        )
+        db.add(notification)
         db.commit()
+        return str(notification.id)
     finally:
         db.close()
 
@@ -73,7 +75,7 @@ def create_notification(client, token, title="Preço atingido"):
 def test_notifications_are_private_and_return_unread_count(client):
     owner = register_and_login(client, "notifications-owner@example.com")
     other = register_and_login(client, "notifications-other@example.com")
-    create_notification(client, owner)
+    notification_id = create_notification(client, owner)
 
     own = client.get("/api/v1/notifications", headers={"Authorization": f"Bearer {owner}"})
     assert own.status_code == 200
@@ -86,6 +88,8 @@ def test_notifications_are_private_and_return_unread_count(client):
     assert private.status_code == 200
     assert private.json()["items"] == []
     assert private.json()["unread_count"] == 0
+    denied = client.patch(f"/api/v1/notifications/{notification_id}/read", headers={"Authorization": f"Bearer {other}"})
+    assert denied.status_code == 404
 
 
 def test_notifications_can_be_marked_read_individually_and_in_bulk(client):
