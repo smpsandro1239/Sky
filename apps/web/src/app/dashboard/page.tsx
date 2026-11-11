@@ -16,7 +16,7 @@ type Trip = {
   budget_amount?: string | null;
   budget_currency?: string;
 };
-type FinancialTrip = { id: string; name: string; destination: string; budgetAmount: number | null; budgetCurrency: string; totals: Record<string, number>; };
+type FinancialTrip = { id: string; name: string; destination: string; budgetAmount: number | null; budgetCurrency: string; totals: Record<string, number>; plannedTotals: Record<string, { planned: number; actual: number }>; };
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -86,21 +86,37 @@ export default function DashboardPage() {
       setFinancialError("");
       const results = await Promise.all(trips.map(async (trip) => {
         try {
-          const [flightResponse, accommodationResponse, expenseResponse] = await Promise.all([
+          const [flightResponse, accommodationResponse, expenseResponse, planResponse] = await Promise.all([
             fetch(`/api/backend/trips/${trip.id}/flights`, { cache: "no-store" }),
             fetch(`/api/backend/trips/${trip.id}/accommodations`, { cache: "no-store" }),
             fetch(`/api/backend/trips/${trip.id}/expenses`, { cache: "no-store" }),
+            fetch(`/api/backend/trips/${trip.id}/budget-plans`, { cache: "no-store" }),
           ]);
-          if (![flightResponse, accommodationResponse, expenseResponse].every((response) => response.ok)) throw new Error("Falha ao obter custos");
-          const [flights, accommodations, expenses] = await Promise.all([flightResponse.json(), accommodationResponse.json(), expenseResponse.json()]);
+          if (![flightResponse, accommodationResponse, expenseResponse, planResponse].every((response) => response.ok)) throw new Error("Falha ao obter custos e planeamento");
+          const [flights, accommodations, expenses, plans] = await Promise.all([flightResponse.json(), accommodationResponse.json(), expenseResponse.json(), planResponse.json()]);
           const totals: Record<string, number> = {};
           [...flights.map((item: { price_amount: string | null; price_currency: string }) => ({ amount: item.price_amount, currency: item.price_currency })), ...accommodations.map((item: { price_amount: string | null; price_currency: string }) => ({ amount: item.price_amount, currency: item.price_currency })), ...expenses.map((item: { amount: string; currency: string }) => ({ amount: item.amount, currency: item.currency }))].forEach((item) => {
             if (item.amount === null) return;
             const amount = Number(item.amount);
             if (Number.isFinite(amount)) totals[item.currency] = (totals[item.currency] ?? 0) + Math.round(amount * 100);
           });
+          const plannedTotals: Record<string, { planned: number; actual: number }> = {};
+          plans.filter((plan: { month: string }) => Boolean(trip.start_date && trip.end_date && plan.month >= trip.start_date.slice(0, 7) && plan.month <= trip.end_date.slice(0, 7))).forEach((plan: { month: string; category: string; amount: string; currency: string }) => {
+            const amount = Number(plan.amount);
+            if (!Number.isFinite(amount) || amount < 0) return;
+            const summary = plannedTotals[plan.currency] ?? { planned: 0, actual: 0 };
+            summary.planned += Math.round(amount * 100);
+            summary.actual += expenses.filter((expense: { expense_date: string; category: string; currency: string; amount: string }) =>
+              expense.expense_date >= trip.start_date! && expense.expense_date <= trip.end_date! &&
+              expense.expense_date.slice(0, 7) === plan.month && expense.category === plan.category && expense.currency === plan.currency
+            ).reduce((sum: number, expense: { amount: string }) => {
+              const expenseAmount = Number(expense.amount);
+              return Number.isFinite(expenseAmount) && expenseAmount >= 0 ? sum + Math.round(expenseAmount * 100) : sum;
+            }, 0);
+            plannedTotals[plan.currency] = summary;
+          });
           const budget = trip.budget_amount === null || trip.budget_amount === undefined ? null : Number(trip.budget_amount);
-          return { id: trip.id, name: trip.name, destination: trip.destination, budgetAmount: budget !== null && Number.isFinite(budget) && budget >= 0 ? Math.round(budget * 100) : null, budgetCurrency: trip.budget_currency ?? "EUR", totals };
+          return { id: trip.id, name: trip.name, destination: trip.destination, budgetAmount: budget !== null && Number.isFinite(budget) && budget >= 0 ? Math.round(budget * 100) : null, budgetCurrency: trip.budget_currency ?? "EUR", totals, plannedTotals };
         } catch { return null; }
       }));
       if (active) {
@@ -225,8 +241,9 @@ export default function DashboardPage() {
           <div className="budget-total-list">
             {financialLoading ? <p className="notice">A calcular os custos das viagens...</p> : financialTrips.length === 0 ? <p className="notice">Ainda não existem custos disponíveis para apresentar.</p> : Object.entries(financialTrips.reduce<Record<string, number>>((totals, trip) => { Object.entries(trip.totals).forEach(([currency, amount]) => { totals[currency] = (totals[currency] ?? 0) + amount; }); return totals; }, {})).sort(([a], [b]) => a.localeCompare(b)).map(([currency, amount]) => <div className="budget-total" key={currency}><span>Total registado · {currency}</span><strong>{(amount / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}</strong></div>)}
           </div>
+          {!financialLoading && financialTrips.some((trip) => Object.keys(trip.plannedTotals).length > 0) && <div className="budget-total-list"><h3>Planeamento mensal consolidado</h3>{Object.entries(financialTrips.reduce<Record<string, { planned: number; actual: number }>>((totals, trip) => { Object.entries(trip.plannedTotals).forEach(([currency, values]) => { totals[currency] ??= { planned: 0, actual: 0 }; totals[currency].planned += values.planned; totals[currency].actual += values.actual; }); return totals; }, {})).sort(([a], [b]) => a.localeCompare(b)).map(([currency, values]) => <div className="budget-total" key={currency}><span>Planeado · execução correspondente · {currency}</span><strong>{(values.planned / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency} · {(values.actual / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}</strong></div>)}</div>}
           {financialError && <p className="notice" role="status">{financialError}</p>}
-          {!financialLoading && financialTrips.length > 0 && <div className="global-finance-trips"><h3>Custos por viagem</h3>{financialTrips.map((trip) => { const currencies = Object.entries(trip.totals).sort(([a], [b]) => a.localeCompare(b)); const budgetSpent = trip.budgetAmount === null ? null : trip.totals[trip.budgetCurrency] ?? 0; return <article className="global-finance-trip" key={trip.id}><div><strong>{trip.name}</strong><span>{trip.destination}</span></div><div>{currencies.length ? currencies.map(([currency, amount]) => <span className="global-finance-amount" key={currency}>{(amount / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}</span>) : <span className="budget-description">Sem custos registados</span>}{trip.budgetAmount !== null && <small className="budget-description">{budgetSpent! <= trip.budgetAmount ? "Dentro do orçamento" : "Orçamento excedido"} · diferença de {(Math.abs(trip.budgetAmount - budgetSpent!) / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {trip.budgetCurrency}</small>}</div></article>; })}</div>}
+          {!financialLoading && financialTrips.length > 0 && <div className="global-finance-trips"><h3>Custos por viagem</h3>{financialTrips.map((trip) => { const currencies = Object.entries(trip.totals).sort(([a], [b]) => a.localeCompare(b)); const plans = Object.entries(trip.plannedTotals).sort(([a], [b]) => a.localeCompare(b)); const budgetSpent = trip.budgetAmount === null ? null : trip.totals[trip.budgetCurrency] ?? 0; return <article className="global-finance-trip" key={trip.id}><div><strong>{trip.name}</strong><span>{trip.destination}</span></div><div>{currencies.length ? currencies.map(([currency, amount]) => <span className="global-finance-amount" key={currency}>{(amount / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}</span>) : <span className="budget-description">Sem custos registados</span>}{plans.map(([currency, values]) => <small className="budget-description" key={"plan-" + currency}>Planeado: {(values.planned / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency} · Despesas correspondentes: {(values.actual / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}</small>)}{trip.budgetAmount !== null && <small className="budget-description">{budgetSpent! <= trip.budgetAmount ? "Dentro do orçamento" : "Orçamento excedido"} · diferença de {(Math.abs(trip.budgetAmount - budgetSpent!) / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {trip.budgetCurrency}</small>}</div></article>; })}</div>}
         </section>
 
         <div className="section-heading"><div><p className="eyebrow">PLANEAMENTO</p><h2>As minhas viagens</h2></div></div>
