@@ -6,7 +6,6 @@ Cada pesquisa activa é limitada por uma chave Redis com TTL para evitar chamada
 import asyncio
 import logging
 import time
-from collections import defaultdict
 from typing import Any
 from uuid import UUID
 
