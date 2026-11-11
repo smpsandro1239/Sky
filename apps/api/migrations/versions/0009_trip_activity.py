@@ -7,6 +7,7 @@ Create Date: 2026-11-11
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 
 revision = "0009_trip_activity"
 down_revision = "0008_trip_member_roles"
@@ -17,7 +18,7 @@ depends_on = None
 def upgrade() -> None:
     op.create_table(
         "trip_activity",
-        sa.Column("id", sa.Uuid(), nullable=False),
+        sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("trip_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("actor_user_id", postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column("actor_name", sa.String(length=120), nullable=False),
@@ -30,7 +31,11 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["actor_user_id"], ["users.id"], ondelete="SET NULL"),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index("ix_trip_activity_trip_created", "trip_activity", ["trip_id", "created_at"])
+    op.create_index(
+        "ix_trip_activity_trip_created",
+        "trip_activity",
+        ["trip_id", "created_at"],
+    )
 
 
 def downgrade() -> None:
