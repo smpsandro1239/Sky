@@ -455,6 +455,43 @@ export default function TripDetailPage() {
     }
   }
 
+  function exportFinancialMovements() {
+    if (filteredFinancialMovements.length === 0) return;
+    const labels: Record<FinancialMovement["kind"], string> = {
+      paid: "Despesa paga",
+      owed: "Quota atribuída",
+      sent: "Acerto enviado",
+      received: "Acerto recebido",
+    };
+    const signs: Record<FinancialMovement["kind"], string> = {
+      paid: "+",
+      owed: "-",
+      sent: "+",
+      received: "-",
+    };
+    const headers = ["Data", "Participante", "Movimento", "Descrição", "Valor", "Impacto no saldo", "Saldo acumulado", "Moeda"];
+    const rows = filteredFinancialMovements.map((movement) => [
+      movement.date,
+      movement.participant_name,
+      labels[movement.kind],
+      movement.description,
+      movement.amount.toFixed(2),
+      (signs[movement.kind] === "+" ? movement.amount : -movement.amount).toFixed(2),
+      movement.runningBalance.toFixed(2),
+      movement.currency,
+    ]);
+    const csv = "\uFEFF" + [headers, ...rows].map((row) => row.map((value) => csvCell(String(value))).join(";")).join("\r\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "sky-movimentos-financeiros-" + tripId + ".csv";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
   async function loadMoreActivity() {
     if (activityLoading || !activityHasMore) return;
     setActivityLoading(true);
@@ -1183,6 +1220,7 @@ export default function TripDetailPage() {
                 <label>Participante<select value={movementParticipant} onChange={(event) => setMovementParticipant(event.target.value)}><option value="all">Todos os participantes</option>{participants.map((participant) => <option key={participant.id} value={participant.id}>{participant.name}</option>)}</select></label>
                 <label>Moeda<select value={movementCurrency} onChange={(event) => setMovementCurrency(event.target.value)}><option value="all">Todas as moedas</option>{[...new Set(financialMovements.map((movement) => movement.currency))].sort().map((currency) => <option key={currency} value={currency}>{currency}</option>)}</select></label>
                 <span className="notice">{filteredFinancialMovements.length} movimentos</span>
+                <button className="secondary-button" type="button" onClick={exportFinancialMovements} disabled={filteredFinancialMovements.length === 0}>Exportar movimentos CSV</button>
               </div>
               {filteredFinancialMovements.length === 0 ? <p className="notice">Ainda não existem movimentos financeiros para os filtros selecionados.</p> : (
                 <div className="settlement-list">
