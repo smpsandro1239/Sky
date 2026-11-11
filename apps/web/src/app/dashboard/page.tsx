@@ -157,7 +157,10 @@ export default function DashboardPage() {
     <main className="dashboard-shell">
       <header className="dashboard-header">
         <Link className="brand" href="/">SKY<span>.</span></Link>
-        <button className="text-button" onClick={logout}>Terminar sessão</button>
+        <nav aria-label="Navegação da conta">
+          <Link className="text-button" href="/dashboard/favorites">Hotéis favoritos</Link>
+          <button className="text-button" onClick={logout}>Terminar sessão</button>
+        </nav>
       </header>
       <section className="dashboard-content">
         <p className="eyebrow">A TUA ÁREA PESSOAL</p>
