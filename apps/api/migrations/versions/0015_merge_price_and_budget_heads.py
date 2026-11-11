@@ -1,11 +1,11 @@
 """Merge price intelligence and monthly budget migration branches.
 
-Revision ID: 0015_merge_price_and_budget_heads
+Revision ID: 0015_merge_heads
 Revises: 0014_price_alerts, 0013_trip_budget_plans
 Create Date: 2026-11-11
 """
 
-revision = "0015_merge_price_and_budget_heads"
+revision = "0015_merge_heads"
 down_revision = ("0014_price_alerts", "0013_trip_budget_plans")
 branch_labels = None
 depends_on = None

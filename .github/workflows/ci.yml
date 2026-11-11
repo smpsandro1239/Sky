@@ -13,6 +13,20 @@ jobs:
   api-tests:
     name: API tests
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: sky
+          POSTGRES_PASSWORD: sky
+          POSTGRES_DB: sky
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sky -d sky"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     defaults:
       run:
         working-directory: apps/api
@@ -22,8 +36,12 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
-      - name: Validate database migrations
+      - name: Validate SQLite migrations
         run: DATABASE_URL=sqlite+pysqlite:///./migration-test.db alembic upgrade head
+      - name: Validate PostgreSQL migrations
+        env:
+          DATABASE_URL: postgresql+psycopg://sky:sky@localhost:5432/sky
+        run: alembic upgrade head
       - run: python -m pytest
 
   web-checks:
