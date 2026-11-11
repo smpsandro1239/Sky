@@ -76,10 +76,9 @@ export default function HotelSearchPanel({ tripId, canEdit, onAccommodationSaved
   const [favoriteActionId, setFavoriteActionId] = useState<string | null>(null);
 
   async function loadFavorites() {
-    setFavoritesLoading(true);
-    setFavoritesError("");
     try {
       const response = await fetch("/api/backend/hotels/favorites", { cache: "no-store" });
+      setFavoritesError("");
       const payload = await response.json().catch(() => null);
       if (!response.ok) {
         const detail = payload && typeof payload.detail === "string" ? payload.detail : "Não foi possível carregar os hotéis favoritos.";
@@ -265,7 +264,7 @@ export default function HotelSearchPanel({ tripId, canEdit, onAccommodationSaved
       <section className="trip-list" aria-labelledby="hotel-favorites-title">
         <div className="activity-heading">
           <h4 id="hotel-favorites-title">Os meus hotéis favoritos ({favorites.length})</h4>
-          <button className="secondary-button" type="button" onClick={() => void loadFavorites()} disabled={favoritesLoading}>
+          <button className="secondary-button" type="button" onClick={() => { setFavoritesLoading(true); void loadFavorites(); }} disabled={favoritesLoading}>
             {favoritesLoading ? "A carregar..." : "Atualizar favoritos"}
           </button>
         </div>
