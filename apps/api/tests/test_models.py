@@ -58,6 +58,9 @@ def test_trip_relationships_are_defined() -> None:
     assert budgets.c.participant_id.foreign_keys
     assert {"amount", "currency", "created_at", "updated_at"} <= set(budgets.c.keys())
     assert "uq_participant_budgets_participant_currency" in {constraint.name for constraint in budgets.constraints}
+    users = Base.metadata.tables["users"]
+    assert "role" in users.c
+    assert "ck_users_role" in {constraint.name for constraint in users.constraints}
     sessions = Base.metadata.tables["auth_sessions"]
     assert sessions.c.user_id.foreign_keys
     assert {"token_hash", "expires_at", "revoked_at", "created_at"} <= set(sessions.c.keys())
