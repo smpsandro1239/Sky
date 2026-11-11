@@ -125,7 +125,7 @@ export default function HotelFavoritesPage() {
   const visibleFavorites = useMemo(() => {
     const normalizeSearchText = (value: string) => value
       .normalize("NFD")
-      .replace(/[\\u0300-\\u036f]/g, "")
+      .replace(/[\u0300-\u036f]/g, "")
       .toLocaleLowerCase("pt-PT")
       .trim();
     const term = normalizeSearchText(search);
