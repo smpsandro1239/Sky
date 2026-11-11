@@ -172,6 +172,18 @@ def test_settlements_reduce_outstanding_balances_and_reject_overpayment(client: 
     assert recorded.status_code == 201
     assert recorded.json()["currency"] == "EUR"
 
+    overpayment_after_partial = client.post(
+        settlements_url,
+        headers=headers,
+        json={
+            "from_participant_id": rui,
+            "to_participant_id": ana,
+            "amount": "12.51",
+            "currency": "EUR",
+        },
+    )
+    assert overpayment_after_partial.status_code == 422
+
     balances = client.get(f"/api/v1/trips/{trip_id}/balances", headers=headers)
     assert balances.status_code == 200
     eur = balances.json()["currencies"][0]
