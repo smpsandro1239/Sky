@@ -1,5 +1,6 @@
-import pytest
 from uuid import UUID
+
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -9,7 +10,6 @@ from app.api.deps import get_db
 from app.database.base import Base
 from app.main import app
 from app.models.notification import Notification
-from app.models.user import User
 
 PASSWORD = "Correct-Horse-Battery-2026!"
 
