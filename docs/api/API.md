@@ -296,3 +296,5 @@ Parâmetros:
 - `limit`: opcional, entre 1 e 500; predefinição 100.
 
 A resposta apresenta observações por ordem cronológica, com `observations_count` e os valores de preço efetivamente recolhidos. O endpoint só devolve dados pertencentes ao utilizador autenticado. Se ainda não houver observações para a chave, responde `404`. Os preços não são previsões nem garantias de preço futuro; diferenças entre observações só são comparáveis quando a chave de pesquisa e a moeda coincidem.
+
+Na interface, o painel Price Intelligence permite selecionar uma oferta e visualizar o último preço, mínimo e máximo observados, número de recolhas e gráfico cronológico. Uma primeira pesquisa gera normalmente apenas o primeiro ponto; a evolução só fica visível após novas pesquisas com os mesmos critérios. A ausência de histórico é apresentada como estado vazio, não como erro. A interface não cria recolhas automáticas nem estima preços futuros.
