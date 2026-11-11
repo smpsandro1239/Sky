@@ -270,3 +270,7 @@ def test_settlements_reduce_outstanding_balances_and_reject_overpayment(client: 
         unallocated.json()["id"],
         missing_shares.json()["id"],
     }
+    assert audited_balances.json()["currencies"][0]["reconciliation"]["total_expenses"] == "41.00"
+    assert audited_balances.json()["currencies"][0]["reconciliation"]["total_paid"] == "36.00"
+    assert audited_balances.json()["currencies"][0]["reconciliation"]["total_allocated"] == "30.00"
+    assert audited_balances.json()["currencies"][0]["reconciliation"]["expense_difference"] == "6.00"
