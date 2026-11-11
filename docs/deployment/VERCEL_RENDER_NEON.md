@@ -9,7 +9,7 @@ Esta configuração mantém o frontend Next.js na Vercel, aloja a API FastAPI no
 - **Neon:** PostgreSQL gerido, fora do Render.
 - **GitHub:** repositório, histórico e GitHub Actions.
 
-O ficheiro `render.yaml` define o serviço `sky-api` no plano gratuito do Render, na região de Frankfurt, e solicita a variável `DATABASE_URL) durante a criação do Blueprint. O segredo `SKY_SECRET_KEY` é gerado pelo Render.
+O ficheiro `render.yaml` define o serviço `sky-api` no plano gratuito do Render, na região de Frankfurt, e solicita a variável `DATABASE_URL` durante a criação do Blueprint. O segredo `SKY_SECRET_KEY` é gerado pelo Render.
 
 ## 1. Criar a base de dados Neon
 
@@ -25,7 +25,7 @@ Para esta primeira implantação, utilizar a ligação direta do Neon para que a
 
 ## 2. Criar o serviço Render
 
-1. Confirmar que o commit com `render.yaml` está na branch `main).
+1. Confirmar que o commit com `render.yaml` está na branch `main`.
 2. Criar conta em [Render](https://render.com/).
 3. Escolher **New → Blueprint** e ligar o repositório `smpsandro1239/Sky`.
 4. O Render deve detetar `render.yaml` e propor o serviço `sky-api`.
