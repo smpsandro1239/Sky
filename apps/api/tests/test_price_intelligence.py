@@ -58,7 +58,7 @@ def test_record_price_observations_stores_only_valid_provider_prices():
     assert len(search_key) == 64
     assert len(db.rows) == 1
     assert db.rows[0].user_id == user_id
-    assert db.rows[0].amount == 123.45
+    assert str(db.rows[0].amount) == "123.45"
     assert db.rows[0].search_key == search_key
     assert db.rows[0].search_criteria == criteria
     assert db.committed is True
