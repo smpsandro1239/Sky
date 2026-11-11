@@ -16,6 +16,7 @@ async function proxyRequest(
   const isTripItem = new RegExp("^trips/" + UUID_PATTERN + "$").test(resource);
   const isTripAccess = new RegExp("^trips/" + UUID_PATTERN + "/access$").test(resource);
   const isTripBalances = new RegExp("^trips/" + UUID_PATTERN + "/balances$").test(resource);
+  const isTripActivity = new RegExp("^trips/" + UUID_PATTERN + "/activity$").test(resource);
   const isFlightCollection = new RegExp("^trips/" + UUID_PATTERN + "/flights$").test(resource);
   const isFlightItem = new RegExp("^trips/" + UUID_PATTERN + "/flights/" + UUID_PATTERN + "$").test(resource);
   const isAccommodationCollection = new RegExp("^trips/" + UUID_PATTERN + "/accommodations$").test(resource);
@@ -30,7 +31,7 @@ async function proxyRequest(
   const isInvitationAccept = resource === "invitations/accept";
 
   const allowed =
-    (method === "GET" && (isProfile || isCollection || isTripItem || isTripAccess || isTripBalances || isFlightCollection || isAccommodationCollection || isExpenseCollection || isExpenseSharesCollection || isParticipantCollection || isInvitationCollection)) ||
+    (method === "GET" && (isProfile || isCollection || isTripItem || isTripAccess || isTripBalances || isTripActivity || isFlightCollection || isAccommodationCollection || isExpenseCollection || isExpenseSharesCollection || isParticipantCollection || isInvitationCollection)) ||
     (method === "POST" && (isCollection || isFlightCollection || isAccommodationCollection || isExpenseCollection || isParticipantCollection || isInvitationCollection || isInvitationAccept)) ||
     (method === "PATCH" && (isTripItem || isParticipantItem || isFlightItem || isAccommodationItem || isExpenseItem || isExpenseSharesCollection)) ||
     (method === "DELETE" && (isTripItem || isFlightItem || isAccommodationItem || isExpenseItem || isParticipantItem || isInvitationItem));
