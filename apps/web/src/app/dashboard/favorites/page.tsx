@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type HotelFavorite = {
@@ -23,7 +23,7 @@ export default function HotelFavoritesPage() {
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
 
-  async function loadFavorites() {
+  const loadFavorites = useCallback(async () => {
     try {
       const response = await fetch("/api/backend/hotels/favorites", { cache: "no-store" });
       const payload = await response.json().catch(() => null);
@@ -47,11 +47,11 @@ export default function HotelFavoritesPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [router]);
 
   useEffect(() => {
     void loadFavorites();
-  }, []);
+  }, [loadFavorites]);
 
   const visibleFavorites = useMemo(() => {
     const term = search.trim().toLocaleLowerCase("pt-PT");
