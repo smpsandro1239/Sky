@@ -24,12 +24,41 @@ function jsonResponse(body, status = 200) {
 function request(body = { email: "user@example.com", password: "correct-password" }) {
   return new Request("http://localhost/api/auth/login", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", Origin: "http://localhost" },
     body: JSON.stringify(body),
   });
 }
 
 describe("POST /api/auth/login", () => {
+  it("rejects login requests without an Origin header", async () => {
+    mock.method(globalThis, "fetch", async () => {
+      assert.fail("fetch não devia ser chamado");
+    });
+
+    const response = await POST(new Request("http://localhost/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "user@example.com", password: "correct-password" }),
+    }));
+
+    assert.equal(response.status, 403);
+    assert.equal(response.headers.get("cache-control"), "no-store");
+  });
+
+  it("rejects login requests from a different origin", async () => {
+    mock.method(globalThis, "fetch", async () => {
+      assert.fail("fetch não devia ser chamado");
+    });
+
+    const response = await POST(new Request("http://localhost/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Origin: "https://attacker.example" },
+      body: JSON.stringify({ email: "user@example.com", password: "correct-password" }),
+    }));
+
+    assert.equal(response.status, 403);
+  });
+
   it("returns 400 for malformed JSON without contacting the API", async () => {
     mock.method(globalThis, "fetch", async () => {
       assert.fail("fetch não devia ser chamado");
