@@ -124,6 +124,7 @@ export default function TripDetailPage() {
   const [activityActorFilter, setActivityActorFilter] = useState("all");
   const [activityEntityFilter, setActivityEntityFilter] = useState("all");
   const [activityActionFilter, setActivityActionFilter] = useState("all");
+  const [activityAuthors, setActivityAuthors] = useState<string[]>([]);
   const [participantName, setParticipantName] = useState("");
   const [participantEmail, setParticipantEmail] = useState("");
   const [invitations, setInvitations] = useState<Invitation[]>([]);
@@ -439,6 +440,7 @@ export default function TripDetailPage() {
         setSettlements(settlementData);
         setSettlementCurrency(balanceData.currencies?.[0]?.currency ?? "EUR");
         setActivity(activityData.items ?? []);
+        setActivityAuthors([...new Set((activityData.items ?? []).map((item: TripActivity) => item.actor_name))].sort((a: string, b: string) => a.localeCompare(b, "pt-PT")));
         setActivityHasMore(Boolean(activityData.has_more));
         setActivityOffset(activityData.items?.length ?? 0);
         setInvitations(invitationData);
@@ -470,7 +472,7 @@ export default function TripDetailPage() {
     setActivityLoading(true);
     setActivityError("");
     try {
-      const response = await fetch(`/api/backend/trips/${tripId}/activity?limit=20&offset=0`, { cache: "no-store" });
+      const response = await fetch(`/api/backend/trips/${tripId}/activity?${activityQuery(20, 0)}`, { cache: "no-store" });
       if (!response.ok) throw new Error("Não foi possível atualizar o histórico.");
       const data = await response.json() as TripActivityPage;
       setActivity(data.items);
@@ -1752,7 +1754,7 @@ export default function TripDetailPage() {
                 <label>Participante / autor
                   <select value={activityActorFilter} onChange={(event) => setActivityActorFilter(event.target.value)}>
                     <option value="all">Todos</option>
-                    {[...new Set(activity.map((item) => item.actor_name))].sort((a, b) => a.localeCompare(b, "pt-PT")).map((name) => <option key={name} value={name}>{name}</option>)}
+                    {activityAuthors.map((name) => <option key={name} value={name}>{name}</option>)}
                   </select>
                 </label>
                 <label>Tipo de registo
