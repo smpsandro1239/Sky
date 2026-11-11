@@ -14,6 +14,16 @@ class FakeSession:
     def add_all(self, rows):
         self.rows.extend(rows)
 
+    def flush(self):
+        pass
+
+    def scalars(self, statement):
+        class Result:
+            @staticmethod
+            def all():
+                return []
+        return Result()
+
     def commit(self):
         self.committed = True
 
