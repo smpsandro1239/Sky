@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
 from app.core.config import settings
+from app.core.activity import record_trip_activity
 from app.core.email import send_trip_invitation_email
 from app.api.routes.trips import get_user_trip
 from app.models.invitation import TripInvitation
@@ -78,6 +79,8 @@ def create_invitation(
         expires_at=datetime.now(timezone.utc) + INVITATION_LIFETIME,
     )
     db.add(invitation)
+    db.flush()
+    record_trip_activity(db, trip_id=trip.id, actor=user, action="created", entity_type="invitation", entity_id=invitation.id, summary="criou um convite")
     db.commit()
     db.refresh(invitation)
     accept_url = (
@@ -136,6 +139,7 @@ def revoke_invitation(
     if invitation.status != "pending":
         raise HTTPException(status_code=409, detail="Só é possível revogar convites pendentes.")
     invitation.status = "revoked"
+    record_trip_activity(db, trip_id=trip.id, actor=user, action="revoked", entity_type="invitation", entity_id=invitation.id, summary="revogou um convite")
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -202,6 +206,7 @@ def accept_invitation(
 
     invitation.status = "accepted"
     invitation.accepted_at = now
+    record_trip_activity(db, trip_id=invitation.trip_id, actor=user, action="accepted", entity_type="invitation", entity_id=invitation.id, summary="aceitou um convite para a viagem")
     db.commit()
     db.refresh(invitation)
     return invitation
