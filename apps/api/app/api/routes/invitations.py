@@ -1,13 +1,13 @@
 import hashlib
 import secrets
 from datetime import datetime, timedelta, timezone
-from uuid import UUID
+from urllib.parse import quote\nfrom uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user, get_db
+from app.api.deps import get_current_user, get_db\nfrom app.core.config import settings\nfrom app.core.email import send_trip_invitation_email
 from app.api.routes.trips import get_user_trip
 from app.models.invitation import TripInvitation
 from app.models.participant import TripParticipant
