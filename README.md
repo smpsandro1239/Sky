@@ -8,7 +8,7 @@ A visão de longo prazo é uma plataforma integral de viagens. O princípio cent
 
 ## Estado do projeto
 
-**Fases 1 e 2 concluídas. Fase 3 em implementação.** A base técnica inclui Docker Compose, PostgreSQL, Redis, API FastAPI, autenticação JWT, migrações Alembic e frontend Next.js.
+**Fases 1 e 2 concluídas. Fase 3 — fundações e planeamento colaborativo — implementada na API e frontend.** A validação funcional ponta a ponta em Docker/browser continua pendente. A base técnica inclui Docker Compose, PostgreSQL, Redis, API FastAPI, autenticação JWT, migrações Alembic e frontend Next.js.
 
 | Área | Estado |
 |---|---|
@@ -32,7 +32,7 @@ A visão de longo prazo é uma plataforma integral de viagens. O princípio cent
 | Pesquisa externa, recomendações e favoritos | Por implementar |
 | Reservas e pagamentos | Fase futura |
 
-As páginas de autenticação e dashboard estão implementadas no código, mas ainda precisam de validação funcional em Docker e testes de ponta a ponta. Não existe ainda pesquisa real de inventário nem ligação a fornecedores externos. Os convites podem ser criados e aceites por link; o envio automático por email ainda não está configurado.
+As páginas de autenticação e dashboard estão implementadas no código, mas ainda precisam de validação funcional em Docker e testes de ponta a ponta. Não existe ainda pesquisa real de inventário nem ligação a fornecedores externos. Os convites podem ser criados e aceites por link; o envio por email está disponível quando o SMTP é configurado através das variáveis `SMTP_*` no ficheiro `.env.example`. Sem SMTP, o link pode ser partilhado manualmente.
 
 ## Produto e roadmap funcional
 
@@ -112,7 +112,7 @@ Requisitos: Docker Desktop com Docker Compose e Git.
 
 Parar: `docker compose down`. Para remover também os dados da base de dados: `docker compose down -v` (ação destrutiva).
 
-**Nota:** o dashboard permite gerir viagens e a página de detalhe permite registar, editar e eliminar voos e alojamentos associados. Estas operações usam a API através do BFF autenticado. A validação funcional ponta a ponta em Docker/browser ainda não está confirmada. A CI da versão anterior à implementação da divisão de despesas concluiu com sucesso; consultar [GitHub Actions](https://github.com/smpsandro1239/Sky/actions) para o resultado das alterações mais recentes. A pesquisa de inventário real e as reservas não estão implementadas. Os convites para participantes já podem ser criados e aceites através de links; o envio automático por email ainda não está configurado.
+**Nota:** o dashboard permite gerir viagens, voos, alojamentos e despesas, incluindo partilhas, balanços e acesso colaborativo por proprietário/editor/leitor. As operações usam a API através do BFF autenticado. A CI mais recente para o código funcional concluiu com sucesso: testes API, migrações, ESLint e TypeScript. A validação funcional ponta a ponta em Docker/browser ainda não está confirmada. A pesquisa de inventário real, integração com fornecedores e reservas não estão implementadas. O envio de convites por email requer configuração SMTP.
 
 ## Documentação
 
