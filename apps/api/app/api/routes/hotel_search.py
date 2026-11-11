@@ -16,7 +16,7 @@ from app.models.hotel_favorite import HotelFavorite
 from app.schemas.hotel_favorite import HotelFavoriteCreate, HotelFavoriteResponse
 from app.schemas.hotel_search import HotelSearchRequest, HotelSearchOffer, HotelSearchResponse
 from app.services.hotel_recommendations import rank_hotel_offers
-from app.services.price_intelligence import record_price_observations
+from app.services.price_intelligence import build_item_fingerprint, record_price_observations
 from app.services.amadeus_hotels import (
     HotelProviderError,
     HotelProviderNotConfigured,
@@ -78,9 +78,18 @@ def _map_offers(hotel_results: list[dict[str, Any]], criteria: HotelSearchReques
                 payment_type = policies.get("paymentType")
                 cancellation_deadline = cancellation.get("deadline")
                 cancellation_text = cancellation_description.get("text")
+                stable_identity = {
+                    "hotel_id": hotel_id,
+                    "room_description": str(description.get("text") or "").strip().casefold(),
+                    "board_type": str(board or "").strip().upper(),
+                    "payment_type": str(payment_type or "").strip().upper(),
+                    "cancellation_deadline": str(cancellation_deadline or "").strip(),
+                    "cancellation_description": str(cancellation_text or "").strip().casefold(),
+                }
                 offers.append(
                     HotelSearchOffer(
                         id=offer_id,
+                        price_tracking_key=build_item_fingerprint("hotel", stable_identity),
                         provider="amadeus",
                         hotel_name=hotel_name,
                         hotel_id=hotel_id,
@@ -148,7 +157,7 @@ async def search_hotels(
         criteria=criteria_data,
         observations=[
             {
-                "item_key": f"{offer.hotel_id}:{offer.id}",
+                "item_key": offer.price_tracking_key,
                 "item_name": offer.hotel_name,
                 "provider": offer.provider,
                 "amount": offer.price_total,
