@@ -20,6 +20,17 @@ type FlightOffer = {
   itineraries: FlightSegment[][];
 };
 
+type SavedFlight = {
+  id: string;
+  provider: string | null;
+  origin: string;
+  destination: string;
+  departure_at: string;
+  arrival_at: string | null;
+  price_amount: string | null;
+  price_currency: string;
+};
+
 type FlightSearchResponse = {
   provider: "amadeus";
   results_count: number;
@@ -44,7 +55,15 @@ function formatPrice(amount: string, currency: string) {
   }).format(value);
 }
 
-export default function FlightSearchPanel() {
+export default function FlightSearchPanel({
+  tripId,
+  canEdit,
+  onFlightsSaved,
+}: {
+  tripId: string;
+  canEdit: boolean;
+  onFlightsSaved: (flights: SavedFlight[]) => void;
+}) {
   const [origin, setOrigin] = useState("OPO");
   const [destination, setDestination] = useState("");
   const [departureDate, setDepartureDate] = useState("");
@@ -55,6 +74,59 @@ export default function FlightSearchPanel() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [results, setResults] = useState<FlightSearchResponse | null>(null);
+  const [savingOfferId, setSavingOfferId] = useState<string | null>(null);
+  const [saveMessage, setSaveMessage] = useState("");
+
+  async function saveOffer(offer: FlightOffer) {
+    if (!canEdit || savingOfferId) return;
+    const segments = offer.itineraries.flat();
+    if (segments.length === 0) {
+      setSaveMessage("Esta oferta não contém segmentos de voo para guardar.");
+      return;
+    }
+
+    setSavingOfferId(offer.id);
+    setSaveMessage("");
+    const saved: SavedFlight[] = [];
+
+    try {
+      for (const [index, segment] of segments.entries()) {
+        const response = await fetch("/api/backend/trips/" + tripId + "/flights", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            provider: "Amadeus · " + segment.carrier + " " + segment.flight_number,
+            origin: segment.origin,
+            destination: segment.destination,
+            departure_at: segment.departure_at,
+            arrival_at: segment.arrival_at,
+            price_amount: index === 0 ? Number(offer.price_total) : null,
+            price_currency: offer.currency,
+          }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(typeof data.detail === "string" ? data.detail : "Não foi possível guardar todos os segmentos da oferta.");
+        }
+        saved.push(data as SavedFlight);
+      }
+
+      onFlightsSaved(saved);
+      setSaveMessage(
+        saved.length === 1
+          ? "Voo guardado na viagem."
+          : saved.length + " segmentos guardados na viagem. O preço total foi registado apenas no primeiro segmento para evitar duplicação.",
+      );
+    } catch (cause) {
+      if (saved.length > 0) onFlightsSaved(saved);
+      setSaveMessage(
+        (cause instanceof Error ? cause.message : "Ocorreu um erro ao guardar a oferta.") +
+        (saved.length > 0 ? " Foram guardados " + saved.length + " segmento(s); os restantes não foram guardados." : ""),
+      );
+    } finally {
+      setSavingOfferId(null);
+    }
+  }
 
   async function search(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -169,6 +241,11 @@ export default function FlightSearchPanel() {
               <div>
                 <h3>{formatPrice(offer.price_total, offer.currency)}</h3>
                 <p>{offer.number_of_stops === 0 ? "Direto" : offer.number_of_stops + " escala(s)"} · Amadeus</p>
+                {canEdit && (
+                  <button className="secondary-button" type="button" disabled={savingOfferId !== null} onClick={() => void saveOffer(offer)}>
+                    {savingOfferId === offer.id ? "A guardar..." : "Guardar na viagem"}
+                  </button>
+                )}
                 {offer.itineraries.map((itinerary, itineraryIndex) => (
                   <div key={itineraryIndex}>
                     <strong>{itineraryIndex === 0 ? "Ida" : "Regresso"}</strong>
