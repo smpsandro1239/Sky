@@ -1159,6 +1159,45 @@ export default function TripDetailPage() {
               </section>
             )}
 
+            <section className="financial-report-print" aria-label="Relatório financeiro para impressão">
+              <header>
+                <p>SKY · RELATÓRIO FINANCEIRO</p>
+                <h1>{trip.name}</h1>
+                <p>{trip.destination}{trip.start_date ? " · " + trip.start_date : ""}{trip.end_date ? " — " + trip.end_date : ""}</p>
+                <p>Gerado em {new Date().toLocaleDateString("pt-PT")} · Período das despesas: {expenseDateFrom || "início"} a {expenseDateTo || "fim"}</p>
+              </header>
+              <section>
+                <h2>Orçamento</h2>
+                {budgetComparison ? (
+                  <table><tbody>
+                    <tr><th>Orçamento definido</th><td>{(budgetComparison.budgetCents / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {trip.budget_currency}</td></tr>
+                    <tr><th>Custos registados</th><td>{(budgetComparison.spentCents / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {trip.budget_currency}</td></tr>
+                    <tr><th>{budgetComparison.differenceCents >= 0 ? "Disponível" : "Excedido"}</th><td>{(Math.abs(budgetComparison.differenceCents) / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {trip.budget_currency}</td></tr>
+                  </tbody></table>
+                ) : <p>Não existe orçamento definido.</p>}
+                {budgetComparison && budgetComparison.otherCurrencies.length > 0 && <p>Existem custos noutras moedas que não entram nesta comparação: {budgetComparison.otherCurrencies.join(", ")}.</p>}
+              </section>
+              <section>
+                <h2>Despesas por categoria</h2>
+                {Object.keys(expenseBreakdown).length === 0 ? <p>Sem despesas no período selecionado.</p> : Object.entries(expenseBreakdown).sort(([a], [b]) => a.localeCompare(b)).map(([currency, categories]) => (
+                  <div key={currency}><h3>{currency}</h3><table><tbody>{Object.entries(categories).sort(([, a], [, b]) => b - a).map(([category, amount]) => <tr key={category}><th>{expenseCategoryLabels[category] ?? category}</th><td>{(amount / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}</td></tr>)}</tbody></table></div>
+                ))}
+              </section>
+              <section>
+                <h2>Evolução mensal</h2>
+                {Object.keys(expenseTimeline).length === 0 ? <p>Sem dados mensais no período selecionado.</p> : Object.entries(expenseTimeline).sort(([a], [b]) => a.localeCompare(b)).map(([currency, months]) => (
+                  <div key={currency}><h3>{currency}</h3><table><tbody>{Object.entries(months).sort(([a], [b]) => a.localeCompare(b)).map(([month, amount]) => <tr key={month}><th>{month}</th><td>{(amount / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}</td></tr>)}</tbody></table></div>
+                ))}
+              </section>
+              <section>
+                <h2>Resumo por participante</h2>
+                {balances.currencies.length === 0 ? <p>Não existem balanços calculados.</p> : balances.currencies.map((group) => (
+                  <div key={group.currency}><h3>{group.currency}</h3><table><thead><tr><th>Participante</th><th>Pago</th><th>Quota</th><th>Acertos enviados</th><th>Acertos recebidos</th><th>Saldo líquido</th></tr></thead><tbody>{group.participants.map((participant) => <tr key={participant.participant_id}><th>{participant.name}</th><td>{Number(participant.paid).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td><td>{Number(participant.owed).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td><td>{Number(participant.settled_sent ?? "0").toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td><td>{Number(participant.settled_received ?? "0").toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td><td>{Number(participant.net).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td></tr>)}</tbody></table></div>
+                ))}
+              </section>
+              <footer>Relatório gerado a partir dos registos atuais da viagem. As moedas são apresentadas separadamente, sem conversão cambial. O histórico financeiro é reconstruído a partir dos dados atuais e não constitui um registo de auditoria imutável.</footer>
+            </section>
+
             {expenses.length > 0 && (
               <section className="expense-breakdown" aria-labelledby="expense-breakdown-title">
                 <div>
@@ -1167,6 +1206,7 @@ export default function TripDetailPage() {
                   <p className="budget-description">Distribuição das despesas manuais por categoria. Cada moeda é analisada separadamente.</p>
                 </div>
                 <button className="secondary-button" type="button" onClick={exportFinancialReport} disabled={Object.keys(expenseBreakdown).length === 0 && balances.currencies.length === 0 && !budgetComparison}>Exportar relatório financeiro CSV</button>
+                <button className="secondary-button" type="button" onClick={() => window.print()} disabled={expenses.length === 0 && balances.currencies.length === 0 && !budgetComparison}>Imprimir / Guardar PDF</button>
                 <div className="expense-breakdown-groups">
                   {Object.entries(expenseBreakdown).sort(([a], [b]) => a.localeCompare(b)).map(([currency, categories]) => {
                     const total = Object.values(categories).reduce((sum, amount) => sum + amount, 0);
