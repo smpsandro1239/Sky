@@ -588,3 +588,12 @@ footer { border-top: 1px solid #1c3043; padding: 25px 28px; text-align: center; 
 @media (max-width: 800px) { .participant-budget-form { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 520px) { .participant-budget-form { grid-template-columns: 1fr; } }
 @media print { .participant-budget-form, .participant-budget-heading button { display: none !important; } .participant-budget-card, .participant-budget-track { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
+
+
+/* Monthly category budget planning */
+.trip-budget-plans-panel { margin-top: 28px; }
+.trip-budget-plans-panel .participant-budget-form { grid-template-columns: repeat(4, minmax(120px, 1fr)) auto; }
+.trip-budget-plans-panel .participant-budget-form label { min-width: 0; }
+.trip-budget-plans-panel .participant-budget-form input[type="month"] { color-scheme: dark; }
+@media (max-width: 980px) { .trip-budget-plans-panel .participant-budget-form { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .trip-budget-plans-panel .participant-budget-form { grid-template-columns: 1fr; } }
