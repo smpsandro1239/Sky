@@ -5,6 +5,7 @@ Cada pesquisa activa é limitada por uma chave Redis com TTL para evitar chamada
 """
 import asyncio
 import logging
+from datetime import datetime, timezone
 import time
 from typing import Any
 from uuid import UUID
@@ -46,8 +47,8 @@ def _active_searches(db: Session) -> list[dict[str, Any]]:
         key = (alert.user_id, alert.search_type, alert.search_key)
         if key in grouped:
             continue
-        criteria = db.scalar(
-            select(PriceObservation.search_criteria)
+        latest = db.scalar(
+            select(PriceObservation)
             .where(
                 PriceObservation.user_id == alert.user_id,
                 PriceObservation.search_type == alert.search_type,
@@ -56,14 +57,15 @@ def _active_searches(db: Session) -> list[dict[str, Any]]:
             .order_by(PriceObservation.captured_at.desc())
             .limit(1)
         )
-        if not isinstance(criteria, dict) or not criteria:
+        if latest is None or not isinstance(latest.search_criteria, dict):
             logger.warning("Sem critérios guardados para pesquisa %s", alert.search_key)
             continue
         grouped[key] = {
             "user_id": alert.user_id,
             "search_type": alert.search_type,
             "search_key": alert.search_key,
-            "criteria": criteria,
+            "criteria": latest.search_criteria,
+            "last_captured_at": latest.captured_at,
         }
     return list(grouped.values())
 
@@ -112,6 +114,15 @@ def monitor_once(client: redis.Redis, db: Session) -> int:
             f"sky:price-monitor:{search['user_id']}:"
             f"{search['search_type']}:{search['search_key']}"
         )
+        last_captured_at = search["last_captured_at"]
+        if last_captured_at.tzinfo is None:
+            last_captured_at = last_captured_at.replace(tzinfo=timezone.utc)
+        remaining = settings.price_monitor_interval_seconds - int(
+            (datetime.now(timezone.utc) - last_captured_at).total_seconds()
+        )
+        if remaining > 0:
+            client.set(lock_key, "recent-database-capture", nx=True, ex=remaining)
+            continue
         acquired = client.set(
             lock_key,
             str(int(time.time())),
