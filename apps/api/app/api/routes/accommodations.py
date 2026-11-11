@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
 from app.core.activity import record_trip_activity
+from app.core.notifications import notify_trip_members
 from app.api.routes.trips import get_accessible_trip, get_user_trip, require_trip_editor
 from app.models.accommodation import Accommodation
 from app.models.user import User
@@ -45,6 +46,7 @@ def create_accommodation(
     db.add(accommodation)
     db.flush()
     record_trip_activity(db, trip_id=trip.id, actor=user, action="created", entity_type="accommodation", entity_id=accommodation.id, summary="adicionou um alojamento")
+    notify_trip_members(db, trip=trip, actor_user_id=user.id, notification_type="trip_accommodation_created", title="Novo alojamento na viagem", message=f"Foi adicionado o alojamento {accommodation.name}.", metadata={"accommodation_id": str(accommodation.id), "name": accommodation.name})
     db.commit()
     db.refresh(accommodation)
     return accommodation
@@ -87,6 +89,7 @@ def update_accommodation(
     for field, value in validated.model_dump().items():
         setattr(accommodation, field, value)
     record_trip_activity(db, trip_id=trip.id, actor=user, action="updated", entity_type="accommodation", entity_id=accommodation.id, summary="atualizou um alojamento")
+    notify_trip_members(db, trip=trip, actor_user_id=user.id, notification_type="trip_accommodation_updated", title="Alojamento actualizado", message=f"O alojamento {accommodation.name} foi actualizado.", metadata={"accommodation_id": str(accommodation.id), "name": accommodation.name, "changed_fields": sorted(changes)})
     db.commit()
     db.refresh(accommodation)
     return accommodation
@@ -102,6 +105,7 @@ def delete_accommodation(
     trip = require_trip_editor(db, trip_id, user.id)
     accommodation = get_trip_accommodation(db, trip.id, accommodation_id)
     record_trip_activity(db, trip_id=trip.id, actor=user, action="deleted", entity_type="accommodation", entity_id=accommodation.id, summary="eliminou um alojamento")
+    notify_trip_members(db, trip=trip, actor_user_id=user.id, notification_type="trip_accommodation_deleted", title="Alojamento eliminado", message=f"O alojamento {accommodation.name} foi eliminado.", metadata={"accommodation_id": str(accommodation.id), "name": accommodation.name})
     db.delete(accommodation)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
