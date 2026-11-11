@@ -1083,17 +1083,34 @@ export default function TripDetailPage() {
             {balances.currencies.length > 0 && (
               <section className="balances-panel" aria-labelledby="balances-title">
                 <div><p className="eyebrow">ACERTO DE CONTAS</p><h2 id="balances-title">Saldo entre participantes</h2><p className="budget-description">Só inclui despesas com pagador identificado e divisão guardada. Valores positivos indicam a receber; valores negativos indicam a pagar.</p></div>
-                {balances.currencies.map((group) => (
+                {balances.currencies.map((group) => {
+                  const totalPaid = group.participants.reduce((sum, entry) => sum + Math.max(0, Number(entry.paid) || 0), 0);
+                  const totalOwed = group.participants.reduce((sum, entry) => sum + Math.max(0, Number(entry.owed) || 0), 0);
+                  return (
                   <div className="balance-currency" key={group.currency}>
                     <h3>{group.currency}</h3>
+                    <p className="budget-description">Análise da contribuição e da quota individual. As percentagens são calculadas dentro desta moeda.</p>
                     <div className="balance-list">
-                      {group.participants.map((entry) => (
-                        <div className="balance-row" key={entry.participant_id}>
+                      {group.participants.map((entry) => {
+                        const paid = Number(entry.paid) || 0;
+                        const owed = Number(entry.owed) || 0;
+                        const sent = Number(entry.settled_sent ?? "0") || 0;
+                        const received = Number(entry.settled_received ?? "0") || 0;
+                        const paidShare = totalPaid > 0 ? (paid / totalPaid) * 100 : 0;
+                        const owedShare = totalOwed > 0 ? (owed / totalOwed) * 100 : 0;
+                        return (
+                        <div className="balance-row balance-analysis-row" key={entry.participant_id}>
                           <strong>{entry.name}</strong>
-                          <span>Pagou {Number(entry.paid).toLocaleString("pt-PT", { minimumFractionDigits: 2 })} · Parte {Number(entry.owed).toLocaleString("pt-PT", { minimumFractionDigits: 2 })} · Acertos enviados {Number(entry.settled_sent ?? "0").toLocaleString("pt-PT", { minimumFractionDigits: 2 })}</span>
-                          <b className={Number(entry.net) >= 0 ? "balance-positive" : "balance-negative"}>{Number(entry.net) > 0 ? "A receber " : Number(entry.net) < 0 ? "A pagar " : ""}{Math.abs(Number(entry.net)).toLocaleString("pt-PT", { minimumFractionDigits: 2 })} {group.currency}</b>
+                          <div className="balance-analysis-metrics">
+                            <span>Pagou <b>{paid.toLocaleString("pt-PT", { minimumFractionDigits: 2 })} {group.currency}</b><small>{paidShare.toLocaleString("pt-PT", { maximumFractionDigits: 1 })}% do total pago</small></span>
+                            <span>Parte atribuída <b>{owed.toLocaleString("pt-PT", { minimumFractionDigits: 2 })} {group.currency}</b><small>{owedShare.toLocaleString("pt-PT", { maximumFractionDigits: 1 })}% das quotas</small></span>
+                            <span>Acertos enviados <b>{sent.toLocaleString("pt-PT", { minimumFractionDigits: 2 })} {group.currency}</b></span>
+                            <span>Acertos recebidos <b>{received.toLocaleString("pt-PT", { minimumFractionDigits: 2 })} {group.currency}</b></span>
+                          </div>
+                          <b className={Number(entry.net) >= 0 ? "balance-positive" : "balance-negative"}>{Number(entry.net) > 0 ? "A receber " : Number(entry.net) < 0 ? "A pagar " : "Saldo regularizado "}{Math.abs(Number(entry.net)).toLocaleString("pt-PT", { minimumFractionDigits: 2 })} {group.currency}</b>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                     {group.suggested_transfers.length > 0 && (
                       <div className="settlement-list">
@@ -1106,7 +1123,8 @@ export default function TripDetailPage() {
                       </div>
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </section>
             )}
             {balances.currencies.length > 0 && (
