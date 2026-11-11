@@ -50,12 +50,7 @@ def replace_expense_shares(
     lock_trip_financials(db, trip.id)
     expense = get_trip_expense(db, trip.id, expense_id)
 
-    existing_shares = db.scalar(
-        select(ExpenseShare.id)
-        .where(ExpenseShare.expense_id == expense.id)
-        .limit(1)
-    )
-    if existing_shares is not None and trip_has_settlements(db, trip.id):
+    if trip_has_settlements(db, trip.id):
         raise HTTPException(
             status_code=409,
             detail=(
